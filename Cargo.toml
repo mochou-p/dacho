@@ -1,0 +1,14 @@
+# dacho/Cargo.toml
+
+[package]
+name        = "dacho"
+version     = "0.1.0"
+authors     = ["mochou-p"]
+edition     = "2021"
+
+description = "Dacho - Vulkan engine"
+repository  = "https://github.com/mochou-p/dacho"
+license     = "MIT OR Apache-2.0"
+keywords    = ["vulkan", "engine", "renderer", "ash", "winit"]
+categories  = ["game-development", "game-engines", "graphics", "rendering", "rendering::engine"]
+
