@@ -43,6 +43,8 @@ fn main() -> Result<()> {
         unsafe { instance.create_device(physical_device, &create_info, None) }?
     };
 
+    let _queue = unsafe { device.get_device_queue(0, 0) };
+
     let event_loop = EventLoop::new()?;
 
     let _window = WindowBuilder::new()
