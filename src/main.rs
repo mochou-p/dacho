@@ -3,7 +3,7 @@
 use anyhow::{Context, Result};
 
 use ash::{
-    extensions::khr::Surface,
+    extensions::khr::{Surface, Swapchain},
     vk
 };
 
@@ -42,6 +42,8 @@ fn main() -> Result<()> {
     let device = {
         let queue_priorities = [1.0];
 
+        let extension_names = [Swapchain::name().as_ptr()];
+
         let queue_create_infos = [
             vk::DeviceQueueCreateInfo::builder()
                 .queue_family_index(0)
@@ -50,7 +52,8 @@ fn main() -> Result<()> {
         ];
 
         let create_info = vk::DeviceCreateInfo::builder()
-            .queue_create_infos(&queue_create_infos);
+            .queue_create_infos(&queue_create_infos)
+            .enabled_extension_names(&extension_names);
 
         unsafe { instance.create_device(physical_device, &create_info, None) }?
     };
@@ -61,7 +64,9 @@ fn main() -> Result<()> {
         .with_title("dacho")
         .build(&event_loop)?;
 
-    let surface_khr = unsafe { ash_window::create_surface(
+    let surface_loader = Surface::new(&entry, &instance);
+    
+    let surface = unsafe { ash_window::create_surface(
         &entry,
         &instance,
         window.raw_display_handle(),
@@ -69,7 +74,38 @@ fn main() -> Result<()> {
         None
     ) }?;
 
-    let surface = Surface::new(&entry, &instance);
+    let swapchain_loader = Swapchain::new(&instance, &device);
+
+    let swapchain = {
+        let surface_capabilities = unsafe { surface_loader.get_physical_device_surface_capabilities(
+            physical_device, surface
+        ) }?;
+
+        let surface_formats = unsafe { surface_loader.get_physical_device_surface_formats(
+            physical_device, surface
+        ) }?;
+
+        let queue_families = [0];
+
+        let create_info = vk::SwapchainCreateInfoKHR::builder()
+            .surface(surface)
+            .min_image_count(
+                3.max(surface_capabilities.min_image_count)
+                    .min(surface_capabilities.max_image_count)
+            )
+            .image_format(surface_formats.first().context("No surface formats")?.format)
+            .image_color_space(surface_formats.first().context("No surface formats")?.color_space)
+            .image_extent(surface_capabilities.current_extent)
+            .image_array_layers(1)
+            .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+            .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
+            .queue_family_indices(&queue_families)
+            .pre_transform(surface_capabilities.current_transform)
+            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+            .present_mode(vk::PresentModeKHR::FIFO);
+    
+        unsafe { swapchain_loader.create_swapchain(&create_info, None) }?
+    };
 
     event_loop.run(move |event, _| {
         match event {
@@ -77,9 +113,12 @@ fn main() -> Result<()> {
         }
     })?;
 
-    unsafe {  surface.destroy_surface(surface_khr, None); };
-    unsafe {   device.destroy_device(None);               };
-    unsafe { instance.destroy_instance(None);             };
+    unsafe {
+        swapchain_loader.destroy_swapchain(swapchain, None);
+        device.destroy_device(None);
+        surface_loader.destroy_surface(surface, None);
+        instance.destroy_instance(None);
+    };
 
     Ok(())
 }
