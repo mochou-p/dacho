@@ -1,5 +1,7 @@
 // dacho/src/main.rs
 
+use anyhow::{Context, Result};
+
 use ash::vk;
 
 use winit::{
@@ -7,7 +9,7 @@ use winit::{
     window::WindowBuilder
 };
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<()> {
     let entry = unsafe { ash::Entry::load() }?;
 
     let instance = {
@@ -19,6 +21,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         unsafe { entry.create_instance(&create_info, None) }?
     };
+
+    let _physical_device = unsafe { instance.enumerate_physical_devices() }?
+        .into_iter()
+        .next()
+        .context("No physical devices")?;
 
     let event_loop = EventLoop::new()?;
 

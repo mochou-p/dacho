@@ -12,8 +12,9 @@ keywords    = ["vulkan", "engine", "renderer", "ash", "winit"]
 categories  = ["game-development", "game-engines", "graphics", "rendering", "rendering::engine"]
 
 [dependencies]
-ash   = "0.37.3"
-winit = "0.29.15"
+anyhow = "1.0.81"
+ash    = "0.37.3"
+winit  = "0.29.15"
 
 [profile.dev]
 opt-level = 1
