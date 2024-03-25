@@ -14,6 +14,12 @@ use winit::{
     window::WindowBuilder
 };
 
+fn read_shader<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<u32>> {
+    let u8_vec = std::fs::read(path)?;
+
+    Ok(unsafe { std::mem::transmute(u8_vec) })
+}
+
 fn main() -> Result<()> {
     let event_loop = EventLoop::new()?;
 
@@ -128,6 +134,31 @@ fn main() -> Result<()> {
         let image_view = unsafe { device.create_image_view(&create_info, None) }?;
 
         swapchain_image_views.push(image_view);
+    }
+
+    {
+        let vert_module = {
+            let code = read_shader("assets/shaders/test/bin/vert.spv")?;
+
+            let create_info = vk::ShaderModuleCreateInfo::builder()
+                .code(&code);
+
+            unsafe { device.create_shader_module(&create_info, None) }?
+        };
+
+        let frag_module = {
+            let code = read_shader("assets/shaders/test/bin/frag.spv")?;
+
+            let create_info = vk::ShaderModuleCreateInfo::builder()
+                .code(&code);
+
+            unsafe { device.create_shader_module(&create_info, None) }?
+        };
+
+        unsafe {
+            device.destroy_shader_module(frag_module, None);
+            device.destroy_shader_module(vert_module, None);
+        }
     }
 
     event_loop.run(move |event, _| {
