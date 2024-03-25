@@ -155,6 +155,23 @@ fn main() -> Result<()> {
             unsafe { device.create_shader_module(&create_info, None) }?
         };
 
+        let entry_point = std::ffi::CString::new("main")?;
+
+        let vert_stage = vk::PipelineShaderStageCreateInfo::builder()
+            .stage(vk::ShaderStageFlags::VERTEX)
+            .module(vert_module)
+            .name(&entry_point);
+
+        let frag_stage = vk::PipelineShaderStageCreateInfo::builder()
+            .stage(vk::ShaderStageFlags::FRAGMENT)
+            .module(frag_module)
+            .name(&entry_point);
+
+        let _shader_stages = vec![
+            vert_stage.build(),
+            frag_stage.build()
+        ];
+
         unsafe {
             device.destroy_shader_module(frag_module, None);
             device.destroy_shader_module(vert_module, None);
@@ -166,6 +183,7 @@ fn main() -> Result<()> {
             _ => ()
         }
     })?;
+
 
     for image_view in &swapchain_image_views {
         unsafe { device.destroy_image_view(*image_view, None); }
