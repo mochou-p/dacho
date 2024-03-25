@@ -107,11 +107,38 @@ fn main() -> Result<()> {
         unsafe { swapchain_loader.create_swapchain(&create_info, None) }?
     };
 
+    let swapchain_images = unsafe { swapchain_loader.get_swapchain_images(swapchain) }?;
+
+    let mut swapchain_image_views = Vec::with_capacity(swapchain_images.len());
+
+    for image in &swapchain_images {
+        let subresource_range = vk::ImageSubresourceRange::builder()
+            .aspect_mask(vk::ImageAspectFlags::COLOR)
+            .base_mip_level(0)
+            .level_count(1)
+            .base_array_layer(0)
+            .layer_count(1);
+
+        let create_info = vk::ImageViewCreateInfo::builder()
+            .image(*image)
+            .view_type(vk::ImageViewType::TYPE_2D)
+            .format(vk::Format::B8G8R8A8_UNORM)
+            .subresource_range(*subresource_range);
+
+        let image_view = unsafe { device.create_image_view(&create_info, None) }?;
+
+        swapchain_image_views.push(image_view);
+    }
+
     event_loop.run(move |event, _| {
         match event {
             _ => ()
         }
     })?;
+
+    for image_view in &swapchain_image_views {
+        unsafe { device.destroy_image_view(*image_view, None); }
+    }
 
     unsafe {
         swapchain_loader.destroy_swapchain(swapchain, None);
