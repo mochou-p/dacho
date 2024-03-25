@@ -136,6 +136,60 @@ fn main() -> Result<()> {
         swapchain_image_views.push(image_view);
     }
 
+    let render_pass = {
+        let format = unsafe { surface_loader.get_physical_device_surface_formats(physical_device, surface) }?
+            .first()
+            .context("No swapchain formats")?
+            .format;
+
+        let attachments = [
+            vk::AttachmentDescription::builder()
+                .format(format)
+                .load_op(vk::AttachmentLoadOp::CLEAR)
+                .store_op(vk::AttachmentStoreOp::STORE)
+                .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+                .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+                .initial_layout(vk::ImageLayout::UNDEFINED)
+                .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
+                .samples(vk::SampleCountFlags::TYPE_1)
+                .build()
+        ];
+
+        let attachment_references = [
+            vk::AttachmentReference::builder()
+                .attachment(0)
+                .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+                .build()
+        ];
+
+        let subpasses = [
+            vk::SubpassDescription::builder()
+                .color_attachments(&attachment_references)
+                .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
+                .build()
+        ];
+
+        let subpass_dependencies = [
+            vk::SubpassDependency::builder()
+                .src_subpass(vk::SUBPASS_EXTERNAL)
+                .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .dst_subpass(0)
+                .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                .dst_access_mask(
+                    vk::AccessFlags::COLOR_ATTACHMENT_READ |
+                    vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+                )
+                .build()
+        ];
+
+        let create_info = vk::RenderPassCreateInfo::builder()
+                .attachments(&attachments)
+                .subpasses(&subpasses)
+                .dependencies(&subpass_dependencies);
+
+        unsafe { device.create_render_pass(&create_info, None) }?
+    };
+
     {
         let vert_module = {
             let code = read_shader("assets/shaders/test/bin/vert.spv")?;
@@ -190,6 +244,7 @@ fn main() -> Result<()> {
     }
 
     unsafe {
+        device.destroy_render_pass(render_pass, None);
         swapchain_loader.destroy_swapchain(swapchain, None);
         device.destroy_device(None);
         surface_loader.destroy_surface(surface, None);
