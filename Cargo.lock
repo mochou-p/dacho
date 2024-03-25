@@ -331,6 +331,7 @@ dependencies = [
  "anyhow",
  "ash",
  "ash-window",
+ "bytemuck",
  "raw-window-handle 0.5.2",
  "winit",
 ]

@@ -14,10 +14,11 @@ use winit::{
     window::WindowBuilder
 };
 
-fn read_shader<P: AsRef<std::path::Path>>(path: P) -> Result<Vec<u32>> {
-    let u8_vec = std::fs::read(path)?;
+fn read_spirv(path: &str) -> Result<Vec<u32>> {
+    let bytes = &std::fs::read(path)?;
+    let words = bytemuck::cast_slice::<u8, u32>(bytes);
 
-    Ok(unsafe { std::mem::transmute(u8_vec) })
+    Ok(words.to_vec())
 }
 
 fn main() -> Result<()> {
@@ -212,9 +213,15 @@ fn main() -> Result<()> {
         framebuffers.push(framebuffer);
     }
 
-    {
+    let pipeline_layout = {
+        let create_info = vk::PipelineLayoutCreateInfo::builder();
+
+        unsafe { device.create_pipeline_layout(&create_info, None) }?
+    };
+
+    let pipeline = {
         let vert_module = {
-            let code = read_shader("assets/shaders/test/bin/vert.spv")?;
+            let code = read_spirv("assets/shaders/test/bin/vert.spv")?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -223,7 +230,7 @@ fn main() -> Result<()> {
         };
 
         let frag_module = {
-            let code = read_shader("assets/shaders/test/bin/frag.spv")?;
+            let code = read_spirv("assets/shaders/test/bin/frag.spv")?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -243,16 +250,101 @@ fn main() -> Result<()> {
             .module(frag_module)
             .name(&entry_point);
 
-        let _shader_stages = vec![
+        let stages = vec![
             vert_stage.build(),
             frag_stage.build()
+        ]; 
+
+        let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder();
+
+        let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::builder()
+            .topology(vk::PrimitiveTopology::POINT_LIST);
+
+        let viewports = [
+            vk::Viewport::builder()
+                .x(0.0)
+                .y(0.0)
+                .width(swapchain_extent.width as f32)
+                .height(swapchain_extent.height as f32)
+                .min_depth(0.0)
+                .max_depth(1.0)
+                .build()
         ];
+
+        let scissors = [
+            vk::Rect2D::builder()
+                .offset(
+                    vk::Offset2D::builder()
+                        .x(0)
+                        .y(0)
+                        .build()
+                )
+                .extent(swapchain_extent)
+                .build()
+        ];
+
+        let viewport_state = vk::PipelineViewportStateCreateInfo::builder()
+            .viewports(&viewports)
+            .scissors(&scissors);
+
+        let rasterization_state = vk::PipelineRasterizationStateCreateInfo::builder()
+            .line_width(1.0)
+            .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
+            .cull_mode(vk::CullModeFlags::NONE)
+            .polygon_mode(vk::PolygonMode::FILL);
+
+        let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
+            .rasterization_samples(vk::SampleCountFlags::TYPE_1);
+
+        let color_blend_attachments = [
+            vk::PipelineColorBlendAttachmentState::builder()
+                .blend_enable(true)
+                .src_color_blend_factor(vk::BlendFactor::SRC_ALPHA)
+                .dst_color_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+                .color_blend_op(vk::BlendOp::ADD)
+                .src_alpha_blend_factor(vk::BlendFactor::SRC_ALPHA)
+                .dst_alpha_blend_factor(vk::BlendFactor::ONE_MINUS_SRC_ALPHA)
+                .alpha_blend_op(vk::BlendOp::ADD)
+                .color_write_mask(
+                    vk::ColorComponentFlags::R |
+                    vk::ColorComponentFlags::G |
+                    vk::ColorComponentFlags::B |
+                    vk::ColorComponentFlags::A
+                )
+                .build()
+        ];
+
+        let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
+            .attachments(&color_blend_attachments); 
+
+        let pipeline_infos = [
+            vk::GraphicsPipelineCreateInfo::builder()
+                .stages(&stages)
+                .vertex_input_state(&vertex_input_state)
+                .input_assembly_state(&input_assembly_state)
+                .viewport_state(&viewport_state)
+                .rasterization_state(&rasterization_state)
+                .multisample_state(&multisample_state)
+                .color_blend_state(&color_blend_state)
+                .layout(pipeline_layout)
+                .render_pass(render_pass)
+                .subpass(0)
+                .build()
+        ];
+
+        let pipeline = unsafe { device.create_graphics_pipelines(
+            vk::PipelineCache::null(),
+            &pipeline_infos,
+            None
+        ) }.expect("Error creating pipelines")[0];
 
         unsafe {
             device.destroy_shader_module(frag_module, None);
             device.destroy_shader_module(vert_module, None);
         }
-    }
+
+        pipeline
+    };
 
     event_loop.run(move |event, _| {
         match event {
@@ -261,6 +353,8 @@ fn main() -> Result<()> {
     })?;
 
     unsafe {
+        device.destroy_pipeline(pipeline, None);
+        device.destroy_pipeline_layout(pipeline_layout, None);
         device.destroy_render_pass(render_pass, None);
     }
 
