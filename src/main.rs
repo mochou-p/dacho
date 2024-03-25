@@ -82,7 +82,7 @@ fn main() -> Result<()> {
 
     let swapchain_loader = Swapchain::new(&instance, &device);
 
-    let swapchain = {
+    let (swapchain, swapchain_extent) = {
         let surface_capabilities = unsafe { surface_loader.get_physical_device_surface_capabilities(
             physical_device, surface
         ) }?;
@@ -93,6 +93,8 @@ fn main() -> Result<()> {
 
         let queue_families = [0];
 
+        let swapchain_extent = surface_capabilities.current_extent;
+
         let create_info = vk::SwapchainCreateInfoKHR::builder()
             .surface(surface)
             .min_image_count(
@@ -101,7 +103,7 @@ fn main() -> Result<()> {
             )
             .image_format(surface_formats.first().context("No surface formats")?.format)
             .image_color_space(surface_formats.first().context("No surface formats")?.color_space)
-            .image_extent(surface_capabilities.current_extent)
+            .image_extent(swapchain_extent)
             .image_array_layers(1)
             .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
             .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
@@ -110,7 +112,10 @@ fn main() -> Result<()> {
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .present_mode(vk::PresentModeKHR::FIFO);
     
-        unsafe { swapchain_loader.create_swapchain(&create_info, None) }?
+        (
+            unsafe { swapchain_loader.create_swapchain(&create_info, None) }?,
+            swapchain_extent
+        )
     };
 
     let swapchain_images = unsafe { swapchain_loader.get_swapchain_images(swapchain) }?;
@@ -190,6 +195,23 @@ fn main() -> Result<()> {
         unsafe { device.create_render_pass(&create_info, None) }?
     };
 
+    let mut framebuffers = Vec::with_capacity(swapchain_images.len());
+
+    for image_view in &swapchain_image_views {
+        let attachments = [*image_view];
+
+        let create_info = vk::FramebufferCreateInfo::builder()
+            .render_pass(render_pass)
+            .attachments(&attachments)
+            .width(swapchain_extent.width)
+            .height(swapchain_extent.height)
+            .layers(1);
+
+        let framebuffer = unsafe { device.create_framebuffer(&create_info, None) }?;
+
+        framebuffers.push(framebuffer);
+    }
+
     {
         let vert_module = {
             let code = read_shader("assets/shaders/test/bin/vert.spv")?;
@@ -238,18 +260,24 @@ fn main() -> Result<()> {
         }
     })?;
 
+    unsafe {
+        device.destroy_render_pass(render_pass, None);
+    }
+
+    for framebuffer in &framebuffers {
+        unsafe { device.destroy_framebuffer(*framebuffer, None); }
+    }
 
     for image_view in &swapchain_image_views {
         unsafe { device.destroy_image_view(*image_view, None); }
     }
 
     unsafe {
-        device.destroy_render_pass(render_pass, None);
         swapchain_loader.destroy_swapchain(swapchain, None);
         device.destroy_device(None);
         surface_loader.destroy_surface(surface, None);
         instance.destroy_instance(None);
-    };
+    }
 
     Ok(())
 }
