@@ -234,6 +234,19 @@ fn main() -> Result<()> {
         }
     }
 
+    let mut may_begin_drawing = vec![];
+
+    {
+        let create_info = vk::FenceCreateInfo::builder()
+            .flags(vk::FenceCreateFlags::SIGNALED);
+
+        for _ in 0..swapchain_images.len() {
+            let fence = unsafe { device.create_fence(&create_info, None) }?;
+
+            may_begin_drawing.push(fence);
+        }
+    }
+
     let pipeline_layout = {
         let create_info = vk::PipelineLayoutCreateInfo::builder();
 
@@ -446,6 +459,10 @@ fn main() -> Result<()> {
         device.destroy_pipeline(pipeline, None);
         device.destroy_pipeline_layout(pipeline_layout, None);
         device.destroy_render_pass(render_pass, None);
+    }
+
+    for fence in &may_begin_drawing {
+        unsafe { device.destroy_fence(*fence, None); }
     }
 
     for semaphore in &images_available {
