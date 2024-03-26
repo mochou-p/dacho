@@ -10,6 +10,7 @@ use ash::{
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 use winit::{
+    event::{Event, WindowEvent},
     event_loop::EventLoop,
     window::WindowBuilder
 };
@@ -47,9 +48,13 @@ fn main() -> Result<()> {
         .context("No physical devices")?;
 
     let device = {
-        let queue_priorities = [1.0];
+        let queue_priorities = [
+            1.0
+        ];
 
-        let extension_names = [Swapchain::name().as_ptr()];
+        let extension_names = [
+            Swapchain::name().as_ptr()
+        ];
 
         let queue_create_infos = [
             vk::DeviceQueueCreateInfo::builder()
@@ -65,7 +70,7 @@ fn main() -> Result<()> {
         unsafe { instance.create_device(physical_device, &create_info, None) }?
     };
 
-    let _queue = unsafe { device.get_device_queue(0, 0) };
+    let queue = unsafe { device.get_device_queue(0, 0) };
 
     let window = WindowBuilder::new()
         .with_title("dacho")
@@ -125,9 +130,12 @@ fn main() -> Result<()> {
         )
     };
 
-    let swapchain_images = unsafe { swapchain_loader.get_swapchain_images(swapchain) }?;
+    let swapchain_images      = unsafe { swapchain_loader.get_swapchain_images(swapchain) }?;
+    let swapchain_image_count = swapchain_images.len();
 
-    let mut swapchain_image_views = Vec::with_capacity(swapchain_images.len());
+    let mut swapchain_current_image = 0;
+
+    let mut swapchain_image_views = Vec::with_capacity(swapchain_image_count);
 
     for image in &swapchain_images {
         let subresource_range = vk::ImageSubresourceRange::builder()
@@ -149,7 +157,11 @@ fn main() -> Result<()> {
     }
 
     let render_pass = {
-        let format = unsafe { surface_loader.get_physical_device_surface_formats(physical_device, surface) }?
+        let format = unsafe {
+            surface_loader.get_physical_device_surface_formats(
+                physical_device, surface
+            )
+        }?
             .first()
             .context("No swapchain formats")?
             .format;
@@ -202,7 +214,7 @@ fn main() -> Result<()> {
         unsafe { device.create_render_pass(&create_info, None) }?
     };
 
-    let mut framebuffers = Vec::with_capacity(swapchain_images.len());
+    let mut framebuffers = Vec::with_capacity(swapchain_image_count);
 
     for image_view in &swapchain_image_views {
         let attachments = [*image_view];
@@ -225,7 +237,7 @@ fn main() -> Result<()> {
     {
         let create_info = vk::SemaphoreCreateInfo::builder();
 
-        for _ in 0..swapchain_images.len() {
+        for _ in 0..swapchain_image_count {
             let semaphore_available = unsafe { device.create_semaphore(&create_info, None) }?;
             let semaphore_finished  = unsafe { device.create_semaphore(&create_info, None) }?;
 
@@ -240,7 +252,7 @@ fn main() -> Result<()> {
         let create_info = vk::FenceCreateInfo::builder()
             .flags(vk::FenceCreateFlags::SIGNALED);
 
-        for _ in 0..swapchain_images.len() {
+        for _ in 0..swapchain_image_count {
             let fence = unsafe { device.create_fence(&create_info, None) }?;
 
             may_begin_drawing.push(fence);
@@ -366,11 +378,14 @@ fn main() -> Result<()> {
                 .build()
         ];
 
-        let pipeline = unsafe { device.create_graphics_pipelines(
-            vk::PipelineCache::null(),
-            &pipeline_infos,
-            None
-        ) }.expect("Error creating pipelines")[0];
+        let pipeline = unsafe {
+            device.create_graphics_pipelines(
+                vk::PipelineCache::null(),
+                &pipeline_infos,
+                None
+            )
+        }
+            .expect("Error creating pipelines")[0];
 
         unsafe {
             device.destroy_shader_module(frag_module, None);
@@ -391,7 +406,7 @@ fn main() -> Result<()> {
     let command_buffers = {
         let allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(command_pool)
-            .command_buffer_count(framebuffers.len() as u32);
+            .command_buffer_count(swapchain_image_count as u32);
 
         unsafe { device.allocate_command_buffers(&allocate_info) }?
     };
@@ -446,13 +461,88 @@ fn main() -> Result<()> {
         }
     }
 
-
-
-    event_loop.run(move |event, _| {
+    event_loop.run(move |event, elwt| {
         match event {
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                elwt.exit();
+            },
+            Event::AboutToWait => {
+                window.request_redraw();
+            },
+            Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
+                let (image_index, _) = unsafe {
+                    swapchain_loader
+                        .acquire_next_image(
+                            swapchain,
+                            std::u64::MAX,
+                            images_available[swapchain_current_image],
+                            vk::Fence::null()
+                        )
+                }
+                    .expect("Acquiring next image failed");
+
+                unsafe {
+                    device.wait_for_fences(
+                        &[may_begin_drawing[swapchain_current_image]],
+                        true,
+                        std::u64::MAX
+                    )
+                }
+                    .expect("Waiting for fences failed");
+
+                unsafe {
+                    device.reset_fences(
+                        &[may_begin_drawing[swapchain_current_image]]
+                    )
+                }
+                    .expect("Resetting fences failed");
+
+                let semaphores_available_ = [images_available[swapchain_current_image]];
+                let waiting_stages        = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+                let semaphores_finished_  = [images_finished[swapchain_current_image]];
+                let command_buffers_      = [command_buffers[image_index as usize]];
+
+                let submit_info = [
+                    vk::SubmitInfo::builder()
+                        .wait_semaphores(&semaphores_available_)
+                        .wait_dst_stage_mask(&waiting_stages)
+                        .command_buffers(&command_buffers_)
+                        .signal_semaphores(&semaphores_finished_)
+                        .build()
+                ];
+
+                unsafe {
+                    device.queue_submit(
+                        queue,
+                        &submit_info,
+                        may_begin_drawing[swapchain_current_image]
+                    )
+                }
+                    .expect("Submitting queue failed");
+
+                let swapchains    = [swapchain];
+                let image_indices = [image_index];
+
+                let present_info = vk::PresentInfoKHR::builder()
+                    .wait_semaphores(&semaphores_finished_)
+                    .swapchains(&swapchains)
+                    .image_indices(&image_indices);
+
+                unsafe {
+                    swapchain_loader.queue_present(
+                        queue,
+                        &present_info
+                    )
+                }
+                    .expect("Presenting queue failed");
+
+                swapchain_current_image = (swapchain_current_image + 1) % swapchain_image_count;
+            },
             _ => ()
         }
     })?;
+
+    unsafe { device.device_wait_idle() }?;
 
     unsafe {
         device.destroy_command_pool(command_pool, None);
