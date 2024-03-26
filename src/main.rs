@@ -72,25 +72,31 @@ fn main() -> Result<()> {
         .build(&event_loop)?;
 
     let surface_loader = Surface::new(&entry, &instance);
-    
-    let surface = unsafe { ash_window::create_surface(
-        &entry,
-        &instance,
-        window.raw_display_handle(),
-        window.raw_window_handle(),
-        None
-    ) }?;
+
+    let surface = unsafe {
+        ash_window::create_surface(
+            &entry,
+            &instance,
+            window.raw_display_handle(),
+            window.raw_window_handle(),
+            None
+        )
+    }?;
 
     let swapchain_loader = Swapchain::new(&instance, &device);
 
     let (swapchain, swapchain_extent) = {
-        let surface_capabilities = unsafe { surface_loader.get_physical_device_surface_capabilities(
-            physical_device, surface
-        ) }?;
+        let surface_capabilities = unsafe {
+            surface_loader.get_physical_device_surface_capabilities(
+                physical_device, surface
+            )
+        }?;
 
-        let surface_formats = unsafe { surface_loader.get_physical_device_surface_formats(
-            physical_device, surface
-        ) }?;
+        let surface_formats = unsafe {
+            surface_loader.get_physical_device_surface_formats(
+                physical_device, surface
+            )
+        }?;
 
         let queue_families = [0];
 
@@ -353,6 +359,64 @@ fn main() -> Result<()> {
 
         unsafe { device.create_command_pool(&create_info, None) }?
     };
+
+    let command_buffers = {
+        let allocate_info = vk::CommandBufferAllocateInfo::builder()
+            .command_pool(command_pool)
+            .command_buffer_count(framebuffers.len() as u32);
+
+        unsafe { device.allocate_command_buffers(&allocate_info) }?
+    };
+
+    for (i, &command_buffer) in command_buffers.iter().enumerate() {
+        {
+            let begin_info = vk::CommandBufferBeginInfo::builder();
+
+            unsafe { device.begin_command_buffer(command_buffer, &begin_info) }?;
+        }
+
+        let clear_values = [
+            vk::ClearValue {
+                color: vk::ClearColorValue {
+                    float32: [0.0, 0.0, 1.0, 1.0]
+                }
+            }
+        ];
+
+        let begin_info = vk::RenderPassBeginInfo::builder()
+            .render_pass(render_pass)
+            .framebuffer(framebuffers[i])
+            .render_area(
+                vk::Rect2D::builder()
+                    .offset(
+                        vk::Offset2D::builder()
+                            .x(0)
+                            .y(0)
+                            .build()
+                    )
+                    .extent(swapchain_extent)
+                    .build()
+            )
+            .clear_values(&clear_values);
+
+        unsafe {
+            device.cmd_begin_render_pass(
+                command_buffer,
+                &begin_info,
+                vk::SubpassContents::INLINE
+            );
+
+            device.cmd_bind_pipeline(
+                command_buffer,
+                vk::PipelineBindPoint::GRAPHICS,
+                pipeline
+            );
+
+            device.cmd_draw(command_buffer, 1, 1, 0, 0);
+            device.cmd_end_render_pass(command_buffer);
+            device.end_command_buffer(command_buffer)?;
+        }
+    }
 
     event_loop.run(move |event, _| {
         match event {
