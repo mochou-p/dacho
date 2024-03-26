@@ -346,6 +346,14 @@ fn main() -> Result<()> {
         pipeline
     };
 
+    let command_pool = {
+        let create_info = vk::CommandPoolCreateInfo::builder()
+            .queue_family_index(0)
+            .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+
+        unsafe { device.create_command_pool(&create_info, None) }?
+    };
+
     event_loop.run(move |event, _| {
         match event {
             _ => ()
@@ -353,6 +361,7 @@ fn main() -> Result<()> {
     })?;
 
     unsafe {
+        device.destroy_command_pool(command_pool, None);
         device.destroy_pipeline(pipeline, None);
         device.destroy_pipeline_layout(pipeline_layout, None);
         device.destroy_render_pass(render_pass, None);
