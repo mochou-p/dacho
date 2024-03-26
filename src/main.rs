@@ -219,6 +219,21 @@ fn main() -> Result<()> {
         framebuffers.push(framebuffer);
     }
 
+    let mut images_available = vec![];
+    let mut images_finished  = vec![];
+
+    {
+        let create_info = vk::SemaphoreCreateInfo::builder();
+
+        for _ in 0..swapchain_images.len() {
+            let semaphore_available = unsafe { device.create_semaphore(&create_info, None) }?;
+            let semaphore_finished  = unsafe { device.create_semaphore(&create_info, None) }?;
+
+            images_available.push(semaphore_available);
+            images_finished.push(semaphore_finished);
+        }
+    }
+
     let pipeline_layout = {
         let create_info = vk::PipelineLayoutCreateInfo::builder();
 
@@ -418,6 +433,8 @@ fn main() -> Result<()> {
         }
     }
 
+
+
     event_loop.run(move |event, _| {
         match event {
             _ => ()
@@ -429,6 +446,14 @@ fn main() -> Result<()> {
         device.destroy_pipeline(pipeline, None);
         device.destroy_pipeline_layout(pipeline_layout, None);
         device.destroy_render_pass(render_pass, None);
+    }
+
+    for semaphore in &images_available {
+        unsafe { device.destroy_semaphore(*semaphore, None); }
+    }
+
+    for semaphore in &images_finished {
+        unsafe { device.destroy_semaphore(*semaphore, None); }
     }
 
     for framebuffer in &framebuffers {
