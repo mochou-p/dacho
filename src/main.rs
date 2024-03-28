@@ -684,6 +684,9 @@ fn main() -> Result<()> {
                 elwt.exit();
             },
             Event::AboutToWait => {
+                unsafe { renderer.device.device_wait_idle() }
+                    .expect("Device idle wait failed");
+
                 renderer.window.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
