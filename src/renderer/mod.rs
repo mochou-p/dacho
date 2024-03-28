@@ -14,10 +14,12 @@ use winit::{
     window::{Window, WindowBuilder}
 };
 
+#[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
+#[cfg(debug_assertions)]
 unsafe extern "system" fn vulkan_debug_utils_callback(
     message_severity:        vk::DebugUtilsMessageSeverityFlagsEXT,
     message_type:            vk::DebugUtilsMessageTypeFlagsEXT,
@@ -61,9 +63,11 @@ unsafe extern "system" fn vulkan_debug_utils_callback(
 pub struct Renderer {
     _entry:                  ash::Entry,
     instance:                ash::Instance,
+    #[cfg(debug_assertions)]
     debug_utils_loader:      ash::extensions::ext::DebugUtils,
+    #[cfg(debug_assertions)]
     debug_messenger:         ash::vk::DebugUtilsMessengerEXT,
-    pub queue:                   vk::Queue,
+    queue:                   vk::Queue,
     window:                  Window,
     surface_loader:          Surface,
     surface:                 vk::SurfaceKHR,
@@ -84,6 +88,7 @@ pub struct Renderer {
     command_buffers:         Vec<vk::CommandBuffer>
 }
 
+#[cfg(debug_assertions)]
 fn debug_messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
     vk::DebugUtilsMessengerCreateInfoEXT {
         s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
@@ -103,6 +108,7 @@ fn debug_messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
     }
 }
 
+#[cfg(debug_assertions)]
 fn debug_utils(
     entry:    &ash::Entry,
     instance: &ash::Instance,
@@ -121,7 +127,7 @@ fn debug_utils(
 
 impl Renderer {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
-        let entry = ash::Entry::linked();
+        let entry = unsafe { ash::Entry::load() }?;
 
         let instance = {
             let application_info = vk::ApplicationInfo::builder()
@@ -131,41 +137,54 @@ impl Renderer {
                 event_loop.raw_display_handle()
             )?;
 
-            let mut extension_names = required_extensions.to_vec();
+            #[cfg(debug_assertions)]
+            {
+                let mut extension_names = required_extensions.to_vec();
 
-            let debug     = std::ffi::CString::new("VK_EXT_debug_utils")?;
-            let debug_ptr = debug.as_ptr();
+                let debug     = std::ffi::CString::new("VK_EXT_debug_utils")?;
+                let debug_ptr = debug.as_ptr();
 
-            extension_names.push(debug_ptr);
+                extension_names.push(debug_ptr);
 
-            let debug_utils_create_info = debug_messenger_create_info();
+                let debug_utils_create_info = debug_messenger_create_info();
 
-            let layers_raw: Vec<std::ffi::CString> = VALIDATION_LAYERS
-                .iter()
-                .map(|layer| std::ffi::CString::new(*layer).unwrap())
-                .collect();
+                let layers_raw: Vec<std::ffi::CString> = VALIDATION_LAYERS
+                    .iter()
+                    .map(|layer| std::ffi::CString::new(*layer).unwrap())
+                    .collect();
 
-            let layer_names: Vec<*const i8> = layers_raw
-                .iter()
-                .map(|layer| layer.as_ptr())
-                .collect();
+                let layer_names: Vec<*const i8> = layers_raw
+                    .iter()
+                    .map(|layer| layer.as_ptr())
+                    .collect();
 
-            let create_info = vk::InstanceCreateInfo {
-                s_type:  vk::StructureType::INSTANCE_CREATE_INFO,
-                p_next: &debug_utils_create_info
-                    as *const vk::DebugUtilsMessengerCreateInfoEXT
-                    as *const std::ffi::c_void,
-                flags:                       vk::InstanceCreateFlags::empty(),
-                p_application_info:         &application_info.build(),
-                pp_enabled_layer_names:      layer_names.as_ptr(),
-                enabled_layer_count:         layer_names.len() as u32,
-                pp_enabled_extension_names:  extension_names.as_ptr(),
-                enabled_extension_count:     extension_names.len() as u32
-            };
+                let create_info = vk::InstanceCreateInfo {
+                    s_type:  vk::StructureType::INSTANCE_CREATE_INFO,
+                    p_next: &debug_utils_create_info
+                        as *const vk::DebugUtilsMessengerCreateInfoEXT
+                        as *const std::ffi::c_void,
+                    flags:                       vk::InstanceCreateFlags::empty(),
+                    p_application_info:         &application_info.build(),
+                    pp_enabled_layer_names:      layer_names.as_ptr(),
+                    enabled_layer_count:         layer_names.len() as u32,
+                    pp_enabled_extension_names:  extension_names.as_ptr(),
+                    enabled_extension_count:     extension_names.len() as u32
+                };
 
-            unsafe { entry.create_instance(&create_info, None) }?
+                unsafe { entry.create_instance(&create_info, None) }?
+            }
+
+            #[cfg(not(debug_assertions))]
+            {
+                let create_info = vk::InstanceCreateInfo::builder()
+                    .application_info(&application_info)
+                    .enabled_extension_names(required_extensions);
+
+                unsafe { entry.create_instance(&create_info, None) }?
+            }
         };
 
+        #[cfg(debug_assertions)]
         let (debug_utils_loader, debug_messenger) = debug_utils(&entry, &instance)?;
 
         let physical_device = unsafe { instance.enumerate_physical_devices() }?
@@ -201,7 +220,7 @@ impl Renderer {
 
         let scale  = 70;
         let width  = 16 * scale;
-        let height =  9 * scale;
+        let height = 12 * scale;
 
         let window = WindowBuilder::new()
             .with_title("dacho")
@@ -592,7 +611,9 @@ impl Renderer {
             Renderer {
                 _entry: entry,
                 instance,
+                #[cfg(debug_assertions)]
                 debug_utils_loader,
+                #[cfg(debug_assertions)]
                 debug_messenger,
                 queue,
                 window,
@@ -747,6 +768,7 @@ impl Drop for Renderer {
             self.surface_loader.destroy_surface(self.surface, None);
         }
 
+        #[cfg(debug_assertions)]
         unsafe {
             self.debug_utils_loader
                 .destroy_debug_utils_messenger(self.debug_messenger, None);
