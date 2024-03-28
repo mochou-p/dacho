@@ -3,7 +3,11 @@
 layout(location = 0) in  vec3 vertexColor;
 layout(location = 0) out vec4 outColor;
 
+const vec3 gammaCorrection = vec3(0.45454545454);
+
 void main() {
-    outColor = vec4(vertexColor, 1.0);
+    vec3 fixedColor = pow(vertexColor, gammaCorrection);
+
+    outColor = vec4(fixedColor, 1.0);
 }
 
