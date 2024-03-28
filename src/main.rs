@@ -15,42 +15,46 @@ use winit::{
     window::{Window, WindowBuilder}
 };
 
-struct ValidationInfo {
-    enabled: bool,
-    layers:  [&'static str; 1]
-}
-
-const WINDOW_TITLE: &'static str = "dacho";
-
-const VALIDATION: ValidationInfo = ValidationInfo {
-    enabled: true,
-    layers:  ["VK_LAYER_KHRONOS_validation"]
-};
+const VALIDATION_LAYERS: [&'static str; 1] = [
+    "VK_LAYER_KHRONOS_validation"
+];
 
 unsafe extern "system" fn vulkan_debug_utils_callback(
     message_severity:        vk::DebugUtilsMessageSeverityFlagsEXT,
     message_type:            vk::DebugUtilsMessageTypeFlagsEXT,
     p_callback_data:  *const vk::DebugUtilsMessengerCallbackDataEXT,
     _p_user_data:     *mut   std::ffi::c_void,
-) -> vk::Bool32 { 
+) -> vk::Bool32 {
+    static mut NUMBER: usize = 0;
+    NUMBER += 1;
+
     let severity = match message_severity {
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => "\x1b[34;1mVerbose",
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO    => "\x1b[34;1mInfo",
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => "\x1b[33;1mWarning",
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR   => "\x1b[31;1mError",
-        _                                              => "\x1b[35;1mUnknown"
+        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => "\x1b[36;1m[Verbose]",
+        vk::DebugUtilsMessageSeverityFlagsEXT::INFO    => "\x1b[36;1m[Info]",
+        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => "\x1b[33;1m[Warning]",
+        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR   => "\x1b[31;1m[Error]",
+        _                                              => "\x1b[35;1m[Unknown]"
     };
 
     let kind = match message_type {
-            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     => "\x1b[34;1mGeneral",
-            vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "\x1b[33;1mPerformance",
-            vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION  => "\x1b[31;1mValidation",
-            _                                              => "\x1b[35;1mUnknown"
+            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     => "\x1b[36;1m[General]",
+            vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "\x1b[33;1m[Performance]",
+            vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION  => "\x1b[31;1m[Validation]",
+            _                                              => "\x1b[35;1m[Unknown]"
     };
 
     let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
 
-    println!("[{}\x1b[0m] [{}\x1b[0m]\n{:?}\n", kind, severity, message);
+    let mut msg = format!(
+        "\n\x1b[33m({NUMBER}) \x1b[1m{kind} \x1b[1m{severity}\x1b[0m\n{:?}\n",
+        message
+    );
+
+    if let Some(index) = msg.find("The Vulkan spec states:") {
+        msg.insert_str(index, "\n\x1b[35;1m->\x1b[0m ");
+    }
+
+    println!("{msg}");
 
     vk::FALSE
 }
@@ -85,18 +89,18 @@ fn debug_messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
     vk::DebugUtilsMessengerCreateInfoEXT {
         s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         p_next: std::ptr::null(),
-        flags: vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
+        flags:  vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
         message_severity:
             // vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
             // vk::DebugUtilsMessageSeverityFlagsEXT::INFO    |
-            // vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
+            vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
             vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
         message_type:
-            // vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     |
-            // vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
+            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     |
+            vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
             vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
         pfn_user_callback: Some(vulkan_debug_utils_callback),
-        p_user_data: std::ptr::null_mut(),
+        p_user_data:       std::ptr::null_mut()
     }
 }
 
@@ -105,10 +109,6 @@ fn debug_utils(
     instance: &ash::Instance,
 ) -> Result<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)> {
     let debug_utils_loader = ash::extensions::ext::DebugUtils::new(entry, instance);
-
-    if !VALIDATION.enabled {
-        return Ok((debug_utils_loader, ash::vk::DebugUtilsMessengerEXT::null()));
-    }
 
     let messenger = debug_messenger_create_info();
 
@@ -141,8 +141,7 @@ impl Renderer {
 
             let debug_utils_create_info = debug_messenger_create_info();
 
-            let layers_raw: Vec<std::ffi::CString> = VALIDATION
-                .layers
+            let layers_raw: Vec<std::ffi::CString> = VALIDATION_LAYERS
                 .iter()
                 .map(|layer| std::ffi::CString::new(*layer).unwrap())
                 .collect();
@@ -153,31 +152,16 @@ impl Renderer {
                 .collect();
 
             let create_info = vk::InstanceCreateInfo {
-                s_type: vk::StructureType::INSTANCE_CREATE_INFO,
-                p_next:
-                    if VALIDATION.enabled {
-                        &debug_utils_create_info
-                            as *const vk::DebugUtilsMessengerCreateInfoEXT
-                            as *const std::ffi::c_void
-                    } else {
-                        std::ptr::null()
-                    },
-                flags: vk::InstanceCreateFlags::empty(),
-                p_application_info: &application_info.build(),
-                pp_enabled_layer_names:
-                    if VALIDATION.enabled {
-                        layer_names.as_ptr()
-                    } else {
-                        std::ptr::null()
-                    },
-                enabled_layer_count:
-                    if VALIDATION.enabled {
-                        layer_names.len()
-                    } else {
-                        0
-                    } as u32,
-                pp_enabled_extension_names: extension_names.as_ptr(),
-                enabled_extension_count: extension_names.len() as u32
+                s_type:  vk::StructureType::INSTANCE_CREATE_INFO,
+                p_next: &debug_utils_create_info
+                    as *const vk::DebugUtilsMessengerCreateInfoEXT
+                    as *const std::ffi::c_void,
+                flags:                       vk::InstanceCreateFlags::empty(),
+                p_application_info:         &application_info.build(),
+                pp_enabled_layer_names:      layer_names.as_ptr(),
+                enabled_layer_count:         layer_names.len() as u32,
+                pp_enabled_extension_names:  extension_names.as_ptr(),
+                enabled_extension_count:     extension_names.len() as u32
             };
 
             unsafe { entry.create_instance(&create_info, None) }?
@@ -216,8 +200,13 @@ impl Renderer {
 
         let queue = unsafe { device.get_device_queue(0, 0) };
 
+        let scale  = 70;
+        let width  = 16 * scale;
+        let height =  9 * scale;
+
         let window = WindowBuilder::new()
-            .with_title(WINDOW_TITLE)
+            .with_title("dacho")
+            .with_inner_size(winit::dpi::PhysicalSize::new(width, height))
             .build(event_loop)?;
 
         let surface_loader = Surface::new(&entry, &instance);
@@ -241,24 +230,20 @@ impl Renderer {
                 )
             }?;
 
-            let surface_formats = unsafe {
-                surface_loader.get_physical_device_surface_formats(
-                    physical_device, surface
-                )
-            }?;
+            let queue_families = [
+                0
+            ];
 
-            let queue_families = [0];
-
-            let swapchain_extent = surface_capabilities.current_extent;
+            let swapchain_extent = vk::Extent2D::builder()
+                .width(width)
+                .height(height)
+                .build();
 
             let create_info = vk::SwapchainCreateInfoKHR::builder()
                 .surface(surface)
-                .min_image_count(
-                    3.max(surface_capabilities.min_image_count)
-                        .min(surface_capabilities.max_image_count)
-                )
-                .image_format(surface_formats.first().context("No surface formats")?.format)
-                .image_color_space(surface_formats.first().context("No surface formats")?.color_space)
+                .min_image_count(surface_capabilities.min_image_count + 1)
+                .image_format(vk::Format::R5G6B5_UNORM_PACK16)
+                .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
                 .image_extent(swapchain_extent)
                 .image_array_layers(1)
                 .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
@@ -291,7 +276,7 @@ impl Renderer {
             let create_info = vk::ImageViewCreateInfo::builder()
                 .image(*image)
                 .view_type(vk::ImageViewType::TYPE_2D)
-                .format(vk::Format::B8G8R8A8_UNORM)
+                .format(vk::Format::R5G6B5_UNORM_PACK16)
                 .subresource_range(*subresource_range);
 
             let image_view = unsafe { device.create_image_view(&create_info, None) }?;
@@ -447,7 +432,7 @@ impl Renderer {
             let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder();
 
             let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::builder()
-                .topology(vk::PrimitiveTopology::POINT_LIST);
+                .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
 
             let viewports = [
                 vk::Viewport::builder()
@@ -564,7 +549,7 @@ impl Renderer {
             let clear_values = [
                 vk::ClearValue {
                     color: vk::ClearColorValue {
-                        float32: [0.0, 0.0, 1.0, 1.0]
+                        float32: [0.0, 0.0, 0.0, 1.0]
                     }
                 }
             ];
@@ -598,7 +583,7 @@ impl Renderer {
                     pipeline
                 );
 
-                device.cmd_draw(command_buffer, 1, 1, 0, 0);
+                device.cmd_draw(command_buffer, 3, 1, 0, 0);
                 device.cmd_end_render_pass(command_buffer);
                 device.end_command_buffer(command_buffer)?;
             }
@@ -672,11 +657,9 @@ impl Drop for Renderer {
             self.surface_loader.destroy_surface(self.surface, None);
         }
 
-        if VALIDATION.enabled {
-            unsafe {
-                self.debug_utils_loader
-                    .destroy_debug_utils_messenger(self.debug_messenger, None);
-            }
+        unsafe {
+            self.debug_utils_loader
+                .destroy_debug_utils_messenger(self.debug_messenger, None);
         }
 
         unsafe { self.instance.destroy_instance(None); }
