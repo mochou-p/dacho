@@ -1,9 +1,11 @@
 // dacho/src/renderer/mod.rs 
 
+mod swapchain;
+
 use anyhow::{Context, Result};
 
 use ash::{
-    extensions::khr::{Surface, Swapchain},
+    extensions::khr,
     vk
 };
 
@@ -13,6 +15,8 @@ use winit::{
     event_loop::EventLoop,
     window::{Window, WindowBuilder}
 };
+
+use swapchain::Swapchain;
 
 #[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&'static str; 1] = [
@@ -69,19 +73,11 @@ pub struct Renderer {
     debug_messenger:         ash::vk::DebugUtilsMessengerEXT,
     queue:                   vk::Queue,
     window:                  Window,
-    surface_loader:          Surface,
+    surface_loader:          khr::Surface,
     surface:                 vk::SurfaceKHR,
     device:                  ash::Device,
-    swapchain_loader:        Swapchain,
-    swapchain:               vk::SwapchainKHR,
-    swapchain_image_count:   usize,
-    swapchain_current_image: usize,
-    swapchain_image_views:   Vec<vk::ImageView>,
-    framebuffers:            Vec<vk::Framebuffer>,
-    images_available:        Vec<vk::Semaphore>,
-    images_finished:         Vec<vk::Semaphore>,
-    may_begin_drawing:       Vec<vk::Fence>,
     render_pass:             vk::RenderPass,
+    swapchain:               Swapchain,
     pipeline_layout:         vk::PipelineLayout,
     pipeline:                vk::Pipeline,
     command_pool:            vk::CommandPool,
@@ -111,7 +107,7 @@ fn debug_messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
 #[cfg(debug_assertions)]
 fn debug_utils(
     entry:    &ash::Entry,
-    instance: &ash::Instance,
+    instance: &ash::Instance
 ) -> Result<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)> {
     let debug_utils_loader = ash::extensions::ext::DebugUtils::new(entry, instance);
 
@@ -198,7 +194,7 @@ impl Renderer {
             ];
 
             let extension_names = [
-                Swapchain::name()
+                khr::Swapchain::name()
                     .as_ptr()
             ];
 
@@ -227,7 +223,7 @@ impl Renderer {
             .with_inner_size(winit::dpi::PhysicalSize::new(width, height))
             .build(event_loop)?;
 
-        let surface_loader = Surface::new(&entry, &instance);
+        let surface_loader = khr::Surface::new(&entry, &instance);
 
         let surface = unsafe {
             ash_window::create_surface(
@@ -238,69 +234,6 @@ impl Renderer {
                 None
             )
         }?;
-
-        let swapchain_loader = Swapchain::new(&instance, &device);
-
-        let (swapchain, swapchain_extent) = {
-            let surface_capabilities = unsafe {
-                surface_loader.get_physical_device_surface_capabilities(
-                    physical_device, surface
-                )
-            }?;
-
-            let queue_families = [
-                0
-            ];
-
-            let swapchain_extent = vk::Extent2D::builder()
-                .width(width)
-                .height(height)
-                .build();
-
-            let create_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(surface)
-                .min_image_count(surface_capabilities.min_image_count + 1)
-                .image_format(vk::Format::R5G6B5_UNORM_PACK16)
-                .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
-                .image_extent(swapchain_extent)
-                .image_array_layers(1)
-                .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
-                .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
-                .queue_family_indices(&queue_families)
-                .pre_transform(surface_capabilities.current_transform)
-                .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-                .present_mode(vk::PresentModeKHR::FIFO);
-    
-            (
-                unsafe { swapchain_loader.create_swapchain(&create_info, None) }?,
-                swapchain_extent
-            )
-        };
-
-        let swapchain_images        = unsafe { swapchain_loader.get_swapchain_images(swapchain) }?;
-        let swapchain_image_count   = swapchain_images.len();
-        let swapchain_current_image = 0;
-
-        let mut swapchain_image_views = Vec::with_capacity(swapchain_image_count);
-
-        for image in &swapchain_images {
-            let subresource_range = vk::ImageSubresourceRange::builder()
-                .aspect_mask(vk::ImageAspectFlags::COLOR)
-                .base_mip_level(0)
-                .level_count(1)
-                .base_array_layer(0)
-                .layer_count(1);
-
-            let create_info = vk::ImageViewCreateInfo::builder()
-                .image(*image)
-                .view_type(vk::ImageViewType::TYPE_2D)
-                .format(vk::Format::R5G6B5_UNORM_PACK16)
-                .subresource_range(*subresource_range);
-
-            let image_view = unsafe { device.create_image_view(&create_info, None) }?;
-
-            swapchain_image_views.push(image_view);
-        }
 
         let render_pass = {
             let format = unsafe {
@@ -360,50 +293,16 @@ impl Renderer {
             unsafe { device.create_render_pass(&create_info, None) }?
         };
 
-        let mut framebuffers = Vec::with_capacity(swapchain_image_count);
-
-        for image_view in &swapchain_image_views {
-            let attachments = [*image_view];
-
-            let create_info = vk::FramebufferCreateInfo::builder()
-                .render_pass(render_pass)
-                .attachments(&attachments)
-                .width(swapchain_extent.width)
-                .height(swapchain_extent.height)
-                .layers(1);
-
-            let framebuffer = unsafe { device.create_framebuffer(&create_info, None) }?;
-
-            framebuffers.push(framebuffer);
-        }
-
-        let mut images_available = vec![];
-        let mut images_finished  = vec![];
-
-        {
-            let create_info = vk::SemaphoreCreateInfo::builder();
-
-            for _ in 0..swapchain_image_count {
-                let semaphore_available = unsafe { device.create_semaphore(&create_info, None) }?;
-                let semaphore_finished  = unsafe { device.create_semaphore(&create_info, None) }?;
-
-                images_available.push(semaphore_available);
-                images_finished.push(semaphore_finished);
-            }
-        }
-
-        let mut may_begin_drawing = vec![];
-
-        {
-            let create_info = vk::FenceCreateInfo::builder()
-                .flags(vk::FenceCreateFlags::SIGNALED);
-
-            for _ in 0..swapchain_image_count {
-                let fence = unsafe { device.create_fence(&create_info, None) }?;
-
-                may_begin_drawing.push(fence);
-            }
-        }
+        let swapchain = Swapchain::new(
+            &instance,
+            &device,
+            &surface_loader,
+            &surface,
+            &physical_device,
+            &render_pass,
+            width,
+            height
+        )?;
 
         let pipeline_layout = {
             let create_info = vk::PipelineLayoutCreateInfo::builder();
@@ -456,8 +355,8 @@ impl Renderer {
                 vk::Viewport::builder()
                     .x(0.0)
                     .y(0.0)
-                    .width(swapchain_extent.width as f32)
-                    .height(swapchain_extent.height as f32)
+                    .width(swapchain.extent.width as f32)
+                    .height(swapchain.extent.height as f32)
                     .min_depth(0.0)
                     .max_depth(1.0)
                     .build()
@@ -471,7 +370,7 @@ impl Renderer {
                             .y(0)
                             .build()
                     )
-                    .extent(swapchain_extent)
+                    .extent(swapchain.extent)
                     .build()
             ];
 
@@ -552,7 +451,7 @@ impl Renderer {
         let command_buffers = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
                 .command_pool(command_pool)
-                .command_buffer_count(swapchain_image_count as u32);
+                .command_buffer_count(swapchain.image_count as u32);
 
             unsafe { device.allocate_command_buffers(&allocate_info) }?
         };
@@ -574,7 +473,7 @@ impl Renderer {
 
             let begin_info = vk::RenderPassBeginInfo::builder()
                 .render_pass(render_pass)
-                .framebuffer(framebuffers[i])
+                .framebuffer(swapchain.framebuffers[i])
                 .render_area(
                     vk::Rect2D::builder()
                         .offset(
@@ -583,7 +482,7 @@ impl Renderer {
                                 .y(0)
                                 .build()
                         )
-                        .extent(swapchain_extent)
+                        .extent(swapchain.extent)
                         .build()
                 )
                 .clear_values(&clear_values);
@@ -620,16 +519,8 @@ impl Renderer {
                 surface_loader,
                 surface,
                 device,
-                swapchain_loader,
-                swapchain,
-                swapchain_image_count,
-                swapchain_current_image,
-                swapchain_image_views,
-                framebuffers,
-                images_available,
-                images_finished,
-                may_begin_drawing,
                 render_pass,
+                swapchain,
                 pipeline_layout,
                 pipeline,
                 command_pool,
@@ -648,11 +539,11 @@ impl Renderer {
 
     pub fn redraw(&mut self) {
         let (image_index, _) = unsafe {
-            self.swapchain_loader
+            self.swapchain.loader
                 .acquire_next_image(
-                    self.swapchain,
+                    self.swapchain.swapchain,
                     std::u64::MAX,
-                    self.images_available[self.swapchain_current_image],
+                    self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
                 )
         }
@@ -660,7 +551,7 @@ impl Renderer {
 
         unsafe {
             self.device.wait_for_fences(
-                &[self.may_begin_drawing[self.swapchain_current_image]],
+                &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
                 std::u64::MAX
             )
@@ -669,13 +560,13 @@ impl Renderer {
 
         unsafe {
             self.device.reset_fences(
-                &[self.may_begin_drawing[self.swapchain_current_image]]
+                &[self.swapchain.may_begin_drawing[self.swapchain.current_image]]
             )
         }
             .expect("Resetting fences failed");
 
         let semaphores_available = [
-            self.images_available[self.swapchain_current_image]
+            self.swapchain.images_available[self.swapchain.current_image]
         ];
 
         let waiting_stages = [
@@ -687,7 +578,7 @@ impl Renderer {
         ];
 
         let semaphores_finished = [
-            self.images_finished[self.swapchain_current_image]
+            self.swapchain.images_finished[self.swapchain.current_image]
         ];
 
         let submit_info = [
@@ -703,12 +594,12 @@ impl Renderer {
             self.device.queue_submit(
                 self.queue,
                 &submit_info,
-                self.may_begin_drawing[self.swapchain_current_image]
+                self.swapchain.may_begin_drawing[self.swapchain.current_image]
             )
         }
             .expect("Submitting queue failed");
 
-        let swapchains    = [self.swapchain];
+        let swapchains    = [self.swapchain.swapchain];
         let image_indices = [image_index];
 
         let present_info = vk::PresentInfoKHR::builder()
@@ -717,16 +608,16 @@ impl Renderer {
             .image_indices(&image_indices);
 
         unsafe {
-            self.swapchain_loader.queue_present(
+            self.swapchain.loader.queue_present(
                 self.queue,
                 &present_info
             )
         }
             .expect("Presenting queue failed");
 
-        self.swapchain_current_image =
-            (self.swapchain_current_image + 1)
-            % self.swapchain_image_count;
+        self.swapchain.current_image =
+            (self.swapchain.current_image + 1)
+            % self.swapchain.image_count;
     }
 }
 
@@ -742,28 +633,9 @@ impl Drop for Renderer {
             self.device.destroy_render_pass(self.render_pass, None);
         }
 
-        for fence in &self.may_begin_drawing {
-            unsafe { self.device.destroy_fence(*fence, None); }
-        }
-
-        for semaphore in &self.images_available {
-            unsafe { self.device.destroy_semaphore(*semaphore, None); }
-        }
-
-        for semaphore in &self.images_finished {
-            unsafe { self.device.destroy_semaphore(*semaphore, None); }
-        }
-
-        for framebuffer in &self.framebuffers {
-            unsafe { self.device.destroy_framebuffer(*framebuffer, None); }
-        }
-
-        for image_view in &self.swapchain_image_views {
-            unsafe { self.device.destroy_image_view(*image_view, None); }
-        }
+        self.swapchain.destroy(&self.device);
 
         unsafe {
-            self.swapchain_loader.destroy_swapchain(self.swapchain, None);
             self.device.destroy_device(None);
             self.surface_loader.destroy_surface(self.surface, None);
         }

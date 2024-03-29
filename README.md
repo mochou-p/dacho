@@ -2,6 +2,8 @@
 
 # Dacho
 
+*If you do not have vulkan validation layers on your system, run with --release
+
 ## License
 
 Licensed under either of
