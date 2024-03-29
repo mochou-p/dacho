@@ -1,6 +1,7 @@
 // dacho/src/renderer/mod.rs 
 
 mod swapchain;
+mod surface;
 
 use anyhow::{Context, Result};
 
@@ -9,14 +10,17 @@ use ash::{
     vk
 };
 
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::HasRawDisplayHandle;
 
 use winit::{
     event_loop::EventLoop,
     window::{Window, WindowBuilder}
 };
 
-use swapchain::Swapchain;
+use {
+    swapchain::Swapchain,
+    surface::Surface
+};
 
 #[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&'static str; 1] = [
@@ -73,8 +77,7 @@ pub struct Renderer {
     debug_messenger:         ash::vk::DebugUtilsMessengerEXT,
     queue:                   vk::Queue,
     window:                  Window,
-    surface_loader:          khr::Surface,
-    surface:                 vk::SurfaceKHR,
+    surface:                 Surface,
     device:                  ash::Device,
     render_pass:             vk::RenderPass,
     swapchain:               Swapchain,
@@ -223,22 +226,16 @@ impl Renderer {
             .with_inner_size(winit::dpi::PhysicalSize::new(width, height))
             .build(event_loop)?;
 
-        let surface_loader = khr::Surface::new(&entry, &instance);
-
-        let surface = unsafe {
-            ash_window::create_surface(
-                &entry,
-                &instance,
-                window.raw_display_handle(),
-                window.raw_window_handle(),
-                None
-            )
-        }?;
+        let surface = Surface::new(
+            &entry,
+            &instance,
+            &window
+        )?;
 
         let render_pass = {
             let format = unsafe {
-                surface_loader.get_physical_device_surface_formats(
-                    physical_device, surface
+                surface.loader.get_physical_device_surface_formats(
+                    physical_device, surface.surface
                 )
             }?
                 .first()
@@ -296,7 +293,6 @@ impl Renderer {
         let swapchain = Swapchain::new(
             &instance,
             &device,
-            &surface_loader,
             &surface,
             &physical_device,
             &render_pass,
@@ -516,7 +512,6 @@ impl Renderer {
                 debug_messenger,
                 queue,
                 window,
-                surface_loader,
                 surface,
                 device,
                 render_pass,
@@ -635,10 +630,9 @@ impl Drop for Renderer {
 
         self.swapchain.destroy(&self.device);
 
-        unsafe {
-            self.device.destroy_device(None);
-            self.surface_loader.destroy_surface(self.surface, None);
-        }
+        unsafe { self.device.destroy_device(None); }
+
+        self.surface.destroy();
 
         #[cfg(debug_assertions)]
         unsafe {
