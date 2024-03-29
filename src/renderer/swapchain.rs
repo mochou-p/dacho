@@ -1,11 +1,13 @@
 // dacho/src/renderer/swapchain.rs
 
-use anyhow::{Result};
+use anyhow::Result;
 
 use ash::{
     extensions::khr,
     vk
 };
+
+use super::surface::Surface;
 
 pub struct Swapchain {
     pub loader:            khr::Swapchain,
@@ -24,8 +26,7 @@ impl Swapchain {
     pub fn new(
         instance:        &ash::Instance,
         device:          &ash::Device,
-        surface_loader:  &khr::Surface,
-        surface:         &vk::SurfaceKHR,
+        surface:         &Surface,
         physical_device: &vk::PhysicalDevice,
         render_pass:     &vk::RenderPass,
         width:            u32,
@@ -35,8 +36,8 @@ impl Swapchain {
 
         let (swapchain, extent) = {
             let surface_capabilities = unsafe {
-                surface_loader.get_physical_device_surface_capabilities(
-                    *physical_device, *surface
+                surface.loader.get_physical_device_surface_capabilities(
+                    *physical_device, surface.surface
                 )
             }?;
 
@@ -48,7 +49,7 @@ impl Swapchain {
                 .build();
 
             let create_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(*surface)
+                .surface(surface.surface)
                 .min_image_count(surface_capabilities.min_image_count + 1)
                 .image_format(vk::Format::R5G6B5_UNORM_PACK16)
                 .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
