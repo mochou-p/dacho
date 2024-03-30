@@ -161,18 +161,9 @@ impl Renderer {
         )?;
 
         let render_pass = {
-            let format = unsafe {
-                surface.loader.get_physical_device_surface_formats(
-                    physical_device, surface.surface
-                )
-            }?
-                .first()
-                .context("No swapchain formats")?
-                .format;
-
             let attachments = [
                 vk::AttachmentDescription::builder()
-                    .format(format)
+                    .format(vk::Format::B8G8R8A8_SRGB)
                     .load_op(vk::AttachmentLoadOp::CLEAR)
                     .store_op(vk::AttachmentStoreOp::STORE)
                     .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)

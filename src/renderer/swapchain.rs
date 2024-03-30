@@ -51,7 +51,7 @@ impl Swapchain {
             let create_info = vk::SwapchainCreateInfoKHR::builder()
                 .surface(surface.surface)
                 .min_image_count(surface_capabilities.min_image_count + 1)
-                .image_format(vk::Format::R5G6B5_UNORM_PACK16)
+                .image_format(vk::Format::B8G8R8A8_SRGB)
                 .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
                 .image_extent(extent)
                 .image_array_layers(1)
@@ -85,7 +85,7 @@ impl Swapchain {
             let create_info = vk::ImageViewCreateInfo::builder()
                 .image(*image)
                 .view_type(vk::ImageViewType::TYPE_2D)
-                .format(vk::Format::R5G6B5_UNORM_PACK16)
+                .format(vk::Format::B8G8R8A8_SRGB)
                 .subresource_range(*subresource_range);
 
             let image_view = unsafe { device.create_image_view(&create_info, None) }?;
