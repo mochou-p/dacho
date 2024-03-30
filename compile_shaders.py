@@ -35,10 +35,10 @@ def main():
             spir_v = f"{bin_directory}/{module.split('.')[1]}.spv"
             status = "recompiled" if os.path.exists(spir_v) else "compiled"
 
-            if not os.system(f"{SHADER_COMPILER} {module_path} -o {spir_v}"):
-                print(f"{Color.green}{status}{Color.reset} {module}")
-            else:
+            if os.system(f"{SHADER_COMPILER} {module_path} -o {spir_v}"):
                 print(f"{Color.red}failed{Color.reset} to compile {module}")
+            else:
+                print(f"{Color.green}{status}{Color.reset} {module}")
 
 
 if __name__ == "__main__":

@@ -2,10 +2,7 @@
 
 use anyhow::Result;
 
-use ash::{
-    extensions::khr,
-    vk
-};
+use ash::{extensions::khr, vk};
 
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 

@@ -2,15 +2,13 @@
 
 #[cfg(debug_assertions)]
 mod debug;
-mod swapchain;
 mod surface;
+mod swapchain;
+mod vertex;
 
 use anyhow::{Context, Result};
 
-use ash::{
-    extensions::khr,
-    vk
-};
+use ash::{extensions::khr, vk};
 
 use raw_window_handle::HasRawDisplayHandle;
 
@@ -23,13 +21,25 @@ use winit::{
 use debug::{Debug, messenger_create_info};
     
 use {
+    surface::Surface,
     swapchain::Swapchain,
-    surface::Surface
+    vertex::Vertex
 };
 
 #[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
+];
+
+const VERTICES: [Vertex; 6] = [
+    Vertex::new((-1.0, -1.0), (1.0, 1.0, 1.0)),
+    Vertex::new(( 1.0,  1.0), (0.0, 0.0, 1.0)),
+    Vertex::new((-1.0,  1.0), (0.0, 0.0, 0.0)),
+
+    Vertex::new((-1.0, -1.0), (1.0, 1.0, 1.0)),
+    Vertex::new(( 1.0, -1.0), (0.0, 1.0, 1.0)),
+    Vertex::new(( 1.0,  1.0), (0.0, 0.0, 1.0))
+
 ];
 
 pub struct Renderer {
@@ -45,6 +55,8 @@ pub struct Renderer {
     swapchain:               Swapchain,
     pipeline_layout:         vk::PipelineLayout,
     pipeline:                vk::Pipeline,
+    vertex_buffer:           vk::Buffer,
+    vertex_buffer_memory:    vk::DeviceMemory,
     command_pool:            vk::CommandPool,
     command_buffers:         Vec<vk::CommandBuffer>
 }
@@ -261,7 +273,12 @@ impl Renderer {
                 frag_stage.build()
             ];
 
-            let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder();
+            let binding_descriptions   = Vertex::binding_descriptions();
+            let attribute_descriptions = Vertex::attribute_descriptions();
+
+            let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder()
+                .vertex_binding_descriptions(&binding_descriptions)
+                .vertex_attribute_descriptions(&attribute_descriptions);
 
             let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::builder()
                 .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
@@ -355,6 +372,70 @@ impl Renderer {
             pipeline
         };
 
+        let vertex_buffer_size = (std::mem::size_of::<Vertex>() * VERTICES.len()) as u64;
+
+        let vertex_buffer = {
+            let create_info = vk::BufferCreateInfo::builder()
+                .size(vertex_buffer_size)
+                .usage(vk::BufferUsageFlags::VERTEX_BUFFER)
+                .sharing_mode(vk::SharingMode::EXCLUSIVE);
+
+            unsafe { device.create_buffer(&create_info, None) }?
+        };
+
+        let vertex_buffer_memory = {
+            let memory_requirements = unsafe { device.get_buffer_memory_requirements(vertex_buffer) };
+            let memory_properties   = unsafe { instance.get_physical_device_memory_properties(physical_device) };
+
+            let memory_type_index = {
+                let properties = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
+
+                let mut found  = false;
+                let mut result = 0;
+
+                for i in 0..memory_properties.memory_type_count {
+                    let a = (memory_requirements.memory_type_bits & (1 << i)) != 0;
+                    let b = (memory_properties.memory_types[i as usize].property_flags & properties) == properties;
+
+                    if a && b {
+                        found  = true;
+                        result = i;
+                        break;
+                    }
+                }
+
+                if !found {
+                    panic!("Failed to find a suitable memory type");
+                }
+
+                result
+            };
+
+            let allocate_info = vk::MemoryAllocateInfo::builder()
+                .allocation_size(memory_requirements.size)
+                .memory_type_index(memory_type_index);
+
+            unsafe { device.allocate_memory(&allocate_info, None) }?
+        };
+
+        unsafe { device.bind_buffer_memory(vertex_buffer, vertex_buffer_memory, 0) }?;
+
+        let memory = unsafe {
+            device.map_memory(
+                vertex_buffer_memory,
+                0,
+                vertex_buffer_size,
+                vk::MemoryMapFlags::empty()
+            )
+        }?;
+
+        let vertices = VERTICES.as_ptr() as *mut std::ffi::c_void;
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(vertices, memory, vertex_buffer_size as usize);
+            device.unmap_memory(vertex_buffer_memory);
+        }
+
         let command_pool = {
             let create_info = vk::CommandPoolCreateInfo::builder()
                 .queue_family_index(0)
@@ -415,7 +496,11 @@ impl Renderer {
                     pipeline
                 );
 
-                device.cmd_draw(command_buffer, 3, 1, 0, 0);
+                let vertex_buffers = [vertex_buffer];
+                let offsets        = [0];
+
+                device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
+                device.cmd_draw(command_buffer, VERTICES.len() as u32, 1, 0, 0);
                 device.cmd_end_render_pass(command_buffer);
                 device.end_command_buffer(command_buffer)?;
             }
@@ -435,6 +520,8 @@ impl Renderer {
                 swapchain,
                 pipeline_layout,
                 pipeline,
+                vertex_buffer,
+                vertex_buffer_memory,
                 command_pool,
                 command_buffers
             }
@@ -547,7 +634,11 @@ impl Drop for Renderer {
 
         self.swapchain.destroy(&self.device);
 
-        unsafe { self.device.destroy_device(None); }
+        unsafe {
+            self.device.destroy_buffer(self.vertex_buffer, None);
+            self.device.free_memory(self.vertex_buffer_memory, None);
+            self.device.destroy_device(None);
+        }
 
         self.surface.destroy();
 
