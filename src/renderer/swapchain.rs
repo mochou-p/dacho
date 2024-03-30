@@ -2,10 +2,7 @@
 
 use anyhow::Result;
 
-use ash::{
-    extensions::khr,
-    vk
-};
+use ash::{extensions::khr, vk};
 
 use super::surface::Surface;
 
