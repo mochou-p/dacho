@@ -1,5 +1,7 @@
 // dacho/src/renderer/mod.rs 
 
+#[cfg(debug_assertions)]
+mod debug;
 mod swapchain;
 mod surface;
 
@@ -17,6 +19,9 @@ use winit::{
     window::{Window, WindowBuilder}
 };
 
+#[cfg(debug_assertions)]
+use debug::{Debug, messenger_create_info};
+    
 use {
     swapchain::Swapchain,
     surface::Surface
@@ -27,54 +32,11 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-#[cfg(debug_assertions)]
-unsafe extern "system" fn vulkan_debug_utils_callback(
-    message_severity:        vk::DebugUtilsMessageSeverityFlagsEXT,
-    message_type:            vk::DebugUtilsMessageTypeFlagsEXT,
-    p_callback_data:  *const vk::DebugUtilsMessengerCallbackDataEXT,
-    _p_user_data:     *mut   std::ffi::c_void,
-) -> vk::Bool32 {
-    static mut NUMBER: usize = 0;
-    NUMBER += 1;
-
-    let severity = match message_severity {
-        vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE => "\x1b[36;1m[Verbose]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::INFO    => "\x1b[36;1m[Info]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::WARNING => "\x1b[33;1m[Warning]",
-        vk::DebugUtilsMessageSeverityFlagsEXT::ERROR   => "\x1b[31;1m[Error]",
-        _                                              => "\x1b[35;1m[Unknown]"
-    };
-
-    let kind = match message_type {
-            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     => "\x1b[36;1m[General]",
-            vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE => "\x1b[33;1m[Performance]",
-            vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION  => "\x1b[31;1m[Validation]",
-            _                                              => "\x1b[35;1m[Unknown]"
-    };
-
-    let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
-
-    let mut msg = format!(
-        "\n\x1b[33m({NUMBER}) \x1b[1m{kind} \x1b[1m{severity}\x1b[0m\n{:?}\n",
-        message
-    );
-
-    if let Some(index) = msg.find("The Vulkan spec states:") {
-        msg.insert_str(index, "\n\x1b[35;1m->\x1b[0m ");
-    }
-
-    println!("{msg}");
-
-    vk::FALSE
-}
-
 pub struct Renderer {
     _entry:                  ash::Entry,
     instance:                ash::Instance,
     #[cfg(debug_assertions)]
-    debug_utils_loader:      ash::extensions::ext::DebugUtils,
-    #[cfg(debug_assertions)]
-    debug_messenger:         ash::vk::DebugUtilsMessengerEXT,
+    debug:                   Debug,
     queue:                   vk::Queue,
     window:                  Window,
     surface:                 Surface,
@@ -85,43 +47,6 @@ pub struct Renderer {
     pipeline:                vk::Pipeline,
     command_pool:            vk::CommandPool,
     command_buffers:         Vec<vk::CommandBuffer>
-}
-
-#[cfg(debug_assertions)]
-fn debug_messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
-    vk::DebugUtilsMessengerCreateInfoEXT {
-        s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        p_next: std::ptr::null(),
-        flags:  vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
-        message_severity:
-            // vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE |
-            // vk::DebugUtilsMessageSeverityFlagsEXT::INFO    |
-            vk::DebugUtilsMessageSeverityFlagsEXT::WARNING |
-            vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
-        message_type:
-            vk::DebugUtilsMessageTypeFlagsEXT::GENERAL     |
-            vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE |
-            vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
-        pfn_user_callback: Some(vulkan_debug_utils_callback),
-        p_user_data:       std::ptr::null_mut()
-    }
-}
-
-#[cfg(debug_assertions)]
-fn debug_utils(
-    entry:    &ash::Entry,
-    instance: &ash::Instance
-) -> Result<(ash::extensions::ext::DebugUtils, vk::DebugUtilsMessengerEXT)> {
-    let debug_utils_loader = ash::extensions::ext::DebugUtils::new(entry, instance);
-
-    let messenger = debug_messenger_create_info();
-
-    let utils_messenger = unsafe {
-        debug_utils_loader
-            .create_debug_utils_messenger(&messenger, None)
-    }?;
-
-    Ok((debug_utils_loader, utils_messenger))
 }
 
 impl Renderer {
@@ -145,7 +70,7 @@ impl Renderer {
 
                 extension_names.push(debug_ptr);
 
-                let debug_utils_create_info = debug_messenger_create_info();
+                let debug_utils_create_info = messenger_create_info();
 
                 let layers_raw: Vec<std::ffi::CString> = VALIDATION_LAYERS
                     .iter()
@@ -184,7 +109,10 @@ impl Renderer {
         };
 
         #[cfg(debug_assertions)]
-        let (debug_utils_loader, debug_messenger) = debug_utils(&entry, &instance)?;
+        let debug = Debug::new(
+            &entry,
+            &instance
+        )?;
 
         let physical_device = unsafe { instance.enumerate_physical_devices() }?
             .into_iter()
@@ -507,9 +435,7 @@ impl Renderer {
                 _entry: entry,
                 instance,
                 #[cfg(debug_assertions)]
-                debug_utils_loader,
-                #[cfg(debug_assertions)]
-                debug_messenger,
+                debug,
                 queue,
                 window,
                 surface,
@@ -635,10 +561,7 @@ impl Drop for Renderer {
         self.surface.destroy();
 
         #[cfg(debug_assertions)]
-        unsafe {
-            self.debug_utils_loader
-                .destroy_debug_utils_messenger(self.debug_messenger, None);
-        }
+        self.debug.destroy();
 
         unsafe { self.instance.destroy_instance(None); }
     }
