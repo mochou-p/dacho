@@ -2,6 +2,7 @@
 
 #[cfg(debug_assertions)]
 mod debug;
+mod buffer;
 mod surface;
 mod swapchain;
 mod vertex;
@@ -21,6 +22,7 @@ use winit::{
 use debug::{Debug, messenger_create_info};
     
 use {
+    buffer::VertexBuffer,
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -39,7 +41,6 @@ const VERTICES: [Vertex; 6] = [
     Vertex::new((-1.0, -1.0), (1.0, 1.0, 1.0)),
     Vertex::new(( 1.0, -1.0), (0.0, 1.0, 1.0)),
     Vertex::new(( 1.0,  1.0), (0.0, 0.0, 1.0))
-
 ];
 
 pub struct Renderer {
@@ -372,70 +373,6 @@ impl Renderer {
             pipeline
         };
 
-        let vertex_buffer_size = (std::mem::size_of::<Vertex>() * VERTICES.len()) as u64;
-
-        let vertex_buffer = {
-            let create_info = vk::BufferCreateInfo::builder()
-                .size(vertex_buffer_size)
-                .usage(vk::BufferUsageFlags::VERTEX_BUFFER)
-                .sharing_mode(vk::SharingMode::EXCLUSIVE);
-
-            unsafe { device.create_buffer(&create_info, None) }?
-        };
-
-        let vertex_buffer_memory = {
-            let memory_requirements = unsafe { device.get_buffer_memory_requirements(vertex_buffer) };
-            let memory_properties   = unsafe { instance.get_physical_device_memory_properties(physical_device) };
-
-            let memory_type_index = {
-                let properties = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
-
-                let mut found  = false;
-                let mut result = 0;
-
-                for i in 0..memory_properties.memory_type_count {
-                    let a = (memory_requirements.memory_type_bits & (1 << i)) != 0;
-                    let b = (memory_properties.memory_types[i as usize].property_flags & properties) == properties;
-
-                    if a && b {
-                        found  = true;
-                        result = i;
-                        break;
-                    }
-                }
-
-                if !found {
-                    panic!("Failed to find a suitable memory type");
-                }
-
-                result
-            };
-
-            let allocate_info = vk::MemoryAllocateInfo::builder()
-                .allocation_size(memory_requirements.size)
-                .memory_type_index(memory_type_index);
-
-            unsafe { device.allocate_memory(&allocate_info, None) }?
-        };
-
-        unsafe { device.bind_buffer_memory(vertex_buffer, vertex_buffer_memory, 0) }?;
-
-        let memory = unsafe {
-            device.map_memory(
-                vertex_buffer_memory,
-                0,
-                vertex_buffer_size,
-                vk::MemoryMapFlags::empty()
-            )
-        }?;
-
-        let vertices = VERTICES.as_ptr() as *mut std::ffi::c_void;
-
-        unsafe {
-            std::ptr::copy_nonoverlapping(vertices, memory, vertex_buffer_size as usize);
-            device.unmap_memory(vertex_buffer_memory);
-        }
-
         let command_pool = {
             let create_info = vk::CommandPoolCreateInfo::builder()
                 .queue_family_index(0)
@@ -443,6 +380,14 @@ impl Renderer {
 
             unsafe { device.create_command_pool(&create_info, None) }?
         };
+
+        let (vertex_buffer, vertex_buffer_memory) = VertexBuffer::new(
+            &instance,
+            &physical_device,
+            &device,
+            &queue,
+            &command_pool
+        )?;
 
         let command_buffers = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
