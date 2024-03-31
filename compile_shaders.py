@@ -1,7 +1,8 @@
 # dacho/compile_shaders.py
 
-import os
-from shutil import which
+from os      import listdir, mkdir, system
+from os.path import exists, isdir, isfile
+from shutil  import which
 
 
 SHADER_COMPILER = "glslc"
@@ -15,27 +16,27 @@ class Color:
 
 
 def main():
-    for shader in os.listdir(SHADER_ROOT):
+    for shader in listdir(SHADER_ROOT):
         shader_path = f"{SHADER_ROOT}/{shader}"
 
-        if not os.path.isdir(shader_path):
+        if not isdir(shader_path):
             continue
 
         bin_directory = f"{shader_path}/bin"
 
-        if not os.path.exists(bin_directory):
-            os.mkdir(bin_directory)
+        if not exists(bin_directory):
+            mkdir(bin_directory)
 
-        for module in os.listdir(shader_path):
+        for module in listdir(shader_path):
             module_path = f"{shader_path}/{module}"
 
-            if not os.path.isfile(module_path):
+            if not isfile(module_path):
                 continue
 
             spir_v = f"{bin_directory}/{module.split('.')[1]}.spv"
-            status = "recompiled" if os.path.exists(spir_v) else "compiled"
+            status = "recompiled" if exists(spir_v) else "compiled"
 
-            if os.system(f"{SHADER_COMPILER} {module_path} -o {spir_v}"):
+            if system(f"{SHADER_COMPILER} {module_path} -o {spir_v}"):
                 print(f"{Color.red}failed{Color.reset} to compile {module}")
             else:
                 print(f"{Color.green}{status}{Color.reset} {module}")
