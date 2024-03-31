@@ -22,7 +22,7 @@ use winit::{
 use debug::{Debug, messenger_create_info};
     
 use {
-    buffer::VertexBuffer,
+    buffer::{Buffer, IndexBuffer, VertexBuffer},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -33,14 +33,16 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-const VERTICES: [Vertex; 6] = [
-    Vertex::new((-1.0, -1.0), (1.0, 1.0, 1.0)),
-    Vertex::new(( 1.0,  1.0), (0.0, 0.0, 1.0)),
-    Vertex::new((-1.0,  1.0), (0.0, 0.0, 0.0)),
+const VERTICES: [Vertex; 4] = [
+    Vertex::new((-1.0, -1.0), (0.0, 0.0, 0.0)),
+    Vertex::new(( 1.0, -1.0), (1.0, 0.0, 0.0)),
+    Vertex::new(( 1.0,  1.0), (1.0, 1.0, 0.0)),
+    Vertex::new((-1.0,  1.0), (0.0, 1.0, 0.0)),
+];
 
-    Vertex::new((-1.0, -1.0), (1.0, 1.0, 1.0)),
-    Vertex::new(( 1.0, -1.0), (0.0, 1.0, 1.0)),
-    Vertex::new(( 1.0,  1.0), (0.0, 0.0, 1.0))
+const INDICES: [u16; 6] = [
+    0, 1, 2,
+    2, 3, 0
 ];
 
 pub struct Renderer {
@@ -58,6 +60,8 @@ pub struct Renderer {
     pipeline:                vk::Pipeline,
     vertex_buffer:           vk::Buffer,
     vertex_buffer_memory:    vk::DeviceMemory,
+    index_buffer:            vk::Buffer,
+    index_buffer_memory:     vk::DeviceMemory,
     command_pool:            vk::CommandPool,
     command_buffers:         Vec<vk::CommandBuffer>
 }
@@ -389,6 +393,14 @@ impl Renderer {
             &command_pool
         )?;
 
+        let (index_buffer, index_buffer_memory) = IndexBuffer::new(
+            &instance,
+            &physical_device,
+            &device,
+            &queue,
+            &command_pool
+        )?;
+
         let command_buffers = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
                 .command_pool(command_pool)
@@ -445,7 +457,10 @@ impl Renderer {
                 let offsets        = [0];
 
                 device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
-                device.cmd_draw(command_buffer, VERTICES.len() as u32, 1, 0, 0);
+                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
+
+                device.cmd_draw_indexed(command_buffer, INDICES.len() as u32, 1, 0, 0, 0);
+
                 device.cmd_end_render_pass(command_buffer);
                 device.end_command_buffer(command_buffer)?;
             }
@@ -467,6 +482,8 @@ impl Renderer {
                 pipeline,
                 vertex_buffer,
                 vertex_buffer_memory,
+                index_buffer,
+                index_buffer_memory,
                 command_pool,
                 command_buffers
             }
@@ -579,11 +596,10 @@ impl Drop for Renderer {
 
         self.swapchain.destroy(&self.device);
 
-        unsafe {
-            self.device.destroy_buffer(self.vertex_buffer, None);
-            self.device.free_memory(self.vertex_buffer_memory, None);
-            self.device.destroy_device(None);
-        }
+        Buffer::destroy(&self.device, &self.vertex_buffer, &self.vertex_buffer_memory);
+        Buffer::destroy(&self.device,  &self.index_buffer,  &self.index_buffer_memory);
+
+        unsafe { self.device.destroy_device(None); }
 
         self.surface.destroy();
 

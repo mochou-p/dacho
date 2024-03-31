@@ -4,10 +4,7 @@ use anyhow::Result;
 
 use ash::vk;
 
-use super::{
-    VERTICES,
-    vertex::Vertex
-};
+use super::{INDICES, VERTICES};
 
 pub struct Buffer;
 
@@ -110,20 +107,32 @@ impl Buffer {
 
         Ok(())
     }
+
+    pub fn destroy(
+        device:        &ash::Device,
+        buffer:        &vk::Buffer,
+        buffer_memory: &vk::DeviceMemory
+    ) {
+        unsafe {
+            device.destroy_buffer(*buffer, None);
+            device.free_memory(*buffer_memory, None);
+        }
+    }
 }
 
-pub struct VertexBuffer;
+struct SomeBuffer;
 
-impl VertexBuffer {
+impl SomeBuffer {
     pub fn new(
         instance:        &ash::Instance,
         physical_device: &vk::PhysicalDevice,
         device:          &ash::Device,
         queue:           &vk::Queue,
-        command_pool:    &vk::CommandPool
+        command_pool:    &vk::CommandPool,
+        data:            *mut std::ffi::c_void,
+        buffer_size:      u64,
+        buffer_type:      vk::BufferUsageFlags
     ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
-        let buffer_size = (std::mem::size_of::<Vertex>() * VERTICES.len()) as u64;
-
         let (staging_buffer, staging_buffer_memory) = Buffer::new(
             instance,
             physical_device,
@@ -143,20 +152,17 @@ impl VertexBuffer {
             )
         }?;
 
-        let vertices = VERTICES.as_ptr() as *mut std::ffi::c_void;
-
         unsafe {
-            std::ptr::copy_nonoverlapping(vertices, memory, buffer_size as usize);
+            std::ptr::copy_nonoverlapping(data, memory, buffer_size as usize);
             device.unmap_memory(staging_buffer_memory);
         }
 
-        let (vertex_buffer, vertex_buffer_memory) = Buffer::new(
+        let (buffer, buffer_memory) = Buffer::new(
             instance,
             physical_device,
             device,
             buffer_size,
-            vk::BufferUsageFlags::TRANSFER_DST |
-                vk::BufferUsageFlags::VERTEX_BUFFER,
+            vk::BufferUsageFlags::TRANSFER_DST | buffer_type,
             vk::MemoryPropertyFlags::DEVICE_LOCAL
         )?;
 
@@ -165,7 +171,7 @@ impl VertexBuffer {
             queue,
             command_pool,
             &staging_buffer,
-            &vertex_buffer,
+            &buffer,
             buffer_size
         )?;
         
@@ -174,7 +180,65 @@ impl VertexBuffer {
             device.free_memory(staging_buffer_memory, None);
         }
 
-        Ok((vertex_buffer, vertex_buffer_memory))
+        Ok((buffer, buffer_memory))
+    }
+}
+
+pub struct VertexBuffer;
+
+impl VertexBuffer {
+    pub fn new(
+        instance:        &ash::Instance,
+        physical_device: &vk::PhysicalDevice,
+        device:          &ash::Device,
+        queue:           &vk::Queue,
+        command_pool:    &vk::CommandPool
+    ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
+        let data        = VERTICES.as_ptr() as *mut std::ffi::c_void;
+        let buffer_size = (std::mem::size_of_val(&VERTICES[0]) * VERTICES.len()) as u64;
+        let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
+
+        let (buffer, buffer_memory) = SomeBuffer::new(
+            instance,
+            physical_device,
+            device,
+            queue,
+            command_pool,
+            data,
+            buffer_size,
+            buffer_type
+        )?;
+
+        Ok((buffer, buffer_memory))
+    }
+}
+
+pub struct IndexBuffer;
+
+impl IndexBuffer {
+    pub fn new(
+        instance:        &ash::Instance,
+        physical_device: &vk::PhysicalDevice,
+        device:          &ash::Device,
+        queue:           &vk::Queue,
+        command_pool:    &vk::CommandPool
+    ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
+        let data        = INDICES.as_ptr() as *mut std::ffi::c_void;
+        let buffer_size = (std::mem::size_of_val(&INDICES[0]) * INDICES.len()) as u64;
+        let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
+
+        let (buffer, buffer_memory) = SomeBuffer::new(
+            instance,
+            physical_device,
+            device,
+            queue,
+            command_pool,
+            data,
+            buffer_size,
+            buffer_type
+        )?;
+
+        Ok((buffer, buffer_memory))
     }
 }
 
