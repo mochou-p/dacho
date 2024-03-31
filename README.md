@@ -2,7 +2,7 @@
 
 # Dacho
 
-*If you do not have vulkan validation layers on your system, run with --release
+*If you do not have vulkan validation layers on your system, run with `--release`
 
 ## License
 
