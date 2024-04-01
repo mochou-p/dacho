@@ -172,9 +172,7 @@ impl Swapchain {
             unsafe { device.destroy_image_view(*image_view, None); }
         }
 
-        unsafe {
-            self.loader.destroy_swapchain(self.swapchain, None);
-        }
+        unsafe { self.loader.destroy_swapchain(self.swapchain, None); }
     }
 }
 

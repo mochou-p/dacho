@@ -3,6 +3,7 @@
 #[cfg(debug_assertions)]
 mod debug;
 mod buffer;
+mod descriptor;
 mod surface;
 mod swapchain;
 mod vertex;
@@ -23,6 +24,7 @@ use debug::{Debug, messenger_create_info};
     
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
+    descriptor::DescriptorSetLayout,
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -46,24 +48,25 @@ const INDICES: [u16; 6] = [
 ];
 
 pub struct Renderer {
-    _entry:                  ash::Entry,
-    instance:                ash::Instance,
+    _entry:                ash::Entry,
+    instance:              ash::Instance,
     #[cfg(debug_assertions)]
-    debug:                   Debug,
-    queue:                   vk::Queue,
-    window:                  Window,
-    surface:                 Surface,
-    device:                  ash::Device,
-    render_pass:             vk::RenderPass,
-    swapchain:               Swapchain,
-    pipeline_layout:         vk::PipelineLayout,
-    pipeline:                vk::Pipeline,
-    vertex_buffer:           vk::Buffer,
-    vertex_buffer_memory:    vk::DeviceMemory,
-    index_buffer:            vk::Buffer,
-    index_buffer_memory:     vk::DeviceMemory,
-    command_pool:            vk::CommandPool,
-    command_buffers:         Vec<vk::CommandBuffer>
+    debug:                 Debug,
+    queue:                 vk::Queue,
+    window:                Window,
+    surface:               Surface,
+    device:                ash::Device,
+    render_pass:           vk::RenderPass,
+    swapchain:             Swapchain,
+    descriptor_set_layout: DescriptorSetLayout,
+    pipeline_layout:       vk::PipelineLayout,
+    pipeline:              vk::Pipeline,
+    vertex_buffer:         vk::Buffer,
+    vertex_buffer_memory:  vk::DeviceMemory,
+    index_buffer:          vk::Buffer,
+    index_buffer_memory:   vk::DeviceMemory,
+    command_pool:          vk::CommandPool,
+    command_buffers:       Vec<vk::CommandBuffer>
 }
 
 impl Renderer {
@@ -236,8 +239,15 @@ impl Renderer {
             height
         )?;
 
+        let descriptor_set_layout = DescriptorSetLayout::new(
+            &device
+        )?;
+
+        let descriptor_set_layouts = [descriptor_set_layout.descriptor_set_layout];
+
         let pipeline_layout = {
-            let create_info = vk::PipelineLayoutCreateInfo::builder();
+            let create_info = vk::PipelineLayoutCreateInfo::builder()
+                .set_layouts(&descriptor_set_layouts);
 
             unsafe { device.create_pipeline_layout(&create_info, None) }?
         };
@@ -478,6 +488,7 @@ impl Renderer {
                 device,
                 render_pass,
                 swapchain,
+                descriptor_set_layout,
                 pipeline_layout,
                 pipeline,
                 vertex_buffer,
@@ -595,6 +606,7 @@ impl Drop for Renderer {
         }
 
         self.swapchain.destroy(&self.device);
+        self.descriptor_set_layout.destroy(&self.device);
 
         Buffer::destroy(&self.device, &self.vertex_buffer, &self.vertex_buffer_memory);
         Buffer::destroy(&self.device,  &self.index_buffer,  &self.index_buffer_memory);
