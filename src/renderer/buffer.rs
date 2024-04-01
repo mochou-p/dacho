@@ -198,7 +198,7 @@ impl VertexBuffer {
         let buffer_size = (std::mem::size_of_val(&VERTICES[0]) * VERTICES.len()) as u64;
         let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
-        let (buffer, buffer_memory) = SomeBuffer::new(
+        let (vertex_buffer, vertex_buffer_memory) = SomeBuffer::new(
             instance,
             physical_device,
             device,
@@ -209,7 +209,7 @@ impl VertexBuffer {
             buffer_type
         )?;
 
-        Ok((buffer, buffer_memory))
+        Ok((vertex_buffer, vertex_buffer_memory))
     }
 }
 
@@ -227,7 +227,7 @@ impl IndexBuffer {
         let buffer_size = (std::mem::size_of_val(&INDICES[0]) * INDICES.len()) as u64;
         let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 
-        let (buffer, buffer_memory) = SomeBuffer::new(
+        let (index_buffer, index_buffer_memory) = SomeBuffer::new(
             instance,
             physical_device,
             device,
@@ -238,7 +238,7 @@ impl IndexBuffer {
             buffer_type
         )?;
 
-        Ok((buffer, buffer_memory))
+        Ok((index_buffer, index_buffer_memory))
     }
 }
 
