@@ -3,7 +3,9 @@
 #[cfg(debug_assertions)]
 mod debug;
 mod buffer;
+mod color;
 mod descriptor;
+mod primitive;
 mod surface;
 mod swapchain;
 mod vertex;
@@ -21,10 +23,11 @@ use winit::{
 
 #[cfg(debug_assertions)]
 use debug::{Debug, messenger_create_info};
-    
+
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
+    primitive::{CubeIndices, CubeIndicesData, CubeVertices, CubeVerticesData},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -35,16 +38,20 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-const VERTICES: [Vertex; 4] = [
-    Vertex::new((-1.0, 0.0, -1.0), (0.0, 0.0, 0.0)),
-    Vertex::new(( 1.0, 0.0, -1.0), (0.0, 0.0, 0.0)),
-    Vertex::new(( 1.0, 0.0,  1.0), (1.0, 1.0, 1.0)),
-    Vertex::new((-1.0, 0.0,  1.0), (1.0, 1.0, 1.0)),
+const VERTICES: [CubeVerticesData; 5] = [
+    CubeVertices::new( 0,  0,  0),
+    CubeVertices::new(-2,  0,  0),
+    CubeVertices::new( 2,  0,  0),
+    CubeVertices::new( 0,  0, -2),
+    CubeVertices::new( 0,  0,  2)
 ];
 
-const INDICES: [u16; 6] = [
-    0, 1, 2,
-    2, 3, 0
+const INDICES: [CubeIndicesData; 5] = [
+    CubeIndices::new(0),
+    CubeIndices::new(1),
+    CubeIndices::new(2),
+    CubeIndices::new(3),
+    CubeIndices::new(4)
 ];
 
 pub struct Renderer {
@@ -518,7 +525,14 @@ impl Renderer {
                     &[]
                 );
 
-                device.cmd_draw_indexed(command_buffer, INDICES.len() as u32, 1, 0, 0, 0);
+                device.cmd_draw_indexed(
+                    command_buffer,
+                    (INDICES.len() * 36) as u32,
+                    1,
+                    0,
+                    0,
+                    0
+                );
 
                 device.cmd_end_render_pass(command_buffer);
                 device.end_command_buffer(command_buffer)?;

@@ -4,7 +4,10 @@ use anyhow::Result;
 
 use ash::vk;
 
-use glam::f32 as glam;
+use {
+    glam::f32 as glam,
+    ::glam::EulerRot
+};
 
 use super::buffer::Buffer;
 
@@ -48,10 +51,11 @@ impl UniformBufferObject {
         time:         f32,
         aspect_ratio: f32
     ) {
-        let model = glam::Mat4::from_axis_angle(glam::Vec3::Y, 90.0_f32.to_radians() * time);
-        let view  = glam::Mat4::look_at_rh(glam::Vec3::ONE * 2.0, glam::Vec3::ZERO, glam::Vec3::Y);
+        let angle = 90.0_f32.to_radians() * time;
+        let model = glam::Mat4::from_euler(EulerRot::XYZ, 0.0, angle, 0.0);
+        let view  = glam::Mat4::look_at_rh(glam::Vec3::ONE * 10.0, glam::Vec3::ZERO, glam::Vec3::Y);
 
-        let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10.0);
+        let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 100.0);
         projection.y_axis.y *= -1.0;
 
         let mut ubo = UniformBufferObject { _model: model, _view: view, _projection: projection };
