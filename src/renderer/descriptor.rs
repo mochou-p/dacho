@@ -96,3 +96,32 @@ impl DescriptorSetLayout {
     }
 }
 
+pub struct DescriptorPool {
+    descriptor_pool: vk::DescriptorPool
+}
+
+impl DescriptorPool {
+    pub fn new(device: &ash::Device) -> Result<Self> {
+        let descriptor_pool = {
+            let pool_sizes = [
+                vk::DescriptorPoolSize::builder()
+                    .ty(vk::DescriptorType::UNIFORM_BUFFER)
+                    .descriptor_count(1)
+                    .build()
+            ];
+
+            let create_info = vk::DescriptorPoolCreateInfo::builder()
+                .pool_sizes(&pool_sizes)
+                .max_sets(1);
+
+            unsafe { device.create_descriptor_pool(&create_info, None) }?
+        };
+
+        Ok(Self { descriptor_pool })
+    }
+
+    pub fn destroy(&self, device: &ash::Device) {
+        unsafe { device.destroy_descriptor_pool(self.descriptor_pool, None); }
+    }
+}
+

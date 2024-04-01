@@ -24,7 +24,7 @@ use debug::{Debug, messenger_create_info};
     
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
-    descriptor::{UniformBufferObject, DescriptorSetLayout},
+    descriptor::{UniformBufferObject, DescriptorPool, DescriptorSetLayout},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -68,6 +68,7 @@ pub struct Renderer {
     ubo:                   vk::Buffer,
     ubo_memory:            vk::DeviceMemory,
     ubo_mapped:            *mut std::ffi::c_void,
+    descriptor_pool:       DescriptorPool,
     command_pool:          vk::CommandPool,
     command_buffers:       Vec<vk::CommandBuffer>,
     start_time:            std::time::Instant
@@ -421,6 +422,10 @@ impl Renderer {
             &device
         )?;
 
+        let descriptor_pool = DescriptorPool::new(
+            &device
+        )?;
+
         let command_buffers = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
                 .command_pool(command_pool)
@@ -510,6 +515,7 @@ impl Renderer {
                 ubo,
                 ubo_memory,
                 ubo_mapped,
+                descriptor_pool,
                 command_pool,
                 command_buffers,
                 start_time
@@ -632,6 +638,7 @@ impl Drop for Renderer {
 
         Buffer::destroy(&self.device, &self.ubo, &self.ubo_memory);
 
+        self.descriptor_pool.destroy(&self.device);
         self.descriptor_set_layout.destroy(&self.device);
 
         Buffer::destroy(&self.device, &self.vertex_buffer, &self.vertex_buffer_memory);
