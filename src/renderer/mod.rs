@@ -24,7 +24,7 @@ use debug::{Debug, messenger_create_info};
     
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
-    descriptor::{UniformBufferObject, DescriptorPool, DescriptorSetLayout},
+    descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -332,8 +332,8 @@ impl Renderer {
 
             let rasterization_state = vk::PipelineRasterizationStateCreateInfo::builder()
                 .line_width(1.0)
-                .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
-                .cull_mode(vk::CullModeFlags::NONE)
+                .front_face(vk::FrontFace::CLOCKWISE)
+                .cull_mode(vk::CullModeFlags::BACK)
                 .polygon_mode(vk::PolygonMode::FILL);
 
             let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
@@ -426,6 +426,13 @@ impl Renderer {
             &device
         )?;
 
+        let descriptor_set = DescriptorSet::new(
+            &device,
+            &descriptor_pool,
+            &descriptor_set_layout,
+            &ubo
+        )?;
+
         let command_buffers = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
                 .command_pool(command_pool)
@@ -483,6 +490,17 @@ impl Renderer {
 
                 device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
                 device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
+
+                let descriptor_sets = [descriptor_set];
+
+                device.cmd_bind_descriptor_sets(
+                    command_buffer,
+                    vk::PipelineBindPoint::GRAPHICS,
+                    pipeline_layout,
+                    0,
+                    &descriptor_sets,
+                    &[]
+                );
 
                 device.cmd_draw_indexed(command_buffer, INDICES.len() as u32, 1, 0, 0, 0);
 
