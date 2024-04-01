@@ -4,6 +4,17 @@ use ash::vk;
 
 use glam::f32 as glam;
 
+use super::color::{Color, ColorData};
+
+type PositionData = (f32, f32, f32);
+pub struct CubePosition(pub i16, pub i16, pub i16);
+
+impl CubePosition {
+    const fn as_position_data(&self) -> PositionData {
+        (self.0 as f32, self.1 as f32, self.2 as f32)
+    }
+}
+
 pub struct Vertex {
     _position: glam::Vec3,
     _color:    glam::Vec3
@@ -11,11 +22,13 @@ pub struct Vertex {
 
 impl Vertex {
     pub const fn new(
-        position: (f32, f32, f32),
-        color:    (f32, f32, f32)
+        position: CubePosition,
+        color:    ColorData
     ) -> Self {
-        let _position = glam::Vec3::new(position.0, position.1, position.2);
-        let _color    = glam::Vec3::new(   color.0,    color.1,    color.2);
+        let pos = position.as_position_data();
+
+        let _position = glam::Vec3::new(pos.0, pos.1, pos.2);
+        let _color    = glam::Vec3::new(color.0, color.1, color.2);
 
         Self { _position, _color }
     }
@@ -44,7 +57,7 @@ impl Vertex {
     }
 
     pub fn attribute_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
-        let dummy = Self::new((0.0, 0.0, 0.0), (0.0, 0.0, 0.0));
+        let dummy = Self::new(CubePosition(0, 0, 0), Color::BLACK);
 
         let position_size   = std::mem::size_of_val(&dummy._position);
         let position_format = Self::format_from_size(position_size);
