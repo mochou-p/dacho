@@ -46,5 +46,8 @@ if __name__ == "__main__":
     if which(SHADER_COMPILER) is None:
         exit(f"{Color.red}{SHADER_COMPILER}{Color.reset} is required to compile shaders")
 
-    main()
+    try:
+        main()
+    except Exception as exception:
+        print(f"shader compilation script {Color.red}crashed{Color.reset}\n  {exception=}")
 
