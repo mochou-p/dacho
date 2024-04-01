@@ -125,3 +125,46 @@ impl DescriptorPool {
     }
 }
 
+pub struct DescriptorSet;
+
+impl DescriptorSet {
+    pub fn new(
+        device:                &ash::Device,
+        descriptor_pool:       &DescriptorPool,
+        descriptor_set_layout: &DescriptorSetLayout,
+        ubo:                   &vk::Buffer
+    ) -> Result<vk::DescriptorSet> {
+        let descriptor_set = {
+            let set_layouts = [descriptor_set_layout.descriptor_set_layout];
+
+            let allocate_info = vk::DescriptorSetAllocateInfo::builder()
+                .descriptor_pool(descriptor_pool.descriptor_pool)
+                .set_layouts(&set_layouts);
+
+            unsafe { device.allocate_descriptor_sets(&allocate_info) }?[0]
+        };
+
+        let buffer_infos = [
+            vk::DescriptorBufferInfo::builder()
+                .buffer(*ubo)
+                .offset(0)
+                .range(std::mem::size_of::<UniformBufferObject>() as u64)
+                .build()
+        ];
+
+        let writes = [
+            vk::WriteDescriptorSet::builder()
+                .dst_set(descriptor_set)
+                .dst_binding(0)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                .buffer_info(&buffer_infos)
+                .build()
+        ];
+
+        unsafe { device.update_descriptor_sets(&writes, &[]); }
+
+        Ok(descriptor_set)
+    }
+}
+
