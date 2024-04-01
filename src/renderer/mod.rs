@@ -24,7 +24,7 @@ use debug::{Debug, messenger_create_info};
     
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
-    descriptor::DescriptorSetLayout,
+    descriptor::{UniformBufferObject, DescriptorSetLayout},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -65,8 +65,12 @@ pub struct Renderer {
     vertex_buffer_memory:  vk::DeviceMemory,
     index_buffer:          vk::Buffer,
     index_buffer_memory:   vk::DeviceMemory,
+    ubo:                   vk::Buffer,
+    ubo_memory:            vk::DeviceMemory,
+    ubo_mapped:            *mut std::ffi::c_void,
     command_pool:          vk::CommandPool,
-    command_buffers:       Vec<vk::CommandBuffer>
+    command_buffers:       Vec<vk::CommandBuffer>,
+    start_time:            std::time::Instant
 }
 
 impl Renderer {
@@ -411,6 +415,12 @@ impl Renderer {
             &command_pool
         )?;
 
+        let (ubo, ubo_memory, ubo_mapped) = UniformBufferObject::new(
+            &instance,
+            &physical_device,
+            &device
+        )?;
+
         let command_buffers = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
                 .command_pool(command_pool)
@@ -476,6 +486,8 @@ impl Renderer {
             }
         }
 
+        let start_time = std::time::Instant::now();
+
         Ok(
             Renderer {
                 _entry: entry,
@@ -495,10 +507,18 @@ impl Renderer {
                 vertex_buffer_memory,
                 index_buffer,
                 index_buffer_memory,
+                ubo,
+                ubo_memory,
+                ubo_mapped,
                 command_pool,
-                command_buffers
+                command_buffers,
+                start_time
             }
         )
+    }
+
+    fn time(&self) -> f32 {
+        self.start_time.elapsed().as_secs_f32()
     }
 
     pub fn wait_for_device(&self) {
@@ -520,6 +540,9 @@ impl Renderer {
                 )
         }
             .expect("Acquiring next image failed");
+
+        let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
+        UniformBufferObject::update(self.ubo_mapped, self.time(), aspect_ratio);
 
         unsafe {
             self.device.wait_for_fences(
@@ -606,6 +629,9 @@ impl Drop for Renderer {
         }
 
         self.swapchain.destroy(&self.device);
+
+        Buffer::destroy(&self.device, &self.ubo, &self.ubo_memory);
+
         self.descriptor_set_layout.destroy(&self.device);
 
         Buffer::destroy(&self.device, &self.vertex_buffer, &self.vertex_buffer_memory);
