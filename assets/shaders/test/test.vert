@@ -1,3 +1,5 @@
+// dacho/assets/shaders/test/test.vert
+
 #version 460
 
 layout(location = 0) in  vec2 inPosition;
