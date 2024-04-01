@@ -36,10 +36,10 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
 ];
 
 const VERTICES: [Vertex; 4] = [
-    Vertex::new((-1.0, -1.0), (0.0, 0.0, 0.0)),
-    Vertex::new(( 1.0, -1.0), (1.0, 0.0, 0.0)),
-    Vertex::new(( 1.0,  1.0), (1.0, 1.0, 0.0)),
-    Vertex::new((-1.0,  1.0), (0.0, 1.0, 0.0)),
+    Vertex::new((-1.0, 0.0, -1.0), (0.0, 0.0, 0.0)),
+    Vertex::new(( 1.0, 0.0, -1.0), (0.0, 0.0, 0.0)),
+    Vertex::new(( 1.0, 0.0,  1.0), (1.0, 1.0, 1.0)),
+    Vertex::new((-1.0, 0.0,  1.0), (1.0, 1.0, 1.0)),
 ];
 
 const INDICES: [u16; 6] = [
@@ -74,8 +74,24 @@ pub struct Renderer {
     start_time:            std::time::Instant
 }
 
+#[cfg(debug_assertions)]
+fn compile_shaders() -> Result<()> {
+    let mut path = std::env::current_dir()?;
+    path.push("compile_shaders.py");
+
+    let mut command = std::process::Command::new("python");
+    command.arg(format!("{}", path.display()));
+
+    command.spawn()?.wait_with_output()?;
+
+    Ok(())
+}
+
 impl Renderer {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        compile_shaders()?;
+
         let entry = unsafe { ash::Entry::load() }?;
 
         let instance = {
