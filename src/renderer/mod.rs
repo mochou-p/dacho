@@ -14,10 +14,14 @@ use anyhow::{Context, Result};
 
 use ash::{extensions::khr, vk};
 
+use glam::f32 as glam;
+
 use raw_window_handle::HasRawDisplayHandle;
 
 use winit::{
+    event::KeyEvent,
     event_loop::EventLoop,
+    keyboard::{KeyCode::*, PhysicalKey::Code},
     window::{Window, WindowBuilder}
 };
 
@@ -38,20 +42,30 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-const VERTICES: [CubeVerticesData; 5] = [
+const N: usize = 9;
+
+const VERTICES: [CubeVerticesData; N] = [
     CubeVertices::new( 0,  0,  0),
     CubeVertices::new(-2,  0,  0),
     CubeVertices::new( 2,  0,  0),
     CubeVertices::new( 0,  0, -2),
-    CubeVertices::new( 0,  0,  2)
+    CubeVertices::new( 0,  0,  2),
+    CubeVertices::new( 2,  0,  2),
+    CubeVertices::new(-2,  0,  2),
+    CubeVertices::new(-2,  0, -2),
+    CubeVertices::new( 2,  0, -2)
 ];
 
-const INDICES: [CubeIndicesData; 5] = [
+const INDICES: [CubeIndicesData; N] = [
     CubeIndices::new(0),
     CubeIndices::new(1),
     CubeIndices::new(2),
     CubeIndices::new(3),
-    CubeIndices::new(4)
+    CubeIndices::new(4),
+    CubeIndices::new(5),
+    CubeIndices::new(6),
+    CubeIndices::new(7),
+    CubeIndices::new(8)
 ];
 
 pub struct Renderer {
@@ -78,7 +92,9 @@ pub struct Renderer {
     descriptor_pool:       DescriptorPool,
     command_pool:          vk::CommandPool,
     command_buffers:       Vec<vk::CommandBuffer>,
-    start_time:            std::time::Instant
+    start_time:            std::time::Instant,
+    position:              glam::Vec3,
+    movement:              glam::Vec3
 }
 
 #[cfg(debug_assertions)]
@@ -576,6 +592,8 @@ impl Renderer {
         }
 
         let start_time = std::time::Instant::now();
+        let position   = glam::Vec3::Z * 10.0;
+        let movement   = glam::Vec3::ZERO;
 
         Ok(
             Renderer {
@@ -602,9 +620,29 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers,
-                start_time
+                start_time,
+                position,
+                movement
             }
         )
+    }
+
+    pub fn keyboard_input(&mut self, event: &KeyEvent) {
+        if event.repeat {
+            return;
+        }
+
+        const SPEED: f32 = 0.2;
+
+        match event.physical_key {
+            Code(KeyA) | Code(ArrowLeft)  => { self.movement.x = -SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyD) | Code(ArrowRight) => { self.movement.x =  SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyW) | Code(ArrowUp)    => { self.movement.z = -SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyS) | Code(ArrowDown)  => { self.movement.z =  SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyQ) | Code(ShiftLeft)  => { self.movement.y = -SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyE) | Code(Space)      => { self.movement.y =  SPEED * (1.0 - event.state as i32 as f32); },
+            _ => ()
+        }
     }
 
     fn time(&self) -> f32 {
@@ -613,6 +651,10 @@ impl Renderer {
 
     pub fn wait_for_device(&self) {
         unsafe { self.device.device_wait_idle() }.expect("Device wait failed");
+    }
+
+    pub fn update(&mut self) {
+        self.position += self.movement;
     }
 
     pub fn request_redraw(&self) {
@@ -632,7 +674,7 @@ impl Renderer {
             .expect("Acquiring next image failed");
 
         let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
-        UniformBufferObject::update(self.ubo_mapped, self.time(), aspect_ratio);
+        UniformBufferObject::update(self.ubo_mapped, self.position, self.time(), aspect_ratio);
 
         unsafe {
             self.device.wait_for_fences(
