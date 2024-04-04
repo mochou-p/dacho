@@ -19,8 +19,12 @@ fn main() -> Result<()> {
             Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
                 elwt.exit();
             },
+            Event::WindowEvent { event: WindowEvent::KeyboardInput { event, is_synthetic: false, .. }, .. } => {
+                renderer.keyboard_input(&event);
+            },
             Event::AboutToWait => {
                 renderer.wait_for_device();
+                renderer.update();
                 renderer.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {

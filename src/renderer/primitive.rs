@@ -32,7 +32,10 @@ impl Quad {
         c: u16,
         d: u16
     ) -> QuadData {
-        (Triangle::new(a, b, c), Triangle::new(c, d, a))
+        (
+            Triangle::new(a, b, c),
+            Triangle::new(c, d, a)
+        )
     }
 }
 
@@ -44,15 +47,18 @@ impl CubeVertices {
         y: i16,
         z: i16
     ) -> CubeVerticesData {
+        let i     = ((x / 2) + (z / 2)).abs() % 2;
+        let color = [Color::WHITE, Color::LIGHT][i as usize];
+
         (
-            Vertex::new(CubePosition(x - 1, y + 1, z - 1), Color::RED),
-            Vertex::new(CubePosition(x + 1, y + 1, z - 1), Color::GREEN),
-            Vertex::new(CubePosition(x + 1, y + 1, z + 1), Color::BLUE),
-            Vertex::new(CubePosition(x - 1, y + 1, z + 1), Color::WHITE),
-            Vertex::new(CubePosition(x - 1, y - 1, z - 1), Color::CYAN),
-            Vertex::new(CubePosition(x + 1, y - 1, z - 1), Color::MAGENTA),
-            Vertex::new(CubePosition(x + 1, y - 1, z + 1), Color::YELLOW),
-            Vertex::new(CubePosition(x - 1, y - 1, z + 1), Color::BLACK)
+            Vertex::new(CubePosition(x - 1, y + 1, z - 1), color),
+            Vertex::new(CubePosition(x + 1, y + 1, z - 1), color),
+            Vertex::new(CubePosition(x + 1, y + 1, z + 1), color),
+            Vertex::new(CubePosition(x - 1, y + 1, z + 1), color),
+            Vertex::new(CubePosition(x - 1, y - 1, z - 1), color),
+            Vertex::new(CubePosition(x + 1, y - 1, z - 1), color),
+            Vertex::new(CubePosition(x + 1, y - 1, z + 1), color),
+            Vertex::new(CubePosition(x - 1, y - 1, z + 1), color)
         )
     }
 }
