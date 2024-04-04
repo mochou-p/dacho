@@ -219,32 +219,52 @@ impl Renderer {
                     .initial_layout(vk::ImageLayout::UNDEFINED)
                     .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
                     .samples(vk::SampleCountFlags::TYPE_1)
+                    .build(),
+                vk::AttachmentDescription::builder()
+                    .format(vk::Format::D32_SFLOAT_S8_UINT)
+                    .load_op(vk::AttachmentLoadOp::CLEAR)
+                    .store_op(vk::AttachmentStoreOp::DONT_CARE)
+                    .stencil_load_op(vk::AttachmentLoadOp::DONT_CARE)
+                    .stencil_store_op(vk::AttachmentStoreOp::DONT_CARE)
+                    .initial_layout(vk::ImageLayout::UNDEFINED)
+                    .final_layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+                    .samples(vk::SampleCountFlags::TYPE_1)
                     .build()
             ];
 
-            let attachment_references = [
+            let color_attachments = [
                 vk::AttachmentReference::builder()
                     .attachment(0)
                     .layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
                     .build()
             ];
 
+            let depth_attachment = vk::AttachmentReference::builder()
+                .attachment(1)
+                .layout(vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
             let subpasses = [
                 vk::SubpassDescription::builder()
-                    .color_attachments(&attachment_references)
                     .pipeline_bind_point(vk::PipelineBindPoint::GRAPHICS)
+                    .color_attachments(&color_attachments)
+                    .depth_stencil_attachment(&depth_attachment)
                     .build()
             ];
 
             let subpass_dependencies = [
                 vk::SubpassDependency::builder()
                     .src_subpass(vk::SUBPASS_EXTERNAL)
-                    .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                    .src_stage_mask(
+                        vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT |
+                            vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS
+                    )
                     .dst_subpass(0)
-                    .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                    .dst_stage_mask(
+                        vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT |
+                            vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
                     .dst_access_mask(
-                        vk::AccessFlags::COLOR_ATTACHMENT_READ |
-                        vk::AccessFlags::COLOR_ATTACHMENT_WRITE
+                        vk::AccessFlags::COLOR_ATTACHMENT_WRITE |
+                            vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE
                     )
                     .build()
             ];
@@ -383,6 +403,15 @@ impl Renderer {
             let color_blend_state = vk::PipelineColorBlendStateCreateInfo::builder()
                 .attachments(&color_blend_attachments); 
 
+            let depth_stencil_state = vk::PipelineDepthStencilStateCreateInfo::builder()
+                .depth_test_enable(true)
+                .depth_write_enable(true)
+                .depth_compare_op(vk::CompareOp::LESS)
+                .depth_bounds_test_enable(false)
+                .min_depth_bounds(0.0)
+                .max_depth_bounds(1.0)
+                .stencil_test_enable(false);
+
             let pipeline_infos = [
                 vk::GraphicsPipelineCreateInfo::builder()
                     .stages(&stages)
@@ -392,6 +421,7 @@ impl Renderer {
                     .rasterization_state(&rasterization_state)
                     .multisample_state(&multisample_state)
                     .color_blend_state(&color_blend_state)
+                    .depth_stencil_state(&depth_stencil_state)
                     .layout(pipeline_layout)
                     .render_pass(render_pass)
                     .subpass(0)
@@ -475,6 +505,12 @@ impl Renderer {
                 vk::ClearValue {
                     color: vk::ClearColorValue {
                         float32: [0.0, 0.0, 0.0, 1.0]
+                    }
+                },
+                vk::ClearValue {
+                    depth_stencil: vk::ClearDepthStencilValue {
+                        depth:   1.0,
+                        stencil: 0
                     }
                 }
             ];
