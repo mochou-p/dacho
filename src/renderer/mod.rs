@@ -19,6 +19,7 @@ use glam::f32 as glam;
 use raw_window_handle::HasRawDisplayHandle;
 
 use winit::{
+    dpi::PhysicalSize,
     event::KeyEvent,
     event_loop::EventLoop,
     keyboard::{KeyCode::*, PhysicalKey::Code},
@@ -94,7 +95,8 @@ pub struct Renderer {
     command_buffers:       Vec<vk::CommandBuffer>,
     start_time:            std::time::Instant,
     position:              glam::Vec3,
-    movement:              glam::Vec3
+    movement:              ((f32, f32), (f32, f32), (f32, f32)),
+    direction:             glam::Vec3
 }
 
 #[cfg(debug_assertions)]
@@ -108,6 +110,14 @@ fn compile_shaders() -> Result<()> {
     command.spawn()?.wait_with_output()?;
 
     Ok(())
+}
+
+fn movement_to_vec3(m: ((f32, f32), (f32, f32), (f32, f32))) -> glam::Vec3 {
+    glam::Vec3::new(
+        m.0.0 + m.0.1,
+        m.1.0 + m.1.1,
+        m.2.0 + m.2.1
+    )
 }
 
 impl Renderer {
@@ -215,8 +225,11 @@ impl Renderer {
 
         let window = WindowBuilder::new()
             .with_title("dacho")
-            .with_inner_size(winit::dpi::PhysicalSize::new(width, height))
+            .with_inner_size(PhysicalSize::new(width, height))
             .build(event_loop)?;
+
+        window.set_cursor_grab(winit::window::CursorGrabMode::Locked)?;
+        window.set_cursor_visible(false);
 
         let surface = Surface::new(
             &entry,
@@ -592,8 +605,9 @@ impl Renderer {
         }
 
         let start_time = std::time::Instant::now();
-        let position   = glam::Vec3::Z * 10.0;
-        let movement   = glam::Vec3::ZERO;
+        let position   = glam::Vec3::new(0.0, 4.0, 12.0);
+        let movement   = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
+        let direction  = -glam::Vec3::Z;
 
         Ok(
             Renderer {
@@ -622,7 +636,8 @@ impl Renderer {
                 command_buffers,
                 start_time,
                 position,
-                movement
+                movement,
+                direction
             }
         )
     }
@@ -632,17 +647,41 @@ impl Renderer {
             return;
         }
 
-        const SPEED: f32 = 0.2;
+        static SPEED: f32 = 0.2;
 
         match event.physical_key {
-            Code(KeyA) | Code(ArrowLeft)  => { self.movement.x = -SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyD) | Code(ArrowRight) => { self.movement.x =  SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyW) | Code(ArrowUp)    => { self.movement.z = -SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyS) | Code(ArrowDown)  => { self.movement.z =  SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyQ) | Code(ShiftLeft)  => { self.movement.y = -SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyE) | Code(Space)      => { self.movement.y =  SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyA)      => { self.movement.0.0 = -SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyD)      => { self.movement.0.1 =  SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyW)      => { self.movement.2.0 = -SPEED * (1.0 - event.state as i32 as f32); },
+            Code(KeyS)      => { self.movement.2.1 =  SPEED * (1.0 - event.state as i32 as f32); },
+            Code(ShiftLeft) => { self.movement.1.0 = -SPEED * (1.0 - event.state as i32 as f32); },
+            Code(Space)     => { self.movement.1.1 =  SPEED * (1.0 - event.state as i32 as f32); },
             _ => ()
         }
+    }
+
+    pub fn mouse_input(&mut self, delta: &(f64, f64)) {
+        static SPEED: f32 = -0.00025;
+
+        unsafe {
+            static mut THETA: f32 = std::f32::consts::PI;
+            static mut PHI:   f32 = 0.0;
+
+            THETA += delta.0 as f32 * SPEED;
+
+            PHI = (PHI + delta.1 as f32 * SPEED).clamp(
+                -std::f32::consts::PI / 2.0 + f32::EPSILON,
+                std::f32::consts::PI / 2.0 - f32::EPSILON
+            );
+
+            self.direction.x = THETA.sin() * PHI.cos();
+            self.direction.y = PHI.sin();
+            self.direction.z = THETA.cos() * PHI.cos();
+        }
+    }
+
+    pub fn update(&mut self) {
+        self.position += movement_to_vec3(self.movement);
     }
 
     fn time(&self) -> f32 {
@@ -651,10 +690,6 @@ impl Renderer {
 
     pub fn wait_for_device(&self) {
         unsafe { self.device.device_wait_idle() }.expect("Device wait failed");
-    }
-
-    pub fn update(&mut self) {
-        self.position += self.movement;
     }
 
     pub fn request_redraw(&self) {
@@ -674,7 +709,7 @@ impl Renderer {
             .expect("Acquiring next image failed");
 
         let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
-        UniformBufferObject::update(self.ubo_mapped, self.position, self.time(), aspect_ratio);
+        UniformBufferObject::update(self.ubo_mapped, self.position, self.direction, self.time(), aspect_ratio);
 
         unsafe {
             self.device.wait_for_fences(
