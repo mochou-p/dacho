@@ -43,33 +43,11 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-const N: usize = 9;
-
-const VERTICES: [CubeVerticesData; N] = [
-    CubeVertices::new( 0,  0,  0),
-    CubeVertices::new(-2,  0,  0),
-    CubeVertices::new( 2,  0,  0),
-    CubeVertices::new( 0,  0, -2),
-    CubeVertices::new( 0,  0,  2),
-    CubeVertices::new( 2,  0,  2),
-    CubeVertices::new(-2,  0,  2),
-    CubeVertices::new(-2,  0, -2),
-    CubeVertices::new( 2,  0, -2)
-];
-
-const INDICES: [CubeIndicesData; N] = [
-    CubeIndices::new(0),
-    CubeIndices::new(1),
-    CubeIndices::new(2),
-    CubeIndices::new(3),
-    CubeIndices::new(4),
-    CubeIndices::new(5),
-    CubeIndices::new(6),
-    CubeIndices::new(7),
-    CubeIndices::new(8)
-];
+const N: usize = 80_usize.pow(2_u32);
 
 pub struct Renderer {
+    _vertices:             [CubeVerticesData; N],
+    _indices:              [CubeIndicesData;  N],
     _entry:                ash::Entry,
     instance:              ash::Instance,
     #[cfg(debug_assertions)]
@@ -93,7 +71,7 @@ pub struct Renderer {
     descriptor_pool:       DescriptorPool,
     command_pool:          vk::CommandPool,
     command_buffers:       Vec<vk::CommandBuffer>,
-    start_time:            std::time::Instant,
+    _start_time:           std::time::Instant,
     position:              glam::Vec3,
     movement:              ((f32, f32), (f32, f32), (f32, f32)),
     direction:             glam::Vec3
@@ -124,6 +102,34 @@ impl Renderer {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
         #[cfg(debug_assertions)]
         compile_shaders()?;
+
+        assert!(N.checked_mul(8).expect("Grid size is too big") <= u16::MAX as usize, "Grid size is too big");
+
+        const REPEAT_VERTICES_DATA: CubeVerticesData = CubeVertices::new(0, 0, 0, 0);
+        const REPEAT_INDICES_DATA:  CubeIndicesData  = CubeIndices::new(0);
+
+        let mut vertices: [CubeVerticesData; N] = [REPEAT_VERTICES_DATA; N];
+        let mut indices:  [CubeIndicesData;  N] = [REPEAT_INDICES_DATA;  N];
+
+        let mut i: u16 = 0;
+
+        let length = (N as f32).sqrt();
+        let half   = (length - 1.0) * 0.5;
+
+        for z in 0..(length as u16) {
+            for x in 0..(length as u16) {
+                vertices[i as usize] = CubeVertices::new(
+                    ((x as f32 - half) * 2.0) as i16,
+                    0,
+                    ((z as f32 - half) * 2.0) as i16,
+                    (x + z) as usize
+                );
+
+                indices[i as usize] = CubeIndices::new(i);
+
+                i += 1;
+            }
+        }
 
         let entry = unsafe { ash::Entry::load() }?;
 
@@ -487,7 +493,8 @@ impl Renderer {
             &physical_device,
             &device,
             &queue,
-            &command_pool
+            &command_pool,
+            &vertices
         )?;
 
         let (index_buffer, index_buffer_memory) = IndexBuffer::new(
@@ -495,7 +502,8 @@ impl Renderer {
             &physical_device,
             &device,
             &queue,
-            &command_pool
+            &command_pool,
+            &indices
         )?;
 
         let (ubo, ubo_memory, ubo_mapped) = UniformBufferObject::new(
@@ -592,7 +600,7 @@ impl Renderer {
 
                 device.cmd_draw_indexed(
                     command_buffer,
-                    (INDICES.len() * 36) as u32,
+                    (indices.len() * 36) as u32,
                     1,
                     0,
                     0,
@@ -604,14 +612,16 @@ impl Renderer {
             }
         }
 
-        let start_time = std::time::Instant::now();
-        let position   = glam::Vec3::new(0.0, 4.0, 12.0);
-        let movement   = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
-        let direction  = -glam::Vec3::Z;
+        let _start_time = std::time::Instant::now();
+        let position    = glam::Vec3::Y * 10.0;
+        let movement    = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
+        let direction   = -glam::Vec3::Z;
 
         Ok(
             Renderer {
-                _entry: entry,
+                _vertices: vertices,
+                _indices:  indices,
+                _entry:    entry,
                 instance,
                 #[cfg(debug_assertions)]
                 debug,
@@ -634,7 +644,7 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers,
-                start_time,
+                _start_time,
                 position,
                 movement,
                 direction
@@ -661,7 +671,9 @@ impl Renderer {
     }
 
     pub fn mouse_input(&mut self, delta: &(f64, f64)) {
-        static SPEED: f32 = -0.00025;
+        static SPEED:   f32 = -0.0004;
+        static PHI_MIN: f32 = -std::f32::consts::PI * 0.5 + f32::EPSILON;
+        static PHI_MAX: f32 =  std::f32::consts::PI * 0.5 - f32::EPSILON;
 
         unsafe {
             static mut THETA: f32 = std::f32::consts::PI;
@@ -669,10 +681,7 @@ impl Renderer {
 
             THETA += delta.0 as f32 * SPEED;
 
-            PHI = (PHI + delta.1 as f32 * SPEED).clamp(
-                -std::f32::consts::PI / 2.0 + f32::EPSILON,
-                std::f32::consts::PI / 2.0 - f32::EPSILON
-            );
+            PHI = (PHI + delta.1 as f32 * SPEED).clamp(PHI_MIN, PHI_MAX);
 
             self.direction.x = THETA.sin() * PHI.cos();
             self.direction.y = PHI.sin();
@@ -684,8 +693,8 @@ impl Renderer {
         self.position += movement_to_vec3(self.movement);
     }
 
-    fn time(&self) -> f32 {
-        self.start_time.elapsed().as_secs_f32()
+    fn _time(&self) -> f32 {
+        self._start_time.elapsed().as_secs_f32()
     }
 
     pub fn wait_for_device(&self) {
@@ -709,7 +718,7 @@ impl Renderer {
             .expect("Acquiring next image failed");
 
         let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
-        UniformBufferObject::update(self.ubo_mapped, self.position, self.direction, self.time(), aspect_ratio);
+        UniformBufferObject::update(self.ubo_mapped, self.position, self.direction, aspect_ratio);
 
         unsafe {
             self.device.wait_for_fences(

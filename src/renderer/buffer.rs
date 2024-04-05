@@ -4,7 +4,7 @@ use anyhow::Result;
 
 use ash::vk;
 
-use super::{INDICES, VERTICES};
+use super::primitive::{CubeIndicesData, CubeVerticesData};
 
 pub struct Buffer;
 
@@ -192,10 +192,11 @@ impl VertexBuffer {
         physical_device: &vk::PhysicalDevice,
         device:          &ash::Device,
         queue:           &vk::Queue,
-        command_pool:    &vk::CommandPool
+        command_pool:    &vk::CommandPool,
+        vertices:        &[CubeVerticesData]
     ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
-        let data        = VERTICES.as_ptr() as *mut std::ffi::c_void;
-        let buffer_size = (std::mem::size_of_val(&VERTICES[0]) * VERTICES.len()) as u64;
+        let data        = vertices.as_ptr() as *mut std::ffi::c_void;
+        let buffer_size = (std::mem::size_of_val(&vertices[0]) * vertices.len()) as u64;
         let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
         let (vertex_buffer, vertex_buffer_memory) = SomeBuffer::new(
@@ -221,10 +222,11 @@ impl IndexBuffer {
         physical_device: &vk::PhysicalDevice,
         device:          &ash::Device,
         queue:           &vk::Queue,
-        command_pool:    &vk::CommandPool
+        command_pool:    &vk::CommandPool,
+        indices:         &[CubeIndicesData]
     ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
-        let data        = INDICES.as_ptr() as *mut std::ffi::c_void;
-        let buffer_size = (std::mem::size_of_val(&INDICES[0]) * INDICES.len()) as u64;
+        let data        = indices.as_ptr() as *mut std::ffi::c_void;
+        let buffer_size = (std::mem::size_of_val(&indices[0]) * indices.len()) as u64;
         let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 
         let (index_buffer, index_buffer_memory) = SomeBuffer::new(

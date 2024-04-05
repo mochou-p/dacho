@@ -45,10 +45,10 @@ impl CubeVertices {
     pub const fn new(
         x: i16,
         y: i16,
-        z: i16
+        z: i16,
+        i: usize
     ) -> CubeVerticesData {
-        let i     = ((x / 2) + (z / 2)).abs() % 2;
-        let color = [Color::WHITE, Color::LIGHT][i as usize];
+        let color = [Color::LIGHT, Color::WHITE][i % 2];
 
         (
             Vertex::new(CubePosition(x - 1, y + 1, z - 1), color),
