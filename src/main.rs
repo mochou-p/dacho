@@ -3,7 +3,7 @@
 use anyhow::Result;
 
 use winit::{
-    event::{Event, WindowEvent},
+    event::{DeviceEvent, Event, WindowEvent},
     event_loop::EventLoop
 };
 
@@ -21,6 +21,9 @@ fn main() -> Result<()> {
             },
             Event::WindowEvent { event: WindowEvent::KeyboardInput { event, is_synthetic: false, .. }, .. } => {
                 renderer.keyboard_input(&event);
+            },
+            Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
+                renderer.mouse_input(&delta);
             },
             Event::AboutToWait => {
                 renderer.wait_for_device();

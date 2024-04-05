@@ -49,13 +49,13 @@ impl UniformBufferObject {
     pub fn update(
         ubo_mapped:   *mut std::ffi::c_void,
         position:     glam::Vec3,
+        direction:    glam::Vec3,
         time:         f32,
         aspect_ratio: f32
     ) {
         let angle  = 20.0_f32.to_radians() * time;
         let model  = glam::Mat4::from_euler(EulerRot::XYZ, 0.0, angle, 0.0);
-        let target = position + (glam::Vec3::Z * -2.0);
-        let view   = glam::Mat4::look_at_rh(position, target, glam::Vec3::Y);
+        let view   = glam::Mat4::look_at_rh(position, position + direction, glam::Vec3::Y);
 
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
         projection.y_axis.y *= -1.0;
