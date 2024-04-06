@@ -5,9 +5,10 @@ use super::{
     vertex::{CubePosition, Vertex}
 };
 
-type TriangleData = (u16, u16, u16);
-type     QuadData = (TriangleData, TriangleData);
-
+pub type CubePosUnit      = i16;
+pub type VertexData       = u32;
+type     TriangleData     = (VertexData, VertexData, VertexData);
+type     QuadData         = (TriangleData, TriangleData);
 pub type CubeIndicesData  = (QuadData, QuadData, QuadData, QuadData, QuadData, QuadData);
 pub type CubeVerticesData = (Vertex, Vertex, Vertex, Vertex, Vertex, Vertex, Vertex, Vertex);
 
@@ -15,9 +16,9 @@ struct Triangle;
 
 impl Triangle {
     const fn new(
-        a: u16,
-        b: u16,
-        c: u16
+        a: VertexData,
+        b: VertexData,
+        c: VertexData
     ) -> TriangleData {
         (a, b, c)
     }
@@ -27,10 +28,10 @@ struct Quad;
 
 impl Quad {
     const fn new(
-        a: u16,
-        b: u16,
-        c: u16,
-        d: u16
+        a: VertexData,
+        b: VertexData,
+        c: VertexData,
+        d: VertexData
     ) -> QuadData {
         (
             Triangle::new(a, b, c),
@@ -43,12 +44,15 @@ pub struct CubeVertices;
 
 impl CubeVertices {
     pub const fn new(
-        x: i16,
-        y: i16,
-        z: i16,
+        x: CubePosUnit,
+        y: CubePosUnit,
+        z: CubePosUnit,
         i: usize
     ) -> CubeVerticesData {
-        let color = [Color::LIGHT, Color::WHITE][i % 2];
+        let color = [
+            [Color::DARKER,  Color::DARK ],
+            [Color::LIGHTER, Color::LIGHT]
+        ][(y.abs() / 2 % 2) as usize][i % 2];
 
         (
             Vertex::new(CubePosition(x - 1, y + 1, z - 1), color),
@@ -66,7 +70,9 @@ impl CubeVertices {
 pub struct CubeIndices;
 
 impl CubeIndices {
-    pub const fn new(i: u16) -> CubeIndicesData {
+    pub const fn new(
+        i: VertexData
+    ) -> CubeIndicesData {
         let i = i * 8;
 
         (

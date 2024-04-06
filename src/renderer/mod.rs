@@ -16,6 +16,8 @@ use ash::{extensions::khr, vk};
 
 use glam::f32 as glam;
 
+use noise::NoiseFn;
+
 use raw_window_handle::HasRawDisplayHandle;
 
 use winit::{
@@ -32,22 +34,24 @@ use debug::{Debug, messenger_create_info};
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
-    primitive::{CubeIndices, CubeIndicesData, CubeVertices, CubeVerticesData},
+    primitive::{CubeIndices, CubeIndicesData, CubePosUnit, CubeVertices, CubeVerticesData, VertexData},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
 };
+
+type MovementVector = ((f32, f32), (f32, f32), (f32, f32));
 
 #[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-const N: usize = 80_usize.pow(2_u32);
+const N: usize = 206_usize.pow(2_u32);
 
 pub struct Renderer {
-    _vertices:             [CubeVerticesData; N],
-    _indices:              [CubeIndicesData;  N],
+    _vertices:             Box<[CubeVerticesData; N]>,
+    _indices:              Box<[CubeIndicesData;  N]>,
     _entry:                ash::Entry,
     instance:              ash::Instance,
     #[cfg(debug_assertions)]
@@ -73,7 +77,7 @@ pub struct Renderer {
     command_buffers:       Vec<vk::CommandBuffer>,
     _start_time:           std::time::Instant,
     position:              glam::Vec3,
-    movement:              ((f32, f32), (f32, f32), (f32, f32)),
+    movement:              MovementVector,
     direction:             glam::Vec3
 }
 
@@ -90,7 +94,7 @@ fn compile_shaders() -> Result<()> {
     Ok(())
 }
 
-fn movement_to_vec3(m: ((f32, f32), (f32, f32), (f32, f32))) -> glam::Vec3 {
+fn movement_to_vec3(m: MovementVector) -> glam::Vec3 {
     glam::Vec3::new(
         m.0.0 + m.0.1,
         m.1.0 + m.1.1,
@@ -103,25 +107,33 @@ impl Renderer {
         #[cfg(debug_assertions)]
         compile_shaders()?;
 
-        assert!(N.checked_mul(8).expect("Grid size is too big") <= u16::MAX as usize, "Grid size is too big");
+        assert!(N.checked_mul(8).expect("Grid size is too big") <= VertexData::MAX as usize, "Grid size is too big");
 
         const REPEAT_VERTICES_DATA: CubeVerticesData = CubeVertices::new(0, 0, 0, 0);
         const REPEAT_INDICES_DATA:  CubeIndicesData  = CubeIndices::new(0);
 
-        let mut vertices: [CubeVerticesData; N] = [REPEAT_VERTICES_DATA; N];
-        let mut indices:  [CubeIndicesData;  N] = [REPEAT_INDICES_DATA;  N];
+        let mut vertices = Box::new([REPEAT_VERTICES_DATA; N]);
+        let mut indices  = Box::new([REPEAT_INDICES_DATA;  N]);
 
-        let mut i: u16 = 0;
+        let mut i: VertexData = 0;
 
         let length = (N as f32).sqrt();
         let half   = (length - 1.0) * 0.5;
 
-        for z in 0..(length as u16) {
-            for x in 0..(length as u16) {
+        let perlin = noise::Perlin::new(
+            (
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_nanos() % (u32::MAX as u128)
+            ) as u32
+        );
+
+        for z in 0..(length as VertexData) {
+            for x in 0..(length as VertexData) {
                 vertices[i as usize] = CubeVertices::new(
-                    ((x as f32 - half) * 2.0) as i16,
-                    0,
-                    ((z as f32 - half) * 2.0) as i16,
+                    ((x as f32 - half) * 2.0) as CubePosUnit,
+                    (perlin.get([x as f64 * 0.01, z as f64 * 0.01]) * 10.0).round() as CubePosUnit * 2,
+                    ((z as f32 - half) * 2.0) as CubePosUnit,
                     (x + z) as usize
                 );
 
@@ -585,7 +597,7 @@ impl Renderer {
                 let offsets        = [0];
 
                 device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
-                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
+                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT32);
 
                 let descriptor_sets = [descriptor_set];
 
