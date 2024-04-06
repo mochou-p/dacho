@@ -4,10 +4,13 @@ use ash::vk;
 
 use glam::f32 as glam;
 
-use super::color::{Color, ColorData};
+use super::{
+    color::{Color, ColorData},
+    primitive::CubePosUnit
+};
 
 type PositionData = (f32, f32, f32);
-pub struct CubePosition(pub i16, pub i16, pub i16);
+pub struct CubePosition(pub CubePosUnit, pub CubePosUnit, pub CubePosUnit);
 
 impl CubePosition {
     const fn as_position_data(&self) -> PositionData {

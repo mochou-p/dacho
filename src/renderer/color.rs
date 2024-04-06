@@ -7,9 +7,11 @@ pub struct Color;
 #[allow(dead_code)]
 impl Color {
     pub const WHITE:   ColorData = (1.00, 1.00, 1.00);
+    pub const LIGHTER: ColorData = (0.91, 0.91, 0.91);
     pub const LIGHT:   ColorData = (0.75, 0.75, 0.75);
     pub const GRAY:    ColorData = (0.50, 0.50, 0.50);
     pub const DARK:    ColorData = (0.25, 0.25, 0.25);
+    pub const DARKER:  ColorData = (0.09, 0.09, 0.09);
     pub const BLACK:   ColorData = (0.00, 0.00, 0.00);
 
     pub const RED:     ColorData = (1.00, 0.00, 0.00);
