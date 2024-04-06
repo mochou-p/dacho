@@ -683,7 +683,7 @@ impl Renderer {
     }
 
     pub fn mouse_input(&mut self, delta: &(f64, f64)) {
-        static SPEED:   f32 = -0.0004;
+        static SPEED:   f32 = -0.001;
         static PHI_MIN: f32 = -std::f32::consts::PI * 0.5 + f32::EPSILON;
         static PHI_MAX: f32 =  std::f32::consts::PI * 0.5 - f32::EPSILON;
 

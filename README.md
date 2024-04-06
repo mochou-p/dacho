@@ -1,8 +1,10 @@
 <!-- dacho/README.md -->
 
-# Dacho
+# dacho
 
-*If you do not have vulkan validation layers on your system, run with `--release`
+Run with `--release` if your system is missing:
+- [vulkan validation layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
+- [glslc](https://github.com/google/shaderc/tree/main/glslc)
 
 ## License
 
