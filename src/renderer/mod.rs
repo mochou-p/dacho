@@ -34,7 +34,7 @@ use debug::{Debug, messenger_create_info};
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
-    primitive::{INDEX_COUNT, CubeIndices, CubeIndicesData, CubePosUnit, CubeVertices, CubeVerticesData, VertexData},
+    primitive::{INDEX_COUNT, CubeIndices, CubeIndicesData, CubeVertices, CubeVerticesData, VertexData},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -109,11 +109,11 @@ impl Renderer {
 
         assert!(N.checked_mul(8).expect("Grid size is too big") <= VertexData::MAX as usize, "Grid size is too big");
 
-        const REPEAT_VERTICES_DATA: CubeVerticesData = CubeVertices::new(0, 0, 0, 0);
-        const REPEAT_INDICES_DATA:  CubeIndicesData  = CubeIndices::new(0);
+        let repeat_vertices_data: CubeVerticesData = CubeVertices::new(0.0, 0.0, 0.0, 0);
+        let repeat_indices_data:  CubeIndicesData  = CubeIndices::new(0);
 
-        let mut vertices = Box::new([REPEAT_VERTICES_DATA; N]);
-        let mut indices  = Box::new([REPEAT_INDICES_DATA;  N]);
+        let mut vertices = Box::new([repeat_vertices_data; N]);
+        let mut indices  = Box::new([repeat_indices_data;  N]);
 
         let mut i: VertexData = 0;
 
@@ -131,9 +131,9 @@ impl Renderer {
         for z in 0..(length as VertexData) {
             for x in 0..(length as VertexData) {
                 vertices[i as usize] = CubeVertices::new(
-                    ((x as f32 - half) * 2.0) as CubePosUnit,
-                    (perlin.get([x as f64 * 0.01, z as f64 * 0.01]) * 10.0).round() as CubePosUnit * 2,
-                    ((z as f32 - half) * 2.0) as CubePosUnit,
+                    (x as f32 - half) * 2.0,
+                    (perlin.get([x as f64 * 0.01, z as f64 * 0.01]) as f32 * 10.0).round() * 2.0,
+                    (z as f32 - half) * 2.0,
                     (x + z) as usize
                 );
 
@@ -597,7 +597,7 @@ impl Renderer {
                 let offsets        = [0];
 
                 device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
-                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT32);
+                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
 
                 let descriptor_sets = [descriptor_set];
 

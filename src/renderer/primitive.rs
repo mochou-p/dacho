@@ -2,11 +2,10 @@
 
 use super::{
     color::Color,
-    vertex::{CubePosition, Vertex}
+    vertex::Vertex
 };
 
-pub type CubePosUnit      = i16;
-pub type VertexData       = u32;
+pub type VertexData       = u16;
     type TriangleData     = (VertexData, VertexData, VertexData);
     type QuadData         = (TriangleData, TriangleData);
 pub type CubeIndicesData  = (QuadData, QuadData, QuadData, QuadData, QuadData, QuadData);
@@ -18,7 +17,7 @@ pub type CubeVerticesData = (
 
 // per cube
 pub const INDEX_COUNT:  usize = 36;
-    const VERTEX_COUNT: u32   = 24;
+    const VERTEX_COUNT: u16   = 24;
 
 struct Triangle;
 
@@ -51,53 +50,53 @@ impl Quad {
 pub struct CubeVertices;
 
 impl CubeVertices {
-    pub const fn new(
-        x: CubePosUnit,
-        y: CubePosUnit,
-        z: CubePosUnit,
+    pub fn new(
+        x: f32,
+        y: f32,
+        z: f32,
         i: usize
     ) -> CubeVerticesData {
         let color = [
             [Color::DARKER,  Color::DARK ],
             [Color::LIGHTER, Color::LIGHT]
-        ][(y.abs() / 2 % 2) as usize][i % 2];
+        ][(y.abs() / 2.0 % 2.0) as usize][i % 2];
 
         (
             // top
-            Vertex::new(&CubePosition(x - 1, y + 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y + 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y + 1, z + 1), &color),
-            Vertex::new(&CubePosition(x - 1, y + 1, z + 1), &color),
+            Vertex::new(&(x - 1.0, y + 1.0, z - 1.0), &color, 0),
+            Vertex::new(&(x + 1.0, y + 1.0, z - 1.0), &color, 0),
+            Vertex::new(&(x + 1.0, y + 1.0, z + 1.0), &color, 0),
+            Vertex::new(&(x - 1.0, y + 1.0, z + 1.0), &color, 0),
 
             // bottom
-            Vertex::new(&CubePosition(x - 1, y - 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y - 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y - 1, z + 1), &color),
-            Vertex::new(&CubePosition(x - 1, y - 1, z + 1), &color),
+            Vertex::new(&(x - 1.0, y - 1.0, z - 1.0), &color, 1),
+            Vertex::new(&(x + 1.0, y - 1.0, z - 1.0), &color, 1),
+            Vertex::new(&(x + 1.0, y - 1.0, z + 1.0), &color, 1),
+            Vertex::new(&(x - 1.0, y - 1.0, z + 1.0), &color, 1),
 
             // left
-            Vertex::new(&CubePosition(x - 1, y - 1, z - 1), &color),
-            Vertex::new(&CubePosition(x - 1, y + 1, z - 1), &color),
-            Vertex::new(&CubePosition(x - 1, y + 1, z + 1), &color),
-            Vertex::new(&CubePosition(x - 1, y - 1, z + 1), &color),
+            Vertex::new(&(x - 1.0, y - 1.0, z - 1.0), &color, 2),
+            Vertex::new(&(x - 1.0, y + 1.0, z - 1.0), &color, 2),
+            Vertex::new(&(x - 1.0, y + 1.0, z + 1.0), &color, 2),
+            Vertex::new(&(x - 1.0, y - 1.0, z + 1.0), &color, 2),
 
             // right
-            Vertex::new(&CubePosition(x + 1, y - 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y + 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y + 1, z + 1), &color),
-            Vertex::new(&CubePosition(x + 1, y - 1, z + 1), &color),
+            Vertex::new(&(x + 1.0, y - 1.0, z - 1.0), &color, 3),
+            Vertex::new(&(x + 1.0, y + 1.0, z - 1.0), &color, 3),
+            Vertex::new(&(x + 1.0, y + 1.0, z + 1.0), &color, 3),
+            Vertex::new(&(x + 1.0, y - 1.0, z + 1.0), &color, 3),
 
             // front
-            Vertex::new(&CubePosition(x - 1, y - 1, z + 1), &color),
-            Vertex::new(&CubePosition(x + 1, y - 1, z + 1), &color),
-            Vertex::new(&CubePosition(x + 1, y + 1, z + 1), &color),
-            Vertex::new(&CubePosition(x - 1, y + 1, z + 1), &color),
+            Vertex::new(&(x - 1.0, y - 1.0, z + 1.0), &color, 4),
+            Vertex::new(&(x + 1.0, y - 1.0, z + 1.0), &color, 4),
+            Vertex::new(&(x + 1.0, y + 1.0, z + 1.0), &color, 4),
+            Vertex::new(&(x - 1.0, y + 1.0, z + 1.0), &color, 4),
 
             // back
-            Vertex::new(&CubePosition(x - 1, y - 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y - 1, z - 1), &color),
-            Vertex::new(&CubePosition(x + 1, y + 1, z - 1), &color),
-            Vertex::new(&CubePosition(x - 1, y + 1, z - 1), &color)
+            Vertex::new(&(x - 1.0, y - 1.0, z - 1.0), &color, 5),
+            Vertex::new(&(x + 1.0, y - 1.0, z - 1.0), &color, 5),
+            Vertex::new(&(x + 1.0, y + 1.0, z - 1.0), &color, 5),
+            Vertex::new(&(x - 1.0, y + 1.0, z - 1.0), &color, 5)
         )
     }
 }
