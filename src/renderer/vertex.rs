@@ -20,20 +20,24 @@ impl CubePosition {
 
 pub struct Vertex {
     _position: glam::Vec3,
+    _center:   glam::Vec3,
     _color:    glam::Vec3
 }
 
 impl Vertex {
     pub const fn new(
-        position: CubePosition,
-        color:    ColorData
+        position: &CubePosition,
+        center:   &CubePosition,
+        color:    &ColorData
     ) -> Self {
         let pos = position.as_position_data();
+        let cen = center.as_position_data();
 
         let _position = glam::Vec3::new(pos.0, pos.1, pos.2);
+        let _center   = glam::Vec3::new(cen.0, cen.1, cen.2);
         let _color    = glam::Vec3::new(color.0, color.1, color.2);
 
-        Self { _position, _color }
+        Self { _position, _center, _color }
     }
 
     pub fn binding_descriptions() -> [vk::VertexInputBindingDescription; 1] {
@@ -59,16 +63,26 @@ impl Vertex {
         FORMATS[index]
     }
 
-    pub fn attribute_descriptions() -> [vk::VertexInputAttributeDescription; 2] {
-        let dummy = Self::new(CubePosition(0, 0, 0), Color::BLACK);
+    pub fn attribute_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
+        let dummy = Self::new(&CubePosition(0, 0, 0), &CubePosition(0, 0, 0), &Color::BLACK);
+
+        let mut offset = 0;
 
         let position_size   = std::mem::size_of_val(&dummy._position);
         let position_format = Self::format_from_size(position_size);
-        let position_offset = 0;
+        let position_offset = offset as u32;
+
+        offset += position_size;
+
+        let center_size     = std::mem::size_of_val(&dummy._center);
+        let center_format   = Self::format_from_size(center_size);
+        let center_offset   = offset as u32;
+
+        offset += center_size;
 
         let color_size      = std::mem::size_of_val(&dummy._color);
         let color_format    = Self::format_from_size(color_size);
-        let color_offset    = position_size as u32;
+        let color_offset    = offset as u32;
 
         [
             vk::VertexInputAttributeDescription::builder()
@@ -80,6 +94,12 @@ impl Vertex {
             vk::VertexInputAttributeDescription::builder()
                 .binding(0)
                 .location(1)
+                .format(center_format)
+                .offset(center_offset)
+                .build(),
+            vk::VertexInputAttributeDescription::builder()
+                .binding(0)
+                .location(2)
                 .format(color_format)
                 .offset(color_offset)
                 .build()

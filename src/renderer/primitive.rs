@@ -54,15 +54,17 @@ impl CubeVertices {
             [Color::LIGHTER, Color::LIGHT]
         ][(y.abs() / 2 % 2) as usize][i % 2];
 
+        let center = CubePosition(x, y, z);
+
         (
-            Vertex::new(CubePosition(x - 1, y + 1, z - 1), color),
-            Vertex::new(CubePosition(x + 1, y + 1, z - 1), color),
-            Vertex::new(CubePosition(x + 1, y + 1, z + 1), color),
-            Vertex::new(CubePosition(x - 1, y + 1, z + 1), color),
-            Vertex::new(CubePosition(x - 1, y - 1, z - 1), color),
-            Vertex::new(CubePosition(x + 1, y - 1, z - 1), color),
-            Vertex::new(CubePosition(x + 1, y - 1, z + 1), color),
-            Vertex::new(CubePosition(x - 1, y - 1, z + 1), color)
+            Vertex::new(&CubePosition(x - 1, y + 1, z - 1), &center, &color),
+            Vertex::new(&CubePosition(x + 1, y + 1, z - 1), &center, &color),
+            Vertex::new(&CubePosition(x + 1, y + 1, z + 1), &center, &color),
+            Vertex::new(&CubePosition(x - 1, y + 1, z + 1), &center, &color),
+            Vertex::new(&CubePosition(x - 1, y - 1, z - 1), &center, &color),
+            Vertex::new(&CubePosition(x + 1, y - 1, z - 1), &center, &color),
+            Vertex::new(&CubePosition(x + 1, y - 1, z + 1), &center, &color),
+            Vertex::new(&CubePosition(x - 1, y - 1, z + 1), &center, &color)
         )
     }
 }
