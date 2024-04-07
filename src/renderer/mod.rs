@@ -34,7 +34,7 @@ use debug::{Debug, messenger_create_info};
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
-    primitive::{CubeIndices, CubeIndicesData, CubePosUnit, CubeVertices, CubeVerticesData, VertexData},
+    primitive::{INDEX_COUNT, CubeIndices, CubeIndicesData, CubePosUnit, CubeVertices, CubeVerticesData, VertexData},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -47,7 +47,7 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 
-const N: usize = 128_usize.pow(2_u32);
+const N: usize = 32_usize.pow(2_u32);
 
 pub struct Renderer {
     _vertices:             Box<[CubeVerticesData; N]>,
@@ -612,7 +612,7 @@ impl Renderer {
 
                 device.cmd_draw_indexed(
                     command_buffer,
-                    (indices.len() * 36) as u32,
+                    (indices.len() * INDEX_COUNT) as u32,
                     1,
                     0,
                     0,
@@ -625,7 +625,7 @@ impl Renderer {
         }
 
         let _start_time = std::time::Instant::now();
-        let position    = glam::Vec3::Y * 10.0;
+        let position    = glam::Vec3::Y * 15.0;
         let movement    = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
         let direction   = -glam::Vec3::Z;
 
