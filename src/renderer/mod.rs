@@ -109,7 +109,7 @@ impl Renderer {
 
         assert!(N.checked_mul(8).expect("Grid size is too big") <= VertexData::MAX as usize, "Grid size is too big");
 
-        let repeat_vertices_data: CubeVerticesData = CubeVertices::new(0.0, 0.0, 0.0, 0);
+        let repeat_vertices_data: CubeVerticesData = CubeVertices::new(0.0, 0.0, 0.0);
         let repeat_indices_data:  CubeIndicesData  = CubeIndices::new(0);
 
         let mut vertices = Box::new([repeat_vertices_data; N]);
@@ -133,8 +133,7 @@ impl Renderer {
                 vertices[i as usize] = CubeVertices::new(
                     (x as f32 - half) * 2.0,
                     (perlin.get([x as f64 * 0.01, z as f64 * 0.01]) as f32 * 10.0).round() * 2.0,
-                    (z as f32 - half) * 2.0,
-                    (x + z) as usize
+                    (z as f32 - half) * 2.0
                 );
 
                 indices[i as usize] = CubeIndices::new(i);

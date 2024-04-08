@@ -53,13 +53,9 @@ impl CubeVertices {
     pub fn new(
         x: f32,
         y: f32,
-        z: f32,
-        i: usize
+        z: f32
     ) -> CubeVerticesData {
-        let color = [
-            [Color::DARKER,  Color::DARK ],
-            [Color::LIGHTER, Color::LIGHT]
-        ][(y.abs() / 2.0 % 2.0) as usize][i % 2];
+        let color = [Color::GREEN, Color::CYAN][(y.abs() / 2.0 % 2.0) as usize];
 
         (
             // top
