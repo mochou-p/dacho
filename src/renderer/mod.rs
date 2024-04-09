@@ -5,6 +5,7 @@ mod debug;
 mod buffer;
 mod color;
 mod descriptor;
+mod device;
 mod primitive;
 mod surface;
 mod swapchain;
@@ -12,7 +13,7 @@ mod vertex;
 
 use anyhow::{Context, Result};
 
-use ash::{extensions::khr, vk};
+use ash::vk;
 
 use glam::f32 as glam;
 
@@ -34,6 +35,7 @@ use debug::{Debug, messenger_create_info};
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
+    device::Device,
     primitive::{INDEX_COUNT, CubeIndices, CubeIndicesData, CubeVertices, CubeVerticesData, VertexData},
     surface::Surface,
     swapchain::Swapchain,
@@ -56,10 +58,9 @@ pub struct Renderer {
     instance:              ash::Instance,
     #[cfg(debug_assertions)]
     debug:                 Debug,
-    queue:                 vk::Queue,
+    device:                Device,
     window:                Window,
     surface:               Surface,
-    device:                ash::Device,
     render_pass:           vk::RenderPass,
     swapchain:             Swapchain,
     descriptor_set_layout: DescriptorSetLayout,
@@ -210,31 +211,13 @@ impl Renderer {
             .next()
             .context("No physical devices")?;
 
-        let device = {
-            let queue_priorities = [
-                1.0
-            ];
+        let _device = Device::new(
+            &instance,
+            &physical_device
+        )?;
 
-            let extension_names = [
-                khr::Swapchain::name()
-                    .as_ptr()
-            ];
-
-            let queue_create_infos = [
-                vk::DeviceQueueCreateInfo::builder()
-                    .queue_family_index(0)
-                    .queue_priorities(&queue_priorities)
-                    .build()
-            ];
-
-            let create_info = vk::DeviceCreateInfo::builder()
-                .queue_create_infos(&queue_create_infos)
-                .enabled_extension_names(&extension_names);
-
-            unsafe { instance.create_device(physical_device, &create_info, None) }?
-        };
-
-        let queue = unsafe { device.get_device_queue(0, 0) };
+        let device = &_device.device;
+        let queue  = &_device.queue;
 
         let scale  = 70;
         let width  = 16 * scale;
@@ -636,10 +619,9 @@ impl Renderer {
                 instance,
                 #[cfg(debug_assertions)]
                 debug,
-                queue,
+                device: _device,
                 window,
                 surface,
-                device,
                 render_pass,
                 swapchain,
                 descriptor_set_layout,
@@ -709,7 +691,7 @@ impl Renderer {
     }
 
     pub fn wait_for_device(&self) {
-        unsafe { self.device.device_wait_idle() }.expect("Device wait failed");
+        self.device.wait();
     }
 
     pub fn request_redraw(&self) {
@@ -717,6 +699,9 @@ impl Renderer {
     }
 
     pub fn redraw(&mut self) {
+        let device = &self.device.device;
+        let queue  = &self.device.queue;
+
         let (image_index, _) = unsafe {
             self.swapchain.loader
                 .acquire_next_image(
@@ -732,7 +717,7 @@ impl Renderer {
         UniformBufferObject::update(self.ubo_mapped, self.position, self.direction, aspect_ratio);
 
         unsafe {
-            self.device.wait_for_fences(
+            device.wait_for_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
                 std::u64::MAX
@@ -741,7 +726,7 @@ impl Renderer {
             .expect("Waiting for fences failed");
 
         unsafe {
-            self.device.reset_fences(
+            device.reset_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]]
             )
         }
@@ -773,8 +758,8 @@ impl Renderer {
         ];
 
         unsafe {
-            self.device.queue_submit(
-                self.queue,
+            device.queue_submit(
+                *queue,
                 &submit_info,
                 self.swapchain.may_begin_drawing[self.swapchain.current_image]
             )
@@ -791,7 +776,7 @@ impl Renderer {
 
         unsafe {
             self.swapchain.loader.queue_present(
-                self.queue,
+                *queue,
                 &present_info
             )
         }
@@ -805,28 +790,30 @@ impl Renderer {
 
 impl Drop for Renderer {
     fn drop(&mut self) {
-        unsafe { self.device.device_wait_idle() }
-            .expect("Device idle wait failed");
+        self.device.wait();
 
-        unsafe {
-            self.device.destroy_command_pool(self.command_pool, None);
-            self.device.destroy_pipeline(self.pipeline, None);
-            self.device.destroy_pipeline_layout(self.pipeline_layout, None);
-            self.device.destroy_render_pass(self.render_pass, None);
+        {
+            let device = &self.device.device;
+
+            unsafe {
+                device.destroy_command_pool(self.command_pool, None);
+                device.destroy_pipeline(self.pipeline, None);
+                device.destroy_pipeline_layout(self.pipeline_layout, None);
+                device.destroy_render_pass(self.render_pass, None);
+            }
+
+            self.swapchain.destroy(device);
+
+            Buffer::destroy(device, &self.ubo, &self.ubo_memory);
+
+            self.descriptor_pool.destroy(device);
+            self.descriptor_set_layout.destroy(device);
+
+            Buffer::destroy(device, &self.vertex_buffer, &self.vertex_buffer_memory);
+            Buffer::destroy(device,  &self.index_buffer,  &self.index_buffer_memory);
         }
 
-        self.swapchain.destroy(&self.device);
-
-        Buffer::destroy(&self.device, &self.ubo, &self.ubo_memory);
-
-        self.descriptor_pool.destroy(&self.device);
-        self.descriptor_set_layout.destroy(&self.device);
-
-        Buffer::destroy(&self.device, &self.vertex_buffer, &self.vertex_buffer_memory);
-        Buffer::destroy(&self.device,  &self.index_buffer,  &self.index_buffer_memory);
-
-        unsafe { self.device.destroy_device(None); }
-
+        self.device.destroy();
         self.surface.destroy();
 
         #[cfg(debug_assertions)]
