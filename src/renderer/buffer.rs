@@ -4,11 +4,6 @@ use anyhow::Result;
 
 use ash::vk;
 
-use super::{
-    primitive::{CubeIndicesData, CubeVerticesData},
-    N
-};
-
 pub struct Buffer;
 
 impl Buffer {
@@ -190,13 +185,13 @@ impl SomeBuffer {
 pub struct VertexBuffer;
 
 impl VertexBuffer {
-    pub fn new(
+    pub fn new<T>(
         instance:        &ash::Instance,
         physical_device: &vk::PhysicalDevice,
         device:          &ash::Device,
         queue:           &vk::Queue,
         command_pool:    &vk::CommandPool,
-        vertices:        &Box<[CubeVerticesData; N]>
+        vertices:        &Vec<T>
     ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
         let data        = vertices.as_ptr() as *mut std::ffi::c_void;
         let buffer_size = (std::mem::size_of_val(&vertices[0]) * vertices.len()) as u64;
@@ -220,13 +215,13 @@ impl VertexBuffer {
 pub struct IndexBuffer;
 
 impl IndexBuffer {
-    pub fn new(
+    pub fn new<T>(
         instance:        &ash::Instance,
         physical_device: &vk::PhysicalDevice,
         device:          &ash::Device,
         queue:           &vk::Queue,
         command_pool:    &vk::CommandPool,
-        indices:         &Box<[CubeIndicesData; N]>
+        indices:         &Vec<T>
     ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
         let data        = indices.as_ptr() as *mut std::ffi::c_void;
         let buffer_size = (std::mem::size_of_val(&indices[0]) * indices.len()) as u64;
