@@ -6,9 +6,8 @@ use glam::f32 as glam;
 
 use super::color::{Color, ColorData};
 
-type PositionData = (f32, f32, f32);
+pub type PositionData = (f32, f32, f32);
 
-#[derive(Clone, Copy)]
 pub struct Vertex {
     _position:     glam::Vec3,
     _color:        glam::Vec3,
@@ -31,8 +30,8 @@ impl Vertex {
         }
     }
 
-    pub fn binding_descriptions() -> [vk::VertexInputBindingDescription; 1] {
-        [
+    pub fn binding_descriptions() -> Vec<vk::VertexInputBindingDescription> {
+        vec![
             vk::VertexInputBindingDescription::builder()
                 .binding(0)
                 .stride(std::mem::size_of::<Vertex>() as u32)
@@ -41,32 +40,19 @@ impl Vertex {
         ]
     }
 
-    fn format_from_vec_size(size: usize) -> vk::Format {
-        static FORMATS: [vk::Format; 4] = [
-            vk::Format::R32_SFLOAT,
-            vk::Format::R32G32_SFLOAT,
-            vk::Format::R32G32B32_SFLOAT,
-            vk::Format::R32G32B32A32_SFLOAT
-        ];
-
-        let index = (size / std::mem::size_of::<f32>()) - 1;
-
-        FORMATS[index]
-    }
-
-    pub fn attribute_descriptions() -> [vk::VertexInputAttributeDescription; 3] {
+    pub fn attribute_descriptions() -> Vec<vk::VertexInputAttributeDescription> {
         let dummy = Self::new(&(0.0, 0.0, 0.0), &Color::BLACK, 0);
 
         let mut offset = 0;
 
         let position_size       = std::mem::size_of_val(&dummy._position);
-        let position_format     = Self::format_from_vec_size(position_size);
+        let position_format     = format_from_vec_size(position_size);
         let position_offset     = offset as u32;
 
         offset += position_size;
 
         let color_size          = std::mem::size_of_val(&dummy._color);
-        let color_format        = Self::format_from_vec_size(color_size);
+        let color_format        = format_from_vec_size(color_size);
         let color_offset        = offset as u32;
 
         offset += color_size;
@@ -74,7 +60,7 @@ impl Vertex {
         let normal_index_format = vk::Format::R32_UINT;
         let normal_index_offset = offset as u32;
 
-        [
+        vec![
             vk::VertexInputAttributeDescription::builder()
                 .binding(0)
                 .location(0)
@@ -95,5 +81,18 @@ impl Vertex {
                 .build()
         ]
     }
+}
+
+pub fn format_from_vec_size(size: usize) -> vk::Format {
+    static FORMATS: [vk::Format; 4] = [
+        vk::Format::R32_SFLOAT,
+        vk::Format::R32G32_SFLOAT,
+        vk::Format::R32G32B32_SFLOAT,
+        vk::Format::R32G32B32A32_SFLOAT
+    ];
+
+    let index = (size / std::mem::size_of::<f32>()) - 1;
+
+    FORMATS[index]
 }
 
