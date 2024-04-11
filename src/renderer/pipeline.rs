@@ -36,6 +36,9 @@ impl Pipeline {
             unsafe { device.create_pipeline_layout(&create_info, None) }?
         };
 
+        #[cfg(debug_assertions)]
+        compile_shaders()?;
+
         let vert_module = {
             let code = read_spirv("assets/shaders/tile/bin/vert.spv")?;
 
@@ -194,6 +197,23 @@ impl Pipeline {
             device.destroy_pipeline_layout(self.layout, None);
         }
     }
+}
+
+#[cfg(debug_assertions)]
+fn compile_shaders() -> Result<()> {
+    let mut filepath = std::env::current_dir()?;
+    filepath.push("compile_shaders.py");
+
+    std::process::Command::new("python")
+        .arg(
+            filepath
+                .display()
+                .to_string()
+        )
+        .spawn()?
+        .wait_with_output()?;
+
+    Ok(())
 }
 
 fn read_spirv(path: &str) -> Result<Vec<u32>> {

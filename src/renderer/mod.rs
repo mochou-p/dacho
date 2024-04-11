@@ -81,23 +81,6 @@ pub struct Renderer {
     direction:              glam::Vec3
 }
 
-#[cfg(debug_assertions)]
-fn compile_shaders() -> Result<()> {
-    let mut filepath = std::env::current_dir()?;
-    filepath.push("compile_shaders.py");
-
-    std::process::Command::new("python")
-        .arg(
-            filepath
-                .display()
-                .to_string()
-        )
-        .spawn()?
-        .wait_with_output()?;
-
-    Ok(())
-}
-
 fn movement_to_vec3(m: MovementVector) -> glam::Vec3 {
     glam::Vec3::new(
         m.0.0 + m.0.1,
@@ -108,9 +91,6 @@ fn movement_to_vec3(m: MovementVector) -> glam::Vec3 {
 
 impl Renderer {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        compile_shaders()?;
-
         let grid_size  = 10.0;
         let grid_half  = grid_size * 0.5;
         let grid_to_uv = 2.0 / grid_size;
