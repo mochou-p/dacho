@@ -4,7 +4,8 @@ use anyhow::Result;
 
 use winit::{
     event::{DeviceEvent, Event, WindowEvent},
-    event_loop::EventLoop
+    event_loop::EventLoop,
+    keyboard::{KeyCode::Escape, PhysicalKey::Code}
 };
 
 use dacho::renderer::Renderer;
@@ -20,6 +21,10 @@ fn main() -> Result<()> {
                 elwt.exit();
             },
             Event::WindowEvent { event: WindowEvent::KeyboardInput { event, is_synthetic: false, .. }, .. } => {
+                if event.physical_key == Code(Escape) {
+                    elwt.exit();
+                }
+
                 renderer.keyboard_input(&event);
             },
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
