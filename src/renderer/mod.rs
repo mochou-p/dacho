@@ -7,7 +7,6 @@ mod color;
 mod descriptor;
 mod device;
 mod instance;
-mod primitive;
 mod surface;
 mod swapchain;
 mod vertex;
@@ -36,7 +35,6 @@ use {
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
     instance::Instance,
-    primitive::{INDEX_COUNT, CubeIndices, CubeVertices},
     surface::Surface,
     swapchain::Swapchain,
     vertex::Vertex
@@ -82,13 +80,15 @@ pub struct Renderer {
 
 #[cfg(debug_assertions)]
 fn compile_shaders() -> Result<()> {
-    let mut path = std::env::current_dir()?;
-    path.push("compile_shaders.py");
+    let mut filepath = std::env::current_dir()?;
+    filepath.push("compile_shaders.py");
 
-    let mut command = std::process::Command::new("python");
-    command.arg(format!("{}", path.display()));
-
-    command
+    std::process::Command::new("python")
+        .arg(
+            filepath
+                .display()
+                .to_string()
+        )
         .spawn()?
         .wait_with_output()?;
 
@@ -108,27 +108,36 @@ impl Renderer {
         #[cfg(debug_assertions)]
         compile_shaders()?;
 
-        let vertices = vec![CubeVertices::new(0.0, 0.0, 0.0)];
-        let indices  = vec![CubeIndices::new(0)];
+        let grid_size  = 10.0;
+        let grid_half  = grid_size * 0.5;
+        let grid_to_uv = 2.0 / grid_size;
+
+        let vertices = vec![
+            Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
+            Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
+            Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
+            Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
+        ];
+
+        let indices: Vec<u16> = vec![
+            0, 1, 2,
+            2, 3, 0
+        ];
 
         let mut instances = vec![];
 
-        let i = 25;
-        let j = 40;
+        let i      = 2_usize.pow(8);
+        let offset = (i - 1) as f32 * 0.5;
 
-        for z in -i..i {
-            for y in -i..i {
-                for x in -i..i {
-                    instances.push(
-                        Instance::new(
-                            &(
-                                (x * j) as f32,
-                                (y * j) as f32,
-                                (z * j) as f32
-                            )
-                        )
-                    );
-                }
+        for z in 0..i {
+            for x in 0..i {
+                instances.push(
+                    Instance::new(
+                        grid_size * (x as f32 - offset),
+                        0.0,
+                        grid_size * (z as f32 - offset)
+                    )
+                );
             }
         }
 
@@ -594,7 +603,7 @@ impl Renderer {
 
                 device.cmd_draw_indexed(
                     command_buffer,
-                    (indices.len() * INDEX_COUNT) as u32,
+                    indices.len()   as u32,
                     instances.len() as u32,
                     0,
                     0,
@@ -607,7 +616,7 @@ impl Renderer {
         }
 
         let _start_time = std::time::Instant::now();
-        let position    = glam::Vec3::Y * 5.0;
+        let position    = glam::Vec3::new(0.0, 15.0, 7.5);
         let movement    = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
         let direction   = -glam::Vec3::Z;
 
