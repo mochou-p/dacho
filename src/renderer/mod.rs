@@ -616,13 +616,13 @@ impl Renderer {
         }
 
         let _start_time = std::time::Instant::now();
-        let position    = glam::Vec3::new(0.0, 15.0, 7.5);
+        let position    = glam::Vec3::Y * 15.0;
         let movement    = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
         let direction   = -glam::Vec3::Z;
 
         Ok(
             Renderer {
-                _entry:    entry,
+                _entry: entry,
                 instance,
                 #[cfg(debug_assertions)]
                 debug,
