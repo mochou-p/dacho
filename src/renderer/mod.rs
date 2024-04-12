@@ -16,15 +16,11 @@ use anyhow::{Context, Result};
 
 use ash::vk;
 
-use glam::f32 as glam;
-
 use raw_window_handle::HasRawDisplayHandle;
 
 use winit::{
     dpi::PhysicalSize,
-    event::KeyEvent,
     event_loop::EventLoop,
-    keyboard::{KeyCode::*, PhysicalKey::Code},
     window::{Window, WindowBuilder}
 };
 
@@ -44,8 +40,6 @@ use {
         vertex::Vertex     as vi_Vertex
     }
 };
-
-type MovementVector = ((f32, f32), (f32, f32), (f32, f32));
 
 #[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&'static str; 1] = [
@@ -75,19 +69,7 @@ pub struct Renderer {
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           vk::CommandPool,
-    command_buffers:        Vec<vk::CommandBuffer>,
-    _start_time:            std::time::Instant,
-    position:               glam::Vec3,
-    movement:               MovementVector,
-    direction:              glam::Vec3
-}
-
-fn movement_to_vec3(m: MovementVector) -> glam::Vec3 {
-    glam::Vec3::new(
-        m.0.0 + m.0.1,
-        m.1.0 + m.1.1,
-        m.2.0 + m.2.1
-    )
+    command_buffers:        Vec<vk::CommandBuffer>
 }
 
 impl Renderer {
@@ -385,11 +367,6 @@ impl Renderer {
             }
         }
 
-        let _start_time = std::time::Instant::now();
-        let position    = glam::Vec3::Y * 15.0;
-        let movement    = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
-        let direction   = -glam::Vec3::Z;
-
         Ok(
             Renderer {
                 _entry: entry,
@@ -414,58 +391,9 @@ impl Renderer {
                 ubo_mapped,
                 descriptor_pool,
                 command_pool,
-                command_buffers,
-                _start_time,
-                position,
-                movement,
-                direction
+                command_buffers
             }
         )
-    }
-
-    pub fn keyboard_input(&mut self, event: &KeyEvent) {
-        if event.repeat {
-            return;
-        }
-
-        static SPEED: f32 = 0.2;
-
-        match event.physical_key {
-            Code(KeyA)      => { self.movement.0.0 = -SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyD)      => { self.movement.0.1 =  SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyW)      => { self.movement.2.0 = -SPEED * (1.0 - event.state as i32 as f32); },
-            Code(KeyS)      => { self.movement.2.1 =  SPEED * (1.0 - event.state as i32 as f32); },
-            Code(ShiftLeft) => { self.movement.1.0 = -SPEED * (1.0 - event.state as i32 as f32); },
-            Code(Space)     => { self.movement.1.1 =  SPEED * (1.0 - event.state as i32 as f32); },
-            _ => ()
-        }
-    }
-
-    pub fn mouse_input(&mut self, delta: &(f64, f64)) {
-        static SPEED:   f32 = -0.001;
-        static PHI_MIN: f32 = -std::f32::consts::PI * 0.5 + f32::EPSILON;
-        static PHI_MAX: f32 =  std::f32::consts::PI * 0.5 - f32::EPSILON;
-
-        unsafe {
-            static mut THETA: f32 = std::f32::consts::PI;
-            static mut PHI:   f32 = 0.0;
-
-            THETA += delta.0 as f32 * SPEED;
-
-            PHI = (PHI + delta.1 as f32 * SPEED).clamp(PHI_MIN, PHI_MAX);
-
-            self.direction.x = THETA.sin() * PHI.cos();
-            self.direction.y = PHI.sin();
-            self.direction.z = THETA.cos() * PHI.cos();
-        }
-    }
-
-    pub fn update(&mut self) {
-        self.position += movement_to_vec3(self.movement);
-    }
-
-    fn _time(&self) -> f32 {
-        self._start_time.elapsed().as_secs_f32()
     }
 
     pub fn wait_for_device(&self) {
@@ -476,7 +404,11 @@ impl Renderer {
         self.window.request_redraw();
     }
 
-    pub fn redraw(&mut self) {
+    pub fn redraw(
+        &mut self,
+        position:  &glam::Vec3,
+        direction: &glam::Vec3
+    ) {
         let device = &self.device.device;
         let queue  = &self.device.queue;
 
@@ -492,7 +424,7 @@ impl Renderer {
             .expect("Acquiring next image failed");
 
         let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
-        UniformBufferObject::update(self.ubo_mapped, self.position, self.direction, aspect_ratio);
+        UniformBufferObject::update(self.ubo_mapped, position, direction, aspect_ratio);
 
         unsafe {
             device.wait_for_fences(

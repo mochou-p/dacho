@@ -8,12 +8,12 @@ use winit::{
     keyboard::{KeyCode::Escape, PhysicalKey::Code}
 };
 
-use dacho::renderer::Renderer;
+use dacho::application::Application;
 
 fn main() -> Result<()> {
     let event_loop = EventLoop::new()?;
 
-    let mut renderer = Renderer::new(&event_loop)?;
+    let mut application = Application::new(&event_loop)?;
 
     event_loop.run(move |event, elwt| {
         match event {
@@ -25,18 +25,18 @@ fn main() -> Result<()> {
                     elwt.exit();
                 }
 
-                renderer.keyboard_input(&event);
+                application.keyboard_input(&event);
             },
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
-                renderer.mouse_input(&delta);
+                application.mouse_input(&delta);
             },
             Event::AboutToWait => {
-                renderer.wait_for_device();
-                renderer.update();
-                renderer.request_redraw();
+                application.renderer.wait_for_device();
+                application.update();
+                application.renderer.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                renderer.redraw();
+                application.redraw();
             },
             _ => ()
         }
