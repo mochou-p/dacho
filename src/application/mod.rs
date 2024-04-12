@@ -5,26 +5,26 @@ use anyhow::Result;
 use glam::f32 as glam;
 
 use winit::{
-    event::KeyEvent,
-    event_loop::EventLoop,
+    event::{DeviceEvent, Event, KeyEvent, WindowEvent},
+    event_loop::{EventLoop, EventLoopWindowTarget},
     keyboard::{KeyCode::*, PhysicalKey::Code}
 };
 
 use super::renderer::Renderer;
 
 pub struct Application {
-    pub renderer:  Renderer,
-        position:  glam::Vec3,
-        movement:  MovementVector,
-        direction: glam::Vec3
+    pub renderer:   Renderer,
+        position:   glam::Vec3,
+        movement:   MovementVector,
+        direction:  glam::Vec3
 }
 
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
-        let renderer  = Renderer::new(event_loop)?;
-        let position  = glam::Vec3::Y * 15.0;
-        let movement  = ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
-        let direction = -glam::Vec3::Z;
+        let renderer   =  Renderer::new(event_loop)?;
+        let position   =  glam::Vec3::Y * 15.0;
+        let movement   =  ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
+        let direction  = -glam::Vec3::Z;
 
         Ok(
             Self {
@@ -36,7 +36,34 @@ impl Application {
         )
     }
 
-    pub fn keyboard_input(&mut self, event: &KeyEvent) {
+    pub fn handle_event<T>(&mut self, event: &Event<T>, elwt: &EventLoopWindowTarget<T>) {
+        match event {
+            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
+                elwt.exit();
+            },
+            Event::WindowEvent { event: WindowEvent::KeyboardInput { event, is_synthetic: false, .. }, .. } => {
+                if event.physical_key == Code(Escape) {
+                    elwt.exit();
+                }
+
+                self.keyboard_input(&event);
+            },
+            Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
+                self.mouse_input(&delta);
+            },
+            Event::AboutToWait => {
+                self.renderer.wait_for_device();
+                self.update();
+                self.renderer.request_redraw();
+            },
+            Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
+                self.renderer.redraw(&self.position, &self.direction);
+            },
+            _ => ()
+        }
+    }
+
+    fn keyboard_input(&mut self, event: &KeyEvent) {
         if event.repeat {
             return;
         }
@@ -54,7 +81,7 @@ impl Application {
         }
     }
 
-    pub fn mouse_input(&mut self, delta: &(f64, f64)) {
+    fn mouse_input(&mut self, delta: &(f64, f64)) {
         static SPEED:   f32 = -0.001;
         static PHI_MIN: f32 = -std::f32::consts::PI * 0.5 + f32::EPSILON;
         static PHI_MAX: f32 =  std::f32::consts::PI * 0.5 - f32::EPSILON;
@@ -73,12 +100,8 @@ impl Application {
         }
     }
 
-    pub fn update(&mut self) {
+    fn update(&mut self) {
         self.position += movement_to_vec3(&self.movement);
-    }
-
-    pub fn redraw(&mut self) {
-        self.renderer.redraw(&self.position, &self.direction);
     }
 }
 
