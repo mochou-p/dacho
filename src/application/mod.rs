@@ -17,11 +17,11 @@ use window::Window;
 use super::renderer::Renderer;
 
 pub struct Application {
-    window:     Window,
-    renderer:   Renderer,
-    position:   glam::Vec3,
-    movement:   MovementVector,
-    direction:  glam::Vec3
+    window:    Window,
+    renderer:  Renderer,
+    position:  glam::Vec3,
+    movement:  MovementVector,
+    direction: glam::Vec3
 }
 
 impl Application {

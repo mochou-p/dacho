@@ -1,4 +1,4 @@
-// dacho/src/renderer/vertex.rs
+// dacho/src/renderer/vertex_input/vertex.rs
 
 use ash::vk;
 
