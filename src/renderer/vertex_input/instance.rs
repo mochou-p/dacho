@@ -1,10 +1,13 @@
-// dacho/src/renderer/instance.rs
+// dacho/src/renderer/vertex_input/instance.rs
 
 use ash::vk;
 
 use glam::f32 as glam;
 
-use super::vertex::{Vertex, format_from_vec};
+use super::{
+    vertex::Vertex,
+    format_from_vec
+};
 
 pub struct Instance {
     _position: glam::Vec3

@@ -6,9 +6,11 @@ use ash::vk;
 
 use super::{
     descriptor::DescriptorSetLayout,
-    instance::Instance,
     swapchain::Swapchain,
-    vertex::Vertex
+    vertex_input::{
+        instance::Instance as vi_Instance,
+        vertex::Vertex     as vi_Vertex
+    }
 };
 
 pub struct Pipeline {
@@ -75,11 +77,11 @@ impl Pipeline {
                 frag_stage.build()
             ];
 
-            let mut binding_descriptions = Vertex::binding_descriptions();
-            binding_descriptions.extend(Instance::binding_descriptions());
+            let mut binding_descriptions = vi_Vertex::binding_descriptions();
+            binding_descriptions.extend(vi_Instance::binding_descriptions());
 
-            let mut attribute_descriptions = Vertex::attribute_descriptions();
-            attribute_descriptions.extend(Instance::attribute_descriptions());
+            let mut attribute_descriptions = vi_Vertex::attribute_descriptions();
+            attribute_descriptions.extend(vi_Instance::attribute_descriptions());
 
             let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder()
                 .vertex_binding_descriptions(&binding_descriptions)
