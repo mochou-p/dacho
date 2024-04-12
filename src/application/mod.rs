@@ -1,5 +1,7 @@
 // dacho/src/application/mod.rs
 
+mod window;
+
 use anyhow::Result;
 
 use glam::f32 as glam;
@@ -10,24 +12,29 @@ use winit::{
     keyboard::{KeyCode::*, PhysicalKey::Code}
 };
 
+use window::Window;
+
 use super::renderer::Renderer;
 
 pub struct Application {
-    pub renderer:   Renderer,
-        position:   glam::Vec3,
-        movement:   MovementVector,
-        direction:  glam::Vec3
+    window:     Window,
+    renderer:   Renderer,
+    position:   glam::Vec3,
+    movement:   MovementVector,
+    direction:  glam::Vec3
 }
 
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
-        let renderer   =  Renderer::new(event_loop)?;
+        let window     =  Window::new("dacho", 1600, 900, event_loop)?;
+        let renderer   =  Renderer::new(event_loop, &window.window, window.width, window.height)?;
         let position   =  glam::Vec3::Y * 15.0;
         let movement   =  ((0.0, 0.0), (0.0, 0.0), (0.0, 0.0));
         let direction  = -glam::Vec3::Z;
 
         Ok(
             Self {
+                window,
                 renderer,
                 position,
                 movement,
@@ -54,7 +61,7 @@ impl Application {
             Event::AboutToWait => {
                 self.renderer.wait_for_device();
                 self.update();
-                self.renderer.request_redraw();
+                self.window.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
                 self.renderer.redraw(&self.position, &self.direction);

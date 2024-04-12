@@ -19,9 +19,8 @@ use ash::vk;
 use raw_window_handle::HasRawDisplayHandle;
 
 use winit::{
-    dpi::PhysicalSize,
     event_loop::EventLoop,
-    window::{Window, WindowBuilder}
+    window::Window
 };
 
 #[cfg(debug_assertions)]
@@ -52,7 +51,6 @@ pub struct Renderer {
     #[cfg(debug_assertions)]
     debug:                  Debug,
     device:                 Device,
-    window:                 Window,
     surface:                Surface,
     render_pass:            RenderPass,
     swapchain:              Swapchain,
@@ -73,7 +71,12 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
+    pub fn new(
+        event_loop: &EventLoop<()>,
+        window:     &Window,
+        width:       u32,
+        height:      u32
+    ) -> Result<Self> {
         let grid_size  = 10.0;
         let grid_half  = grid_size * 0.5;
         let grid_to_uv = 2.0 / grid_size;
@@ -183,22 +186,10 @@ impl Renderer {
         let device = &_device.device;
         let queue  = &_device.queue;
 
-        let scale  = 70;
-        let width  = 16 * scale;
-        let height = 12 * scale;
-
-        let window = WindowBuilder::new()
-            .with_title("dacho")
-            .with_inner_size(PhysicalSize::new(width, height))
-            .build(event_loop)?;
-
-        window.set_cursor_grab(winit::window::CursorGrabMode::Locked)?;
-        window.set_cursor_visible(false);
-
         let surface = Surface::new(
             &entry,
             &instance,
-            &window
+            window
         )?;
 
         let render_pass = RenderPass::new(
@@ -374,7 +365,6 @@ impl Renderer {
                 #[cfg(debug_assertions)]
                 debug,
                 device: _device,
-                window,
                 surface,
                 render_pass,
                 swapchain,
@@ -398,10 +388,6 @@ impl Renderer {
 
     pub fn wait_for_device(&self) {
         self.device.wait();
-    }
-
-    pub fn request_redraw(&self) {
-        self.window.request_redraw();
     }
 
     pub fn redraw(
