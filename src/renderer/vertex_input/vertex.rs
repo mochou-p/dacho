@@ -4,6 +4,8 @@ use ash::vk;
 
 use glam::f32 as glam;
 
+use super::format_from_vec;
+
 pub struct Vertex {
     _position: glam::Vec4
 }
@@ -43,18 +45,5 @@ impl Vertex {
                 .build()
         ]
     }
-}
-
-pub fn format_from_vec<T>(_: &T) -> vk::Format {
-    static FORMATS: [vk::Format; 4] = [
-        vk::Format::R32_SFLOAT,
-        vk::Format::R32G32_SFLOAT,
-        vk::Format::R32G32B32_SFLOAT,
-        vk::Format::R32G32B32A32_SFLOAT
-    ];
-
-    let index = std::mem::size_of::<T>() / std::mem::size_of::<f32>() - 1;
-
-    FORMATS[index]
 }
 

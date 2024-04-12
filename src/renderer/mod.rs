@@ -6,12 +6,11 @@ mod buffer;
 mod color;
 mod descriptor;
 mod device;
-mod instance;
 mod pipeline;
 mod render_pass;
 mod surface;
 mod swapchain;
-mod vertex;
+mod vertex_input;
 
 use anyhow::{Context, Result};
 
@@ -36,12 +35,14 @@ use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
-    instance::Instance,
     pipeline::Pipeline,
     render_pass::RenderPass,
     surface::Surface,
     swapchain::Swapchain,
-    vertex::Vertex
+    vertex_input::{
+        instance::Instance as vi_Instance,
+        vertex::Vertex     as vi_Vertex
+    }
 };
 
 type MovementVector = ((f32, f32), (f32, f32), (f32, f32));
@@ -96,10 +97,10 @@ impl Renderer {
         let grid_to_uv = 2.0 / grid_size;
 
         let vertices = vec![
-            Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
-            Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
-            Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
-            Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
+            vi_Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
+            vi_Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
+            vi_Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
+            vi_Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
         ];
 
         let indices: Vec<u16> = vec![
@@ -115,7 +116,7 @@ impl Renderer {
         for z in 0..i {
             for x in 0..i {
                 instances.push(
-                    Instance::new(
+                    vi_Instance::new(
                         grid_size * (x as f32 - offset),
                         0.0,
                         grid_size * (z as f32 - offset)
