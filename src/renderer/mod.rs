@@ -339,8 +339,7 @@ impl Renderer {
 
     pub fn redraw(
         &mut self,
-        position:  &glam::Vec3,
-        direction: &glam::Vec3
+        camera_transform: (glam::Vec3, glam::Vec3)
     ) {
         let device = &self.device.device;
         let queue  = &self.device.queue;
@@ -357,7 +356,13 @@ impl Renderer {
             .expect("Acquiring next image failed");
 
         let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
-        UniformBufferObject::update(self.ubo_mapped, position, direction, aspect_ratio);
+
+        UniformBufferObject::update(
+            self.ubo_mapped,
+            camera_transform.0,
+            camera_transform.1,
+            aspect_ratio
+        );
 
         unsafe {
             device.wait_for_fences(
