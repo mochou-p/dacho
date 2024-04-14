@@ -4,6 +4,7 @@
 mod debug;
 mod buffer;
 mod color;
+mod command;
 mod descriptor;
 mod device;
 mod instance;
@@ -27,6 +28,7 @@ use debug::Debug;
 
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
+    command::CommandBuffers,
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
     instance::Instance,
@@ -56,7 +58,7 @@ pub struct Renderer {
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           vk::CommandPool,
-    command_buffers:        Vec<vk::CommandBuffer>
+    command_buffers:        CommandBuffers
 }
 
 impl Renderer {
@@ -101,45 +103,40 @@ impl Renderer {
 
         let entry = unsafe { ash::Entry::load() }?;
 
-        let _instance = Instance::new(
+        let instance = Instance::new(
             event_loop,
             &entry
         )?;
 
-        let instance = &_instance.instance;
-
         #[cfg(debug_assertions)]
         let debug = Debug::new(
             &entry,
-            instance
+            &instance.instance
         )?;
 
-        let physical_device = unsafe { instance.enumerate_physical_devices() }?
+        let physical_device = unsafe { instance.instance.enumerate_physical_devices() }?
             .into_iter()
             .next()
             .context("No physical devices")?;
 
-        let _device = Device::new(
-            instance,
+        let device = Device::new(
+            &instance.instance,
             &physical_device
         )?;
 
-        let device = &_device.device;
-        let queue  = &_device.queue;
-
         let surface = Surface::new(
             &entry,
-            instance,
+            &instance.instance,
             window
         )?;
 
         let render_pass = RenderPass::new(
-            &device
+            &device.device
         )?;
 
         let swapchain = Swapchain::new(
-            instance,
-            &device,
+            &instance.instance,
+            &device.device,
             &surface,
             &physical_device,
             &render_pass.render_pass,
@@ -148,11 +145,11 @@ impl Renderer {
         )?;
 
         let descriptor_set_layout = DescriptorSetLayout::new(
-            &device
+            &device.device
         )?;
 
         let pipeline = Pipeline::new(
-            &device,
+            &device.device,
             &descriptor_set_layout,
             &swapchain,
             &render_pass.render_pass
@@ -163,66 +160,64 @@ impl Renderer {
                 .queue_family_index(0)
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 
-            unsafe { device.create_command_pool(&create_info, None) }?
+            unsafe { device.device.create_command_pool(&create_info, None) }?
         };
 
         let vertex_buffer = VertexBuffer::new(
-            instance,
+            &instance.instance,
             &physical_device,
-            &device,
-            &queue,
+            &device.device,
+            &device.queue,
             &command_pool,
             &vertices
         )?;
 
         let instance_buffer = VertexBuffer::new(
-            instance,
+            &instance.instance,
             &physical_device,
-            &device,
-            &queue,
+            &device.device,
+            &device.queue,
             &command_pool,
             &instances
         )?;
 
         let index_buffer = IndexBuffer::new(
-            instance,
+            &instance.instance,
             &physical_device,
-            &device,
-            &queue,
+            &device.device,
+            &device.queue,
             &command_pool,
             &indices
         )?;
 
         let (ubo, ubo_mapped) = UniformBufferObject::new(
-            instance,
+            &instance.instance,
             &physical_device,
-            &device
+            &device.device
         )?;
 
         let descriptor_pool = DescriptorPool::new(
-            &device
+            &device.device
         )?;
 
         let descriptor_set = DescriptorSet::new(
-            &device,
+            &device.device,
             &descriptor_pool,
             &descriptor_set_layout,
             &ubo.buffer
         )?;
 
-        let command_buffers = {
-            let allocate_info = vk::CommandBufferAllocateInfo::builder()
-                .command_pool(command_pool)
-                .command_buffer_count(swapchain.image_count as u32);
+        let command_buffers = CommandBuffers::new(
+            &command_pool,
+            &swapchain,
+            &device.device
+        )?;
 
-            unsafe { device.allocate_command_buffers(&allocate_info) }?
-        };
-
-        for (i, &command_buffer) in command_buffers.iter().enumerate() {
+        for (i, &command_buffer) in command_buffers.command_buffers.iter().enumerate() {
             {
                 let begin_info = vk::CommandBufferBeginInfo::builder();
 
-                unsafe { device.begin_command_buffer(command_buffer, &begin_info) }?;
+                unsafe { device.device.begin_command_buffer(command_buffer, &begin_info) }?;
             }
 
             let clear_values = [
@@ -256,13 +251,13 @@ impl Renderer {
                 .clear_values(&clear_values);
 
             unsafe {
-                device.cmd_begin_render_pass(
+                device.device.cmd_begin_render_pass(
                     command_buffer,
                     &begin_info,
                     vk::SubpassContents::INLINE
                 );
 
-                device.cmd_bind_pipeline(
+                device.device.cmd_bind_pipeline(
                     command_buffer,
                     vk::PipelineBindPoint::GRAPHICS,
                     pipeline.pipeline
@@ -273,14 +268,14 @@ impl Renderer {
                     instance_buffer.buffer
                 ];
 
-                let offsets        = [0, 0];
+                let offsets = [0, 0];
 
-                device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
-                device.cmd_bind_index_buffer(command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT16);
+                device.device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
+                device.device.cmd_bind_index_buffer(command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT16);
 
                 let descriptor_sets = [descriptor_set];
 
-                device.cmd_bind_descriptor_sets(
+                device.device.cmd_bind_descriptor_sets(
                     command_buffer,
                     vk::PipelineBindPoint::GRAPHICS,
                     pipeline.layout,
@@ -289,7 +284,7 @@ impl Renderer {
                     &[]
                 );
 
-                device.cmd_draw_indexed(
+                device.device.cmd_draw_indexed(
                     command_buffer,
                     indices.len()   as u32,
                     instances.len() as u32,
@@ -298,8 +293,8 @@ impl Renderer {
                     0
                 );
 
-                device.cmd_end_render_pass(command_buffer);
-                device.end_command_buffer(command_buffer)?;
+                device.device.cmd_end_render_pass(command_buffer);
+                device.device.end_command_buffer(command_buffer)?;
             }
         }
 
@@ -310,11 +305,11 @@ impl Renderer {
 
         Ok(
             Renderer {
-                _entry:   entry,
-                instance: _instance,
+                _entry: entry,
+                instance,
                 #[cfg(debug_assertions)]
                 debug,
-                device: _device,
+                device,
                 surface,
                 render_pass,
                 swapchain,
@@ -386,7 +381,7 @@ impl Renderer {
         ];
 
         let command_buffers = [
-            self.command_buffers[image_index as usize]
+            self.command_buffers.command_buffers[image_index as usize]
         ];
 
         let semaphores_finished = [
