@@ -4,7 +4,10 @@ use anyhow::Result;
 
 use ash::vk;
 
-pub struct Buffer;
+pub struct Buffer {
+    pub buffer: vk::Buffer,
+    pub memory: vk::DeviceMemory
+}
 
 impl Buffer {
     pub fn new(
@@ -14,7 +17,7 @@ impl Buffer {
         size:             vk::DeviceSize,
         usage:            vk::BufferUsageFlags,
         properties:       vk::MemoryPropertyFlags
-    ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
+    ) -> Result<Self> {
         let buffer = {
             let create_info = vk::BufferCreateInfo::builder()
                 .size(size)
@@ -24,7 +27,7 @@ impl Buffer {
             unsafe { device.create_buffer(&create_info, None) }?
         };
 
-        let buffer_memory = {
+        let memory = {
             let memory_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
             let memory_properties   = unsafe { instance.get_physical_device_memory_properties(*physical_device) };
 
@@ -57,9 +60,14 @@ impl Buffer {
             unsafe { device.allocate_memory(&allocate_info, None) }?
         };
 
-        unsafe { device.bind_buffer_memory(buffer, buffer_memory, 0) }?;
+        unsafe { device.bind_buffer_memory(buffer, memory, 0) }?;
 
-        Ok((buffer, buffer_memory))
+        Ok(
+            Self {
+                buffer,
+                memory
+            }
+        )
     }
 
     pub fn copy(
@@ -79,41 +87,45 @@ impl Buffer {
             unsafe { device.allocate_command_buffers(&allocate_info) }?
         };
 
-        let begin_info = vk::CommandBufferBeginInfo::builder()
-            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+        {
+            let begin_info = vk::CommandBufferBeginInfo::builder()
+                .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
-        unsafe { device.begin_command_buffer(command_buffers[0], &begin_info) }?;
+            unsafe { device.begin_command_buffer(command_buffers[0], &begin_info) }?;
+        }
 
-        let copy_regions = [
-            vk::BufferCopy::builder()
-                .size(size)
-                .build()
-        ];
+        {
+            let copy_regions = [
+                vk::BufferCopy::builder()
+                    .size(size)
+                    .build()
+            ];
 
-        unsafe { device.cmd_copy_buffer(command_buffers[0], *src_buffer, *dst_buffer, &copy_regions); }
+            unsafe { device.cmd_copy_buffer(command_buffers[0], *src_buffer, *dst_buffer, &copy_regions); }
+        }
+
         unsafe { device.end_command_buffer(command_buffers[0]) }?;
 
-        let submit_infos = [
-            vk::SubmitInfo::builder()
-                .command_buffers(&command_buffers)
-                .build()
-        ];
+        {
+            let submit_infos = [
+                vk::SubmitInfo::builder()
+                    .command_buffers(&command_buffers)
+                    .build()
+            ];
 
-        unsafe { device.queue_submit(*queue, &submit_infos, vk::Fence::null()) }?;
+            unsafe { device.queue_submit(*queue, &submit_infos, vk::Fence::null()) }?;
+        }
+
         unsafe { device.queue_wait_idle(*queue) }?;
         unsafe { device.free_command_buffers(*command_pool, &command_buffers); }
 
         Ok(())
     }
 
-    pub fn destroy(
-        device:        &ash::Device,
-        buffer:        &vk::Buffer,
-        buffer_memory: &vk::DeviceMemory
-    ) {
+    pub fn destroy(&self, device: &ash::Device) {
         unsafe {
-            device.destroy_buffer(*buffer, None);
-            device.free_memory(*buffer_memory, None);
+            device.destroy_buffer(self.buffer, None);
+            device.free_memory(self.memory, None);
         }
     }
 }
@@ -130,20 +142,24 @@ impl SomeBuffer {
         data:            *mut std::ffi::c_void,
         buffer_size:      u64,
         buffer_type:      vk::BufferUsageFlags
-    ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
-        let (staging_buffer, staging_buffer_memory) = Buffer::new(
-            instance,
-            physical_device,
-            device,
-            buffer_size,
-            vk::BufferUsageFlags::TRANSFER_SRC,
-            vk::MemoryPropertyFlags::HOST_VISIBLE |
-                vk::MemoryPropertyFlags::HOST_COHERENT
-        )?;
+    ) -> Result<Buffer> {
+        let staging_buffer = {
+            let usage      = vk::BufferUsageFlags::TRANSFER_SRC;
+            let properties = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
+
+            Buffer::new(
+                instance,
+                physical_device,
+                device,
+                buffer_size,
+                usage,
+                properties
+            )?
+        };
 
         let memory = unsafe {
             device.map_memory(
-                staging_buffer_memory,
+                staging_buffer.memory,
                 0,
                 buffer_size,
                 vk::MemoryMapFlags::empty()
@@ -152,33 +168,35 @@ impl SomeBuffer {
 
         unsafe {
             std::ptr::copy_nonoverlapping(data, memory, buffer_size as usize);
-            device.unmap_memory(staging_buffer_memory);
+            device.unmap_memory(staging_buffer.memory);
         }
 
-        let (buffer, buffer_memory) = Buffer::new(
-            instance,
-            physical_device,
-            device,
-            buffer_size,
-            vk::BufferUsageFlags::TRANSFER_DST | buffer_type,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL
-        )?;
+        let buffer = {
+            let usage      = vk::BufferUsageFlags::TRANSFER_DST | buffer_type;
+            let properties = vk::MemoryPropertyFlags::DEVICE_LOCAL;
+
+            Buffer::new(
+                instance,
+                physical_device,
+                device,
+                buffer_size,
+                usage,
+                properties
+            )?
+        };
 
         Buffer::copy(
             device,
             queue,
             command_pool,
-            &staging_buffer,
-            &buffer,
+            &staging_buffer.buffer,
+            &buffer.buffer,
             buffer_size
         )?;
-        
-        unsafe {
-            device.destroy_buffer(staging_buffer, None);
-            device.free_memory(staging_buffer_memory, None);
-        }
 
-        Ok((buffer, buffer_memory))
+        staging_buffer.destroy(device);
+
+        Ok(buffer)
     }
 }
 
@@ -192,23 +210,25 @@ impl VertexBuffer {
         queue:           &vk::Queue,
         command_pool:    &vk::CommandPool,
         vertices:        &Vec<T>
-    ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
-        let data        = vertices.as_ptr() as *mut std::ffi::c_void;
-        let buffer_size = (std::mem::size_of_val(&vertices[0]) * vertices.len()) as u64;
-        let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
+    ) -> Result<Buffer> {
+        let vertex_buffer = {
+            let data        = vertices.as_ptr() as *mut std::ffi::c_void;
+            let buffer_size = (std::mem::size_of_val(&vertices[0]) * vertices.len()) as u64;
+            let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
-        let (vertex_buffer, vertex_buffer_memory) = SomeBuffer::new(
-            instance,
-            physical_device,
-            device,
-            queue,
-            command_pool,
-            data,
-            buffer_size,
-            buffer_type
-        )?;
+            SomeBuffer::new(
+                instance,
+                physical_device,
+                device,
+                queue,
+                command_pool,
+                data,
+                buffer_size,
+                buffer_type
+            )?
+        };
 
-        Ok((vertex_buffer, vertex_buffer_memory))
+        Ok(vertex_buffer)
     }
 }
 
@@ -222,23 +242,25 @@ impl IndexBuffer {
         queue:           &vk::Queue,
         command_pool:    &vk::CommandPool,
         indices:         &Vec<T>
-    ) -> Result<(vk::Buffer, vk::DeviceMemory)> {
-        let data        = indices.as_ptr() as *mut std::ffi::c_void;
-        let buffer_size = (std::mem::size_of_val(&indices[0]) * indices.len()) as u64;
-        let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
+    ) -> Result<Buffer> {
+        let index_buffer = {
+            let data        = indices.as_ptr() as *mut std::ffi::c_void;
+            let buffer_size = (std::mem::size_of_val(&indices[0]) * indices.len()) as u64;
+            let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 
-        let (index_buffer, index_buffer_memory) = SomeBuffer::new(
-            instance,
-            physical_device,
-            device,
-            queue,
-            command_pool,
-            data,
-            buffer_size,
-            buffer_type
-        )?;
+            SomeBuffer::new(
+                instance,
+                physical_device,
+                device,
+                queue,
+                command_pool,
+                data,
+                buffer_size,
+                buffer_type
+            )?
+        };
 
-        Ok((index_buffer, index_buffer_memory))
+        Ok(index_buffer)
     }
 }
 

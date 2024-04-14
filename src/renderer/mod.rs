@@ -51,14 +51,8 @@ pub struct Renderer {
     swapchain:              Swapchain,
     descriptor_set_layout:  DescriptorSetLayout,
     pipeline:               Pipeline,
-    vertex_buffer:          vk::Buffer,
-    vertex_buffer_memory:   vk::DeviceMemory,
-    instance_buffer:        vk::Buffer,
-    instance_buffer_memory: vk::DeviceMemory,
-    index_buffer:           vk::Buffer,
-    index_buffer_memory:    vk::DeviceMemory,
-    ubo:                    vk::Buffer,
-    ubo_memory:             vk::DeviceMemory,
+    buffers:                Vec<Buffer>,
+    ubo:                    Buffer,
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           vk::CommandPool,
@@ -172,7 +166,7 @@ impl Renderer {
             unsafe { device.create_command_pool(&create_info, None) }?
         };
 
-        let (vertex_buffer, vertex_buffer_memory) = VertexBuffer::new(
+        let vertex_buffer = VertexBuffer::new(
             instance,
             &physical_device,
             &device,
@@ -181,7 +175,7 @@ impl Renderer {
             &vertices
         )?;
 
-        let (instance_buffer, instance_buffer_memory) = VertexBuffer::new(
+        let instance_buffer = VertexBuffer::new(
             instance,
             &physical_device,
             &device,
@@ -190,7 +184,7 @@ impl Renderer {
             &instances
         )?;
 
-        let (index_buffer, index_buffer_memory) = IndexBuffer::new(
+        let index_buffer = IndexBuffer::new(
             instance,
             &physical_device,
             &device,
@@ -199,7 +193,7 @@ impl Renderer {
             &indices
         )?;
 
-        let (ubo, ubo_memory, ubo_mapped) = UniformBufferObject::new(
+        let (ubo, ubo_mapped) = UniformBufferObject::new(
             instance,
             &physical_device,
             &device
@@ -213,7 +207,7 @@ impl Renderer {
             &device,
             &descriptor_pool,
             &descriptor_set_layout,
-            &ubo
+            &ubo.buffer
         )?;
 
         let command_buffers = {
@@ -274,11 +268,15 @@ impl Renderer {
                     pipeline.pipeline
                 );
 
-                let vertex_buffers = [vertex_buffer, instance_buffer];
+                let vertex_buffers = [
+                    vertex_buffer.buffer,
+                    instance_buffer.buffer
+                ];
+
                 let offsets        = [0, 0];
 
                 device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
-                device.cmd_bind_index_buffer(command_buffer, index_buffer, 0, vk::IndexType::UINT16);
+                device.cmd_bind_index_buffer(command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT16);
 
                 let descriptor_sets = [descriptor_set];
 
@@ -305,6 +303,11 @@ impl Renderer {
             }
         }
 
+        let mut buffers = vec![];
+        buffers.push(vertex_buffer);
+        buffers.push(index_buffer);
+        buffers.push(instance_buffer);
+
         Ok(
             Renderer {
                 _entry:   entry,
@@ -317,14 +320,8 @@ impl Renderer {
                 swapchain,
                 descriptor_set_layout,
                 pipeline,
-                vertex_buffer,
-                vertex_buffer_memory,
-                instance_buffer,
-                instance_buffer_memory,
-                index_buffer,
-                index_buffer_memory,
+                buffers,
                 ubo,
-                ubo_memory,
                 ubo_mapped,
                 descriptor_pool,
                 command_pool,
@@ -450,15 +447,13 @@ impl Drop for Renderer {
             self.pipeline.destroy(device);
             self.render_pass.destroy(device);
             self.swapchain.destroy(device);
-
-            Buffer::destroy(device, &self.ubo, &self.ubo_memory);
-
+            self.ubo.destroy(device);
             self.descriptor_pool.destroy(device);
             self.descriptor_set_layout.destroy(device);
 
-            Buffer::destroy(device,   &self.vertex_buffer,   &self.vertex_buffer_memory);
-            Buffer::destroy(device, &self.instance_buffer, &self.instance_buffer_memory);
-            Buffer::destroy(device,    &self.index_buffer,    &self.index_buffer_memory);
+            for buffer in &self.buffers {
+                buffer.destroy(device);
+            }
         }
 
         self.device.destroy();
