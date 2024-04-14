@@ -22,10 +22,10 @@ impl UniformBufferObject {
         instance:        &ash::Instance,
         physical_device: &vk::PhysicalDevice,
         device:          &ash::Device
-    ) -> Result<(vk::Buffer, vk::DeviceMemory, *mut std::ffi::c_void)> {
+    ) -> Result<(Buffer, *mut std::ffi::c_void)> {
         let buffer_size = std::mem::size_of::<UniformBufferObject>() as u64;
 
-        let (uniform_buffer, uniform_buffer_memory) = {
+        let uniform_buffer = {
             let usage       = vk::BufferUsageFlags::UNIFORM_BUFFER;
             let properties  = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
 
@@ -40,10 +40,10 @@ impl UniformBufferObject {
         };
 
         let uniform_buffer_mapped = unsafe {
-            device.map_memory(uniform_buffer_memory, 0, buffer_size, vk::MemoryMapFlags::empty())
+            device.map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
         }?;
 
-        Ok((uniform_buffer, uniform_buffer_memory, uniform_buffer_mapped))
+        Ok((uniform_buffer, uniform_buffer_mapped))
     }
 
     pub fn update(
