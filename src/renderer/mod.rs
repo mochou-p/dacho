@@ -28,7 +28,7 @@ use debug::Debug;
 
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
-    command::{CommandBuffers, CommandPool},
+    command::{Command, CommandBuffers, CommandPool},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
     instance::Instance,
@@ -209,90 +209,17 @@ impl Renderer {
             &device.device
         )?;
 
-        for (i, &command_buffer) in command_buffers.command_buffers.iter().enumerate() {
-            {
-                let begin_info = vk::CommandBufferBeginInfo::builder();
-
-                unsafe { device.device.begin_command_buffer(command_buffer, &begin_info) }?;
-            }
-
-            let clear_values = [
-                vk::ClearValue {
-                    color: vk::ClearColorValue {
-                        float32: [0.0, 0.0, 0.0, 1.0]
-                    }
-                },
-                vk::ClearValue {
-                    depth_stencil: vk::ClearDepthStencilValue {
-                        depth:   1.0,
-                        stencil: 0
-                    }
-                }
-            ];
-
-            let begin_info = vk::RenderPassBeginInfo::builder()
-                .render_pass(render_pass.render_pass)
-                .framebuffer(swapchain.framebuffers[i])
-                .render_area(
-                    vk::Rect2D::builder()
-                        .offset(
-                            vk::Offset2D::builder()
-                                .x(0)
-                                .y(0)
-                                .build()
-                        )
-                        .extent(swapchain.extent)
-                        .build()
-                )
-                .clear_values(&clear_values);
-
-            unsafe {
-                device.device.cmd_begin_render_pass(
-                    command_buffer,
-                    &begin_info,
-                    vk::SubpassContents::INLINE
-                );
-
-                device.device.cmd_bind_pipeline(
-                    command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    pipeline.pipeline
-                );
-
-                let vertex_buffers = [
-                    vertex_buffer.buffer,
-                    instance_buffer.buffer
-                ];
-
-                let offsets = [0, 0];
-
-                device.device.cmd_bind_vertex_buffers(command_buffer, 0, &vertex_buffers, &offsets);
-                device.device.cmd_bind_index_buffer(command_buffer, index_buffer.buffer, 0, vk::IndexType::UINT16);
-
-                let descriptor_sets = [descriptor_set];
-
-                device.device.cmd_bind_descriptor_sets(
-                    command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    pipeline.layout,
-                    0,
-                    &descriptor_sets,
-                    &[]
-                );
-
-                device.device.cmd_draw_indexed(
-                    command_buffer,
-                    indices.len()   as u32,
-                    instances.len() as u32,
-                    0,
-                    0,
-                    0
-                );
-
-                device.device.cmd_end_render_pass(command_buffer);
-                device.device.end_command_buffer(command_buffer)?;
-            }
-        }
+        command_buffers.record(
+            &device.device,
+            &[
+                Command::BeginRenderPass(&render_pass, &swapchain),
+                Command::BindPipeline(&pipeline),
+                Command::BindVertexBuffers(&vertex_buffer, &instance_buffer),
+                Command::BindIndexBuffer(&index_buffer),
+                Command::BindDescriptorSets(&descriptor_set),
+                Command::DrawIndexed(indices.len(), instances.len())
+            ]
+        )?;
 
         let mut buffers = vec![];
         buffers.push(vertex_buffer);
