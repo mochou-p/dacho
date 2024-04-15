@@ -17,7 +17,7 @@ pub enum Command<'a> {
     BindVertexBuffers(&'a Buffer, &'a Buffer),
     BindIndexBuffer(&'a Buffer),
     BindDescriptorSets(&'a vk::DescriptorSet),
-    DrawIndexed(usize, usize)
+    DrawIndexed(u32, u32)
 }
 
 pub struct CommandPool {
@@ -76,7 +76,7 @@ impl CommandBuffers {
     pub fn record(
         &self,
         device:   &ash::Device,
-        commands: &[Command]
+        commands: &Vec<Command>
     ) -> Result<()> {
         for (i, &command_buffer) in self.command_buffers.iter().enumerate() {
             {
@@ -174,8 +174,8 @@ impl CommandBuffers {
                         unsafe {
                             device.cmd_draw_indexed(
                                 command_buffer,
-                                *index_count    as u32,
-                                *instance_count as u32,
+                                *index_count,
+                                *instance_count,
                                 0,
                                 0,
                                 0
