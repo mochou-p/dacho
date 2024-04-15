@@ -28,7 +28,7 @@ use debug::Debug;
 
 use {
     buffer::{Buffer, IndexBuffer, VertexBuffer},
-    command::CommandBuffers,
+    command::{CommandBuffers, CommandPool},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
     instance::Instance,
@@ -57,7 +57,7 @@ pub struct Renderer {
     ubo:                    Buffer,
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
-    command_pool:           vk::CommandPool,
+    command_pool:           CommandPool,
     command_buffers:        CommandBuffers
 }
 
@@ -155,20 +155,16 @@ impl Renderer {
             &render_pass.render_pass
         )?;
 
-        let command_pool = {
-            let create_info = vk::CommandPoolCreateInfo::builder()
-                .queue_family_index(0)
-                .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
-
-            unsafe { device.device.create_command_pool(&create_info, None) }?
-        };
+        let command_pool = CommandPool::new(
+            &device.device
+        )?;
 
         let vertex_buffer = VertexBuffer::new(
             &instance.instance,
             &physical_device,
             &device.device,
             &device.queue,
-            &command_pool,
+            &command_pool.command_pool,
             &vertices
         )?;
 
@@ -177,7 +173,7 @@ impl Renderer {
             &physical_device,
             &device.device,
             &device.queue,
-            &command_pool,
+            &command_pool.command_pool,
             &instances
         )?;
 
@@ -186,7 +182,7 @@ impl Renderer {
             &physical_device,
             &device.device,
             &device.queue,
-            &command_pool,
+            &command_pool.command_pool,
             &indices
         )?;
 
@@ -208,7 +204,7 @@ impl Renderer {
         )?;
 
         let command_buffers = CommandBuffers::new(
-            &command_pool,
+            &command_pool.command_pool,
             &swapchain,
             &device.device
         )?;
@@ -435,10 +431,7 @@ impl Drop for Renderer {
         {
             let device = &self.device.device;
 
-            unsafe {
-                device.destroy_command_pool(self.command_pool, None);
-            }
-
+            self.command_pool.destroy(device);            
             self.pipeline.destroy(device);
             self.render_pass.destroy(device);
             self.swapchain.destroy(device);
