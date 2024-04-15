@@ -7,6 +7,7 @@ mod color;
 mod command;
 mod descriptor;
 mod device;
+mod geometry;
 mod instance;
 mod pipeline;
 mod render_pass;
@@ -27,10 +28,11 @@ use winit::{
 use debug::Debug;
 
 use {
-    buffer::{Buffer, IndexBuffer, VertexBuffer},
+    buffer::Buffer,
     command::{Command, CommandBuffers, CommandPool},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
+    geometry::Geometry,
     instance::Instance,
     pipeline::Pipeline,
     render_pass::RenderPass,
@@ -53,7 +55,7 @@ pub struct Renderer {
     swapchain:              Swapchain,
     descriptor_set_layout:  DescriptorSetLayout,
     pipeline:               Pipeline,
-    buffers:                Vec<Buffer>,
+    geometry:               Geometry,
     ubo:                    Buffer,
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
@@ -159,30 +161,14 @@ impl Renderer {
             &device.device
         )?;
 
-        let vertex_buffer = VertexBuffer::new(
+        let geometry = Geometry::new(
             &instance.instance,
             &physical_device,
             &device.device,
             &device.queue,
             &command_pool.command_pool,
-            &vertices
-        )?;
-
-        let instance_buffer = VertexBuffer::new(
-            &instance.instance,
-            &physical_device,
-            &device.device,
-            &device.queue,
-            &command_pool.command_pool,
-            &instances
-        )?;
-
-        let index_buffer = IndexBuffer::new(
-            &instance.instance,
-            &physical_device,
-            &device.device,
-            &device.queue,
-            &command_pool.command_pool,
+            &vertices,
+            &instances,
             &indices
         )?;
 
@@ -209,22 +195,18 @@ impl Renderer {
             &device.device
         )?;
 
+        let mut commands = vec![
+            Command::BeginRenderPass(&render_pass, &swapchain),
+            Command::BindPipeline(&pipeline),
+            Command::BindDescriptorSets(&descriptor_set)
+        ];
+
+        commands.append(&mut geometry.draw());
+
         command_buffers.record(
             &device.device,
-            &[
-                Command::BeginRenderPass(&render_pass, &swapchain),
-                Command::BindPipeline(&pipeline),
-                Command::BindVertexBuffers(&vertex_buffer, &instance_buffer),
-                Command::BindIndexBuffer(&index_buffer),
-                Command::BindDescriptorSets(&descriptor_set),
-                Command::DrawIndexed(indices.len(), instances.len())
-            ]
+            &commands
         )?;
-
-        let mut buffers = vec![];
-        buffers.push(vertex_buffer);
-        buffers.push(index_buffer);
-        buffers.push(instance_buffer);
 
         Ok(
             Renderer {
@@ -238,7 +220,7 @@ impl Renderer {
                 swapchain,
                 descriptor_set_layout,
                 pipeline,
-                buffers,
+                geometry,
                 ubo,
                 ubo_mapped,
                 descriptor_pool,
@@ -365,10 +347,7 @@ impl Drop for Renderer {
             self.ubo.destroy(device);
             self.descriptor_pool.destroy(device);
             self.descriptor_set_layout.destroy(device);
-
-            for buffer in &self.buffers {
-                buffer.destroy(device);
-            }
+            self.geometry.destroy(device);
         }
 
         self.device.destroy();
