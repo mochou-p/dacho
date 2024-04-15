@@ -3,7 +3,7 @@
 use glam::f32 as glam;
 
 use winit::{
-    event::{ElementState, KeyEvent},
+    event::KeyEvent,
     keyboard::{KeyCode::*, PhysicalKey::Code}
 };
 
@@ -88,7 +88,7 @@ impl Camera {
             return;
         }
 
-        let speed = self.speed.translation * event_state_to_boolf(event.state);
+        let speed = self.speed.translation * (1 - event.state as i32) as f32;
 
         match event.physical_key {
             Code(KeyA)      => { self.movement.negative.x = speed; },
@@ -112,14 +112,11 @@ impl Camera {
     }
 
     pub fn transform(&mut self) -> (glam::Vec3, glam::Vec3) {
-        self.translation -= self.movement.positive - self.movement.negative;
+        self.translation -=
+            glam::Quat::from_rotation_y(self.rotation.angle.y)
+            * (self.movement.positive - self.movement.negative);
 
         (self.translation, self.rotation.to_direction())
     }
-}
-
-#[inline]
-fn event_state_to_boolf(state: ElementState) -> f32 {
-    1.0 - state as i32 as f32
 }
 
