@@ -3,7 +3,6 @@
 #[cfg(debug_assertions)]
 mod debug;
 mod buffer;
-mod color;
 mod command;
 mod descriptor;
 mod device;
@@ -55,12 +54,18 @@ pub struct Renderer {
     swapchain:              Swapchain,
     descriptor_set_layout:  DescriptorSetLayout,
     pipeline:               Pipeline,
-    geometry:               Geometry,
+    geometries:             Vec<Geometry>,
     ubo:                    Buffer,
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers
+}
+
+struct GeometryData {
+    vertices:  Vec<vi_Vertex>,
+    instances: Vec<vi_Instance>,
+    indices:   Vec<u16>
 }
 
 impl Renderer {
@@ -70,38 +75,75 @@ impl Renderer {
         width:       u32,
         height:      u32
     ) -> Result<Self> {
-        let grid_size  = 10.0;
-        let grid_half  = grid_size * 0.5;
-        let grid_to_uv = 2.0 / grid_size;
+        let geometries_data = vec![
+            {
+                let grid_size  = 10.0;
+                let grid_half  = grid_size * 0.5;
+                let grid_to_uv = 2.0 / grid_size;
 
-        let vertices = vec![
-            vi_Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
-            vi_Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
-            vi_Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
-            vi_Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
-        ];
+                let vertices = vec![
+                    vi_Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
+                    vi_Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
+                    vi_Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
+                    vi_Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
+                ];
 
-        let indices: Vec<u16> = vec![
-            0, 1, 2,
-            2, 3, 0
-        ];
+                let indices: Vec<u16> = vec![
+                    0, 1, 2,
+                    2, 3, 0
+                ];
 
-        let mut instances = vec![];
+                let mut instances = vec![];
 
-        let i      = 2_usize.pow(8);
-        let offset = (i - 1) as f32 * 0.5;
+                let i      = 2_usize.pow(8);
+                let offset = (i - 1) as f32 * 0.5;
 
-        for z in 0..i {
-            for x in 0..i {
-                instances.push(
-                    vi_Instance::new(
-                        grid_size * (x as f32 - offset),
-                        0.0,
-                        grid_size * (z as f32 - offset)
-                    )
-                );
+                for z in 0..i {
+                    for x in 0..i {
+                        instances.push(
+                            vi_Instance::new(
+                                grid_size * (x as f32 - offset),
+                                0.0,
+                                grid_size * (z as f32 - offset)
+                            )
+                        );
+                    }
+                }
+
+                GeometryData {
+                    vertices,
+                    instances,
+                    indices
+                }
+            },
+            {
+                let w = 0.001;
+
+                let vertices = vec![
+                    vi_Vertex::new( 0.0, 5.0, 0.0, w),
+                    vi_Vertex::new( 1.0, 3.0, 0.0, w),
+                    vi_Vertex::new( 1.6, 0.0, 0.0, w),
+                    vi_Vertex::new(-1.6, 0.0, 0.0, w),
+                    vi_Vertex::new(-1.0, 3.0, 0.0, w),
+                ];
+
+                let indices = vec![
+                    0, 1, 4,
+                    1, 2, 3,
+                    1, 3, 4
+                ];
+
+                let instances = vec![
+                    vi_Instance::new(0.0, 0.0, 0.0)
+                ];
+
+                GeometryData {
+                    vertices,
+                    instances,
+                    indices
+                }
             }
-        }
+        ];
 
         let entry = unsafe { ash::Entry::load() }?;
 
@@ -161,16 +203,22 @@ impl Renderer {
             &device.device
         )?;
 
-        let geometry = Geometry::new(
-            &instance.instance,
-            &physical_device,
-            &device.device,
-            &device.queue,
-            &command_pool.command_pool,
-            &vertices,
-            &instances,
-            &indices
-        )?;
+        let mut geometries = vec![];
+
+        for geometry_data in geometries_data.iter() {
+            geometries.push(
+                Geometry::new(
+                    &instance.instance,
+                    &physical_device,
+                    &device.device,
+                    &device.queue,
+                    &command_pool.command_pool,
+                    &geometry_data.vertices,
+                    &geometry_data.instances,
+                    &geometry_data.indices
+                )?
+            );
+        }
 
         let (ubo, ubo_mapped) = UniformBufferObject::new(
             &instance.instance,
@@ -201,7 +249,9 @@ impl Renderer {
             Command::BindDescriptorSets(&descriptor_set)
         ];
 
-        commands.append(&mut geometry.draw());
+        for geometry in geometries.iter() {
+            commands.append(&mut geometry.draw());
+        }
 
         command_buffers.record(
             &device.device,
@@ -220,7 +270,7 @@ impl Renderer {
                 swapchain,
                 descriptor_set_layout,
                 pipeline,
-                geometry,
+                geometries,
                 ubo,
                 ubo_mapped,
                 descriptor_pool,
@@ -347,7 +397,10 @@ impl Drop for Renderer {
             self.ubo.destroy(device);
             self.descriptor_pool.destroy(device);
             self.descriptor_set_layout.destroy(device);
-            self.geometry.destroy(device);
+
+            for geometry in self.geometries.iter() {
+                geometry.destroy(device);
+            }
         }
 
         self.device.destroy();
