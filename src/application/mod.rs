@@ -32,6 +32,9 @@ impl Application {
         let renderer = Renderer::new(event_loop, &window.window, window.width, window.height)?;
         let camera   = Camera::new(glam::Vec3::Y * 15.0);
 
+        #[cfg(debug_assertions)]
+        compile_shaders()?;
+
         Ok(
             Self {
                 window,
@@ -66,5 +69,22 @@ impl Application {
             _ => ()
         }
     }
+}
+
+#[cfg(debug_assertions)]
+pub fn compile_shaders() -> Result<()> {
+    let mut filepath = std::env::current_dir()?;
+    filepath.push("compile_shaders.py");
+
+    std::process::Command::new("python")
+        .arg(
+            filepath
+                .display()
+                .to_string()
+        )
+        .spawn()?
+        .wait_with_output()?;
+
+    Ok(())
 }
 
