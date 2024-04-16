@@ -71,7 +71,7 @@ impl Renderer {
     ) -> Result<Self> {
         let geometries_data = vec![
             {
-                let grid_size  = 10.0;
+                let grid_size  = 16.0;
                 let grid_half  = grid_size * 0.5;
                 let grid_to_uv = 2.0 / grid_size;
 
@@ -89,7 +89,7 @@ impl Renderer {
 
                 let mut instances = vec![];
 
-                let i      = 2_usize.pow(8);
+                let i      = 2_usize.pow(6) - 1;
                 let offset = (i - 1) as f32 * 0.5;
 
                 for z in 0..i {
@@ -116,14 +116,14 @@ impl Renderer {
                 )
             },
             {
-                let w = 0.001;
+                let w = 0.0;
 
                 let vertices = vec![
-                    vi_Vertex::new( 0.0, 5.0, 0.0, w),
-                    vi_Vertex::new( 1.0, 3.0, 0.0, w),
-                    vi_Vertex::new( 1.6, 0.0, 0.0, w),
-                    vi_Vertex::new(-1.6, 0.0, 0.0, w),
-                    vi_Vertex::new(-1.0, 3.0, 0.0, w),
+                    vi_Vertex::new( 0.00, 4.0, 0.0, w),
+                    vi_Vertex::new( 0.08, 2.4, 0.0, w),
+                    vi_Vertex::new( 0.18, 0.0, 0.0, w),
+                    vi_Vertex::new(-0.18, 0.0, 0.0, w),
+                    vi_Vertex::new(-0.08, 1.8, 0.0, w),
                 ];
 
                 let indices = vec![
@@ -132,9 +132,24 @@ impl Renderer {
                     1, 3, 4
                 ];
 
-                let instances = vec![
-                    vi_Instance::new(0.0, 0.0, 0.0)
-                ];
+                let mut instances = vec![];
+
+                let grid_size = 16.0;
+                let i         = 32;
+                let offset1   = grid_size / i as f32;
+                let offset2   = (i - 1) as f32 * 0.5;
+
+                for z in 0..i {
+                    for x in 0..i {
+                        instances.push(
+                            vi_Instance::new(
+                                offset1 * (x as f32 - offset2),
+                                0.0,
+                                offset1 * (z as f32 - offset2)
+                            )
+                        );
+                    }
+                }
 
                 let pipeline_id       = Some(1);
                 let descriptor_set_id = None;

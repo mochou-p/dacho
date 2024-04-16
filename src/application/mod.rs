@@ -28,12 +28,12 @@ pub struct Application {
 
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        compile_shaders()?;
+
         let window   = Window::new("dacho", 1600, 900, event_loop)?;
         let renderer = Renderer::new(event_loop, &window.window, window.width, window.height)?;
         let camera   = Camera::new(glam::Vec3::Y * 15.0);
-
-        #[cfg(debug_assertions)]
-        compile_shaders()?;
 
         Ok(
             Self {
