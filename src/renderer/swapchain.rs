@@ -74,7 +74,7 @@ impl Swapchain {
 
         let mut image_views = Vec::with_capacity(image_count);
 
-        for image in &images {
+        for image in images.iter() {
             let image_view = Self::create_image_view(
                 device,
                 image,
@@ -104,7 +104,7 @@ impl Swapchain {
 
         let mut framebuffers = Vec::with_capacity(image_count);
 
-        for image_view in &image_views {
+        for image_view in image_views.iter() {
             let attachments = [*image_view, depth_image_view];
 
             let create_info = vk::FramebufferCreateInfo::builder()
@@ -257,15 +257,15 @@ impl Swapchain {
     }
 
     pub fn destroy(&self, device: &ash::Device) {
-        for fence in &self.may_begin_drawing {
+        for fence in self.may_begin_drawing.iter() {
             unsafe { device.destroy_fence(*fence, None); }
         }
 
-        for semaphore in &self.images_available {
+        for semaphore in self.images_available.iter() {
             unsafe { device.destroy_semaphore(*semaphore, None); }
         }
 
-        for semaphore in &self.images_finished {
+        for semaphore in self.images_finished.iter() {
             unsafe { device.destroy_semaphore(*semaphore, None); }
         }
 
@@ -275,11 +275,11 @@ impl Swapchain {
             device.free_memory(self.depth_image_memory, None);
         }
 
-        for framebuffer in &self.framebuffers {
+        for framebuffer in self.framebuffers.iter() {
             unsafe { device.destroy_framebuffer(*framebuffer, None); }
         }
 
-        for image_view in &self.image_views {
+        for image_view in self.image_views.iter() {
             unsafe { device.destroy_image_view(*image_view, None); }
         }
 
