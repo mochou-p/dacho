@@ -23,7 +23,9 @@ impl Pipeline {
         device:                &ash::Device,
         descriptor_set_layout: &DescriptorSetLayout,
         swapchain:             &Swapchain,
-        render_pass:           &vk::RenderPass
+        render_pass:           &vk::RenderPass,
+        shader:                &str,
+        cull_mode:              vk::CullModeFlags
     ) -> Result<Self> {
         let layout = {
             let set_layouts = [
@@ -38,11 +40,8 @@ impl Pipeline {
             unsafe { device.create_pipeline_layout(&create_info, None) }?
         };
 
-        #[cfg(debug_assertions)]
-        compile_shaders()?;
-
         let vert_module = {
-            let code = read_spirv("assets/shaders/tile/bin/vert.spv")?;
+            let code = read_spirv(format!("assets/shaders/{shader}/bin/vert.spv"))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -51,7 +50,7 @@ impl Pipeline {
         };
 
         let frag_module = {
-            let code = read_spirv("assets/shaders/tile/bin/frag.spv")?;
+            let code = read_spirv(format!("assets/shaders/{shader}/bin/frag.spv"))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -120,7 +119,7 @@ impl Pipeline {
             let rasterization_state = vk::PipelineRasterizationStateCreateInfo::builder()
                 .line_width(1.0)
                 .front_face(vk::FrontFace::CLOCKWISE)
-                .cull_mode(vk::CullModeFlags::BACK);
+                .cull_mode(cull_mode);
 
             let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
                 .rasterization_samples(vk::SampleCountFlags::TYPE_1);
@@ -177,7 +176,8 @@ impl Pipeline {
                     &pipeline_infos,
                     None
                 )
-            }.expect("Error creating pipelines")[0]
+            }
+                .expect("Error creating pipelines")[0]
         };
 
         unsafe {
@@ -201,24 +201,7 @@ impl Pipeline {
     }
 }
 
-#[cfg(debug_assertions)]
-fn compile_shaders() -> Result<()> {
-    let mut filepath = std::env::current_dir()?;
-    filepath.push("compile_shaders.py");
-
-    std::process::Command::new("python")
-        .arg(
-            filepath
-                .display()
-                .to_string()
-        )
-        .spawn()?
-        .wait_with_output()?;
-
-    Ok(())
-}
-
-fn read_spirv(path: &str) -> Result<Vec<u32>> {
+fn read_spirv(path: String) -> Result<Vec<u32>> {
     let bytes = &std::fs::read(path)?;
     let words = bytemuck::cast_slice::<u8, u32>(bytes);
 

@@ -136,7 +136,7 @@ impl Renderer {
                     vi_Instance::new(0.0, 0.0, 0.0)
                 ];
 
-                let pipeline_id       = None;
+                let pipeline_id       = Some(1);
                 let descriptor_set_id = None;
 
                 GeometryData::new(
@@ -201,7 +201,17 @@ impl Renderer {
                 &device.device,
                 &descriptor_set_layout,
                 &swapchain,
-                &render_pass.render_pass
+                &render_pass.render_pass,
+                "tile",
+                vk::CullModeFlags::BACK
+            )?,
+            Pipeline::new(
+                &device.device,
+                &descriptor_set_layout,
+                &swapchain,
+                &render_pass.render_pass,
+                "grass",
+                vk::CullModeFlags::NONE
             )?
         ];
 
