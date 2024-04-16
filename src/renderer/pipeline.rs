@@ -41,7 +41,7 @@ impl Pipeline {
         };
 
         let vert_module = {
-            let code = read_spirv(format!("assets/shaders/{shader}/bin/vert.spv"))?;
+            let code = read_spirv(format!("{shader}.vert.spv"))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -50,7 +50,7 @@ impl Pipeline {
         };
 
         let frag_module = {
-            let code = read_spirv(format!("assets/shaders/{shader}/bin/frag.spv"))?;
+            let code = read_spirv(format!("{shader}.frag.spv"))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -201,8 +201,8 @@ impl Pipeline {
     }
 }
 
-fn read_spirv(path: String) -> Result<Vec<u32>> {
-    let bytes = &std::fs::read(path)?;
+fn read_spirv(filename: String) -> Result<Vec<u32>> {
+    let bytes = &std::fs::read(format!("assets/shaders/bin/{filename}"))?;
     let words = bytemuck::cast_slice::<u8, u32>(bytes);
 
     Ok(words.to_vec())
