@@ -31,7 +31,7 @@ use {
     command::{Command, CommandBuffers, CommandPool},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::Device,
-    geometry::Geometry,
+    geometry::{Geometry, GeometryData},
     instance::Instance,
     pipeline::Pipeline,
     render_pass::RenderPass,
@@ -53,19 +53,13 @@ pub struct Renderer {
     render_pass:            RenderPass,
     swapchain:              Swapchain,
     descriptor_set_layout:  DescriptorSetLayout,
-    pipeline:               Pipeline,
+    pipelines:              Vec<Pipeline>,
     geometries:             Vec<Geometry>,
     ubo:                    Buffer,
     ubo_mapped:             *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers
-}
-
-struct GeometryData {
-    vertices:  Vec<vi_Vertex>,
-    instances: Vec<vi_Instance>,
-    indices:   Vec<u16>
 }
 
 impl Renderer {
@@ -110,11 +104,16 @@ impl Renderer {
                     }
                 }
 
-                GeometryData {
+                let pipeline_id       = Some(0);
+                let descriptor_set_id = Some(0);
+
+                GeometryData::new(
+                    pipeline_id,
+                    descriptor_set_id,
                     vertices,
                     instances,
                     indices
-                }
+                )
             },
             {
                 let w = 0.001;
@@ -137,11 +136,16 @@ impl Renderer {
                     vi_Instance::new(0.0, 0.0, 0.0)
                 ];
 
-                GeometryData {
+                let pipeline_id       = None;
+                let descriptor_set_id = None;
+
+                GeometryData::new(
+                    pipeline_id,
+                    descriptor_set_id,
                     vertices,
                     instances,
                     indices
-                }
+                )
             }
         ];
 
@@ -192,12 +196,14 @@ impl Renderer {
             &device.device
         )?;
 
-        let pipeline = Pipeline::new(
-            &device.device,
-            &descriptor_set_layout,
-            &swapchain,
-            &render_pass.render_pass
-        )?;
+        let pipelines = vec![
+            Pipeline::new(
+                &device.device,
+                &descriptor_set_layout,
+                &swapchain,
+                &render_pass.render_pass
+            )?
+        ];
 
         let command_pool = CommandPool::new(
             &device.device
@@ -213,9 +219,7 @@ impl Renderer {
                     &device.device,
                     &device.queue,
                     &command_pool.command_pool,
-                    &geometry_data.vertices,
-                    &geometry_data.instances,
-                    &geometry_data.indices
+                    &geometry_data
                 )?
             );
         }
@@ -230,12 +234,14 @@ impl Renderer {
             &device.device
         )?;
 
-        let descriptor_set = DescriptorSet::new(
-            &device.device,
-            &descriptor_pool,
-            &descriptor_set_layout,
-            &ubo.buffer
-        )?;
+        let descriptor_sets = vec![
+            DescriptorSet::new(
+                &device.device,
+                &descriptor_pool,
+                &descriptor_set_layout,
+                &ubo.buffer
+            )?
+        ];
 
         let command_buffers = CommandBuffers::new(
             &command_pool.command_pool,
@@ -244,12 +250,18 @@ impl Renderer {
         )?;
 
         let mut commands = vec![
-            Command::BeginRenderPass(&render_pass, &swapchain),
-            Command::BindPipeline(&pipeline),
-            Command::BindDescriptorSets(&descriptor_set)
+            Command::BeginRenderPass(&render_pass, &swapchain)
         ];
 
         for geometry in geometries.iter() {
+            if let Some(i) = geometry.pipeline_id {
+                commands.push(Command::BindPipeline(&pipelines[i]));
+            }
+
+            if let Some(i) = geometry.descriptor_set_id {
+                commands.push(Command::BindDescriptorSets(&descriptor_sets[i]));
+            }
+
             commands.append(&mut geometry.draw());
         }
 
@@ -269,7 +281,7 @@ impl Renderer {
                 render_pass,
                 swapchain,
                 descriptor_set_layout,
-                pipeline,
+                pipelines,
                 geometries,
                 ubo,
                 ubo_mapped,
@@ -390,8 +402,12 @@ impl Drop for Renderer {
         {
             let device = &self.device.device;
 
-            self.command_pool.destroy(device);            
-            self.pipeline.destroy(device);
+            self.command_pool.destroy(device);
+
+            for pipeline in self.pipelines.iter() {
+                pipeline.destroy(device);
+            }
+
             self.render_pass.destroy(device);
             self.swapchain.destroy(device);
             self.ubo.destroy(device);

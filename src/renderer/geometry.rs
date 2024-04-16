@@ -13,12 +13,41 @@ use super::{
     }
 };
 
+pub struct GeometryData {
+    pipeline_id:       Option<usize>,
+    descriptor_set_id: Option<usize>,
+    vertices:          Vec<vi_Vertex>,
+    instances:         Vec<vi_Instance>,
+    indices:           Vec<u16>
+}
+
+impl GeometryData {
+    pub fn new(
+        pipeline_id:       Option<usize>,
+        descriptor_set_id: Option<usize>,
+        vertices:          Vec<vi_Vertex>,
+        instances:         Vec<vi_Instance>,
+        indices:           Vec<u16>
+    ) -> Self {
+        Self {
+            pipeline_id,
+            descriptor_set_id,
+            vertices,
+            instances,
+            indices
+        }
+    }
+}
+
+
 pub struct Geometry {
-    vertex_buffer:   Buffer,
-    instance_buffer: Buffer,
-    index_buffer:    Buffer,
-    index_count:     u32,
-    instance_count:  u32
+    pub pipeline_id:       Option<usize>,
+    pub descriptor_set_id: Option<usize>,
+        vertex_buffer:     Buffer,
+        instance_buffer:   Buffer,
+        index_buffer:      Buffer,
+        index_count:       u32,
+        instance_count:    u32
 }
 
 impl Geometry {
@@ -28,17 +57,18 @@ impl Geometry {
         device:          &ash::Device,
         queue:           &vk::Queue,
         command_pool:    &vk::CommandPool,
-        vertices:        &Vec<vi_Vertex>,
-        instances:       &Vec<vi_Instance>,
-        indices:         &Vec<u16>
+        data:            &GeometryData
     ) -> Result<Self> {
+        let pipeline_id       = data.pipeline_id;
+        let descriptor_set_id = data.descriptor_set_id;
+
         let vertex_buffer = VertexBuffer::new(
             instance,
             physical_device,
             device,
             queue,
             command_pool,
-            vertices
+            &data.vertices
         )?;
 
         let instance_buffer = VertexBuffer::new(
@@ -47,7 +77,7 @@ impl Geometry {
             device,
             queue,
             command_pool,
-            instances
+            &data.instances
         )?;
 
         let index_buffer = IndexBuffer::new(
@@ -56,14 +86,16 @@ impl Geometry {
             device,
             queue,
             command_pool,
-            indices
+            &data.indices
         )?;
 
-        let    index_count =   indices.len() as u32;
-        let instance_count = instances.len() as u32;
+        let    index_count = data.indices.len()   as u32;
+        let instance_count = data.instances.len() as u32;
 
         Ok(
             Self {
+                pipeline_id,
+                descriptor_set_id,
                 vertex_buffer,
                 instance_buffer,
                 index_buffer,
