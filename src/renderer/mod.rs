@@ -1,18 +1,18 @@
 // dacho/src/renderer/mod.rs 
 
 #[cfg(debug_assertions)]
-mod debug;
-mod buffer;
-mod command;
-mod descriptor;
-mod device;
-mod geometry;
-mod instance;
-mod pipeline;
-mod render_pass;
-mod surface;
-mod swapchain;
-mod vertex_input;
+    mod debug;
+    mod buffer;
+    mod command;
+    mod descriptor;
+    mod device;
+pub mod geometry;
+    mod instance;
+    mod pipeline;
+    mod render_pass;
+    mod surface;
+    mod swapchain;
+pub mod vertex_input;
 
 use anyhow::Result;
 
@@ -37,10 +37,6 @@ use {
     render_pass::RenderPass,
     surface::Surface,
     swapchain::Swapchain,
-    vertex_input::{
-        instance::Instance as vi_Instance,
-        vertex::Vertex     as vi_Vertex
-    }
 };
 
 pub struct Renderer {
@@ -67,103 +63,9 @@ impl Renderer {
         event_loop: &EventLoop<()>,
         window:     &Window,
         width:       u32,
-        height:      u32
+        height:      u32,
+        scene:      &Vec<GeometryData>
     ) -> Result<Self> {
-        let geometries_data = vec![
-            {
-                let grid_size  = 16.0;
-                let grid_half  = grid_size * 0.5;
-                let grid_to_uv = 2.0 / grid_size;
-
-                let vertices = vec![
-                    vi_Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
-                    vi_Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
-                    vi_Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
-                    vi_Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
-                ];
-
-                let indices: Vec<u16> = vec![
-                    0, 1, 2,
-                    2, 3, 0
-                ];
-
-                let mut instances = vec![];
-
-                let i      = 2_usize.pow(6) - 1;
-                let offset = (i - 1) as f32 * 0.5;
-
-                for z in 0..i {
-                    for x in 0..i {
-                        instances.push(
-                            vi_Instance::new(
-                                grid_size * (x as f32 - offset),
-                                0.0,
-                                grid_size * (z as f32 - offset)
-                            )
-                        );
-                    }
-                }
-
-                let pipeline_id       = Some(0);
-                let descriptor_set_id = Some(0);
-
-                GeometryData::new(
-                    pipeline_id,
-                    descriptor_set_id,
-                    vertices,
-                    instances,
-                    indices
-                )
-            },
-            {
-                let w = 0.0;
-
-                let vertices = vec![
-                    vi_Vertex::new( 0.00, 4.0, 0.0, w),
-                    vi_Vertex::new( 0.08, 2.4, 0.0, w),
-                    vi_Vertex::new( 0.18, 0.0, 0.0, w),
-                    vi_Vertex::new(-0.18, 0.0, 0.0, w),
-                    vi_Vertex::new(-0.08, 1.8, 0.0, w),
-                ];
-
-                let indices = vec![
-                    0, 1, 4,
-                    1, 2, 3,
-                    1, 3, 4
-                ];
-
-                let mut instances = vec![];
-
-                let grid_size = 16.0;
-                let i         = 32;
-                let offset1   = grid_size / i as f32;
-                let offset2   = (i - 1) as f32 * 0.5;
-
-                for z in 0..i {
-                    for x in 0..i {
-                        instances.push(
-                            vi_Instance::new(
-                                offset1 * (x as f32 - offset2),
-                                0.0,
-                                offset1 * (z as f32 - offset2)
-                            )
-                        );
-                    }
-                }
-
-                let pipeline_id       = Some(1);
-                let descriptor_set_id = None;
-
-                GeometryData::new(
-                    pipeline_id,
-                    descriptor_set_id,
-                    vertices,
-                    instances,
-                    indices
-                )
-            }
-        ];
-
         let entry = unsafe { ash::Entry::load() }?;
 
         let instance = Instance::new(
@@ -235,7 +137,7 @@ impl Renderer {
 
         let mut geometries = vec![];
 
-        for geometry_data in geometries_data.iter() {
+        for geometry_data in scene.iter() {
             geometries.push(
                 Geometry::new(
                     &instance.instance,
