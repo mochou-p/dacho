@@ -1,6 +1,7 @@
 // dacho/src/application/mod.rs
 
 mod camera;
+mod scene;
 mod window;
 
 use anyhow::Result;
@@ -15,15 +16,16 @@ use winit::{
 
 use {
     camera::Camera,
+    scene::Scene,
     window::Window
 };
 
 use super::renderer::Renderer;
 
 pub struct Application {
-    window:    Window,
-    renderer:  Renderer,
-    camera:    Camera
+    window:   Window,
+    renderer: Renderer,
+    camera:   Camera
 }
 
 impl Application {
@@ -32,7 +34,8 @@ impl Application {
         compile_shaders()?;
 
         let window   = Window::new("dacho", 1600, 900, event_loop)?;
-        let renderer = Renderer::new(event_loop, &window.window, window.width, window.height)?;
+        let scene    = Scene::demo();
+        let renderer = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
         let camera   = Camera::new(glam::Vec3::Y * 15.0);
 
         Ok(

@@ -7,17 +7,14 @@ use ash::vk;
 use super::{
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     command::Command,
-    vertex_input::{
-        vertex::Vertex     as vi_Vertex,
-        instance::Instance as vi_Instance
-    }
+    vertex_input::{instance::Instance, vertex::Vertex}
 };
 
 pub struct GeometryData {
     pipeline_id:       Option<usize>,
     descriptor_set_id: Option<usize>,
-    vertices:          Vec<vi_Vertex>,
-    instances:         Vec<vi_Instance>,
+    vertices:          Vec<Vertex>,
+    instances:         Vec<Instance>,
     indices:           Vec<u16>
 }
 
@@ -25,8 +22,8 @@ impl GeometryData {
     pub fn new(
         pipeline_id:       Option<usize>,
         descriptor_set_id: Option<usize>,
-        vertices:          Vec<vi_Vertex>,
-        instances:         Vec<vi_Instance>,
+        vertices:          Vec<Vertex>,
+        instances:         Vec<Instance>,
         indices:           Vec<u16>
     ) -> Self {
         Self {
