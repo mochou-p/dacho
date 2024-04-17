@@ -1,8 +1,21 @@
 // dacho/src/renderer/device.rs
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use ash::{extensions::khr, vk};
+
+pub struct PhysicalDevice;
+
+impl PhysicalDevice {
+    pub fn new(instance: &ash::Instance) -> Result<vk::PhysicalDevice> {
+        let physical_device = unsafe { instance.enumerate_physical_devices() }?
+            .into_iter()
+            .next()
+            .context("No physical devices")?;
+
+        Ok(physical_device)
+    }
+}
 
 pub struct Device {
     pub device: ash::Device,
