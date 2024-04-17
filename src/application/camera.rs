@@ -54,7 +54,10 @@ impl Camera {
         translation: glam::Vec3
     ) -> Self {
         let rotation = CameraRotation {
-            angle: glam::Vec2::ZERO
+            angle: glam::Vec2::new(
+                0.0,
+                std::f32::consts::PI
+            )
         };
 
         let movement = CameraMovement {

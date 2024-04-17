@@ -16,15 +16,15 @@ impl Scene {
     }
 
     fn demo_tiles() -> GeometryData {
-        let grid_size  = 16.0;
-        let grid_half  = grid_size * 0.5;
-        let grid_to_uv = 2.0 / grid_size;
+        let grid_size = 16.0;
+        let grid_half = grid_size * 0.5;
+        let step_frac = 1.0 / grid_size;
 
         let vertices = vec![
-            Vertex::new(-grid_half, 0.0, -grid_half, grid_to_uv),
-            Vertex::new( grid_half, 0.0, -grid_half, grid_to_uv),
-            Vertex::new( grid_half, 0.0,  grid_half, grid_to_uv),
-            Vertex::new(-grid_half, 0.0,  grid_half, grid_to_uv)
+            Vertex::new(-grid_half, 0.0, -grid_half, step_frac),
+            Vertex::new( grid_half, 0.0, -grid_half, step_frac),
+            Vertex::new( grid_half, 0.0,  grid_half, step_frac),
+            Vertex::new(-grid_half, 0.0,  grid_half, step_frac)
         ];
 
         let indices: Vec<u16> = vec![
@@ -34,7 +34,7 @@ impl Scene {
 
         let mut instances = vec![];
 
-        let i      = 2_usize.pow(6) - 1;
+        let i      = 2_usize.pow(8) - 1;
         let offset = (i - 1) as f32 * 0.5;
 
         for z in 0..i {
