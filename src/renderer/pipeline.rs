@@ -119,7 +119,7 @@ impl Pipeline {
                 .cull_mode(cull_mode);
 
             let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
-                .rasterization_samples(vk::SampleCountFlags::TYPE_1);
+                .rasterization_samples(vk::SampleCountFlags::TYPE_8);
 
             let color_blend_attachments = [
                 vk::PipelineColorBlendAttachmentState::builder()

@@ -15,6 +15,9 @@ pub struct Swapchain {
         depth_image:        vk::Image,
         depth_image_view:   vk::ImageView,
         depth_image_memory: vk::DeviceMemory,
+        color_image:        vk::Image,
+        color_image_view:   vk::ImageView,
+        color_image_memory: vk::DeviceMemory,
         image_views:        Vec<vk::ImageView>,
     pub framebuffers:       Vec<vk::Framebuffer>,
     pub images_available:   Vec<vk::Semaphore>,
@@ -102,10 +105,27 @@ impl Swapchain {
             vk::ImageAspectFlags::DEPTH
         )?;
 
+        let (color_image, color_image_memory) = Self::create_image(
+            device,
+            instance,
+            physical_device,
+            &extent,
+            vk::Format::B8G8R8A8_SRGB,
+            vk::ImageUsageFlags::TRANSIENT_ATTACHMENT | vk::ImageUsageFlags::COLOR_ATTACHMENT,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL
+        )?;
+
+        let color_image_view = Self::create_image_view(
+            device,
+            &color_image,
+            vk::Format::B8G8R8A8_SRGB,
+            vk::ImageAspectFlags::COLOR
+        )?;
+
         let mut framebuffers = Vec::with_capacity(image_count);
 
         for image_view in image_views.iter() {
-            let attachments = [*image_view, depth_image_view];
+            let attachments = [color_image_view, depth_image_view, *image_view];
 
             let create_info = vk::FramebufferCreateInfo::builder()
                 .render_pass(*render_pass)
@@ -157,6 +177,9 @@ impl Swapchain {
                 depth_image,
                 depth_image_memory,
                 depth_image_view,
+                color_image,
+                color_image_memory,
+                color_image_view,
                 image_views,
                 framebuffers,
                 images_available,
@@ -190,7 +213,7 @@ impl Swapchain {
         create_info.tiling         = vk::ImageTiling::OPTIMAL;
         create_info.initial_layout = vk::ImageLayout::UNDEFINED;
         create_info.usage          = usage;
-        create_info.samples        = vk::SampleCountFlags::TYPE_1;
+        create_info.samples        = vk::SampleCountFlags::TYPE_8;
         create_info.sharing_mode   = vk::SharingMode::EXCLUSIVE;
 
         let image = unsafe { device.create_image(&create_info, None) }?;
@@ -273,6 +296,9 @@ impl Swapchain {
             device.destroy_image_view(self.depth_image_view, None);
             device.destroy_image(self.depth_image, None);
             device.free_memory(self.depth_image_memory, None);
+            device.destroy_image_view(self.color_image_view, None);
+            device.destroy_image(self.color_image, None);
+            device.free_memory(self.color_image_memory, None);
         }
 
         for framebuffer in self.framebuffers.iter() {
