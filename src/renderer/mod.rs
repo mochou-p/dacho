@@ -14,7 +14,7 @@ mod surface;
 mod swapchain;
 mod vertex_input;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 
 use ash::vk;
 
@@ -30,7 +30,7 @@ use {
     buffer::Buffer,
     command::{Command, CommandBuffers, CommandPool},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
-    device::Device,
+    device::{Device, PhysicalDevice},
     geometry::{Geometry, GeometryData},
     instance::Instance,
     pipeline::Pipeline,
@@ -177,10 +177,9 @@ impl Renderer {
             &instance.instance
         )?;
 
-        let physical_device = unsafe { instance.instance.enumerate_physical_devices() }?
-            .into_iter()
-            .next()
-            .context("No physical devices")?;
+        let physical_device = PhysicalDevice::new(
+            &instance.instance
+        )?;
 
         let device = Device::new(
             &instance.instance,
