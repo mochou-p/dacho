@@ -6,8 +6,9 @@ use ash::vk;
 
 use super::{
     descriptor::DescriptorSetLayout,
+    geometry::GeometryData,
     swapchain::Swapchain,
-    vertex_input::{instance::Instance, vertex::Vertex}
+    vertex_input::{instance_descriptions, vertex_descriptions}
 };
 
 pub struct Pipeline {
@@ -21,8 +22,7 @@ impl Pipeline {
         descriptor_set_layout: &DescriptorSetLayout,
         swapchain:             &Swapchain,
         render_pass:           &vk::RenderPass,
-        shader:                &str,
-        cull_mode:              vk::CullModeFlags
+        geometry_data:         &GeometryData
     ) -> Result<Self> {
         let layout = {
             let set_layouts = [
@@ -38,7 +38,7 @@ impl Pipeline {
         };
 
         let vert_module = {
-            let code = read_spirv(format!("{shader}.vert.spv"))?;
+            let code = read_spirv(format!("{}.vert.spv", geometry_data.shader))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -47,7 +47,7 @@ impl Pipeline {
         };
 
         let frag_module = {
-            let code = read_spirv(format!("{shader}.frag.spv"))?;
+            let code = read_spirv(format!("{}.frag.spv", geometry_data.shader))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -73,11 +73,17 @@ impl Pipeline {
                 frag_stage.build()
             ];
 
-            let mut binding_descriptions = Vertex::binding_descriptions();
-            binding_descriptions.extend(Instance::binding_descriptions());
+            let (vertex_binding, mut vertex_attributes, last_location) =
+                vertex_descriptions(&geometry_data.vertex_info);
 
-            let mut attribute_descriptions = Vertex::attribute_descriptions();
-            attribute_descriptions.extend(Instance::attribute_descriptions());
+            let (instance_binding, mut instance_attributes) =
+                instance_descriptions(&geometry_data.instance_info, last_location);
+
+            let binding_descriptions = [vertex_binding, instance_binding];
+
+            let mut attribute_descriptions = vec![];
+            attribute_descriptions.append(&mut vertex_attributes);
+            attribute_descriptions.append(&mut instance_attributes);
 
             let vertex_input_state = vk::PipelineVertexInputStateCreateInfo::builder()
                 .vertex_binding_descriptions(&binding_descriptions)
@@ -116,7 +122,7 @@ impl Pipeline {
             let rasterization_state = vk::PipelineRasterizationStateCreateInfo::builder()
                 .line_width(1.0)
                 .front_face(vk::FrontFace::CLOCKWISE)
-                .cull_mode(cull_mode);
+                .cull_mode(geometry_data.cull_mode);
 
             let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
                 .rasterization_samples(vk::SampleCountFlags::TYPE_8);

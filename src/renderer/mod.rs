@@ -14,7 +14,9 @@ pub mod geometry;
     mod swapchain;
 pub mod vertex_input;
 
-use anyhow::Result;
+use std::collections::HashMap;
+
+use anyhow::{Context, Result};
 
 use ash::vk;
 
@@ -49,10 +51,10 @@ pub struct Renderer {
     render_pass:            RenderPass,
     swapchain:              Swapchain,
     descriptor_set_layout:  DescriptorSetLayout,
-    pipelines:              Vec<Pipeline>,
+    pipelines:              HashMap<String, Pipeline>,
     geometries:             Vec<Geometry>,
     ubo:                    Buffer,
-    ubo_mapped:             *mut std::ffi::c_void,
+    ubo_mapped:            *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers
@@ -112,42 +114,33 @@ impl Renderer {
             &device.device
         )?;
 
-        let pipelines = vec![
-            Pipeline::new(
-                &device.device,
-                &descriptor_set_layout,
-                &swapchain,
-                &render_pass.render_pass,
-                "tile",
-                vk::CullModeFlags::BACK
-            )?,
-            Pipeline::new(
-                &device.device,
-                &descriptor_set_layout,
-                &swapchain,
-                &render_pass.render_pass,
-                "grass",
-                vk::CullModeFlags::NONE
-            )?
-        ];
-
         let command_pool = CommandPool::new(
             &device.device
         )?;
 
+        let mut pipelines  = HashMap::new();
         let mut geometries = vec![];
 
         for geometry_data in scene.iter() {
-            geometries.push(
-                Geometry::new(
-                    &instance.instance,
-                    &physical_device,
-                    &device.device,
-                    &device.queue,
-                    &command_pool.command_pool,
-                    &geometry_data
-                )?
-            );
+            let pipeline = Pipeline::new(
+                &device.device,
+                &descriptor_set_layout,
+                &swapchain,
+                &render_pass.render_pass,
+                &geometry_data
+            )?;
+
+            let geometry = Geometry::new(
+                &instance.instance,
+                &physical_device,
+                &device.device,
+                &device.queue,
+                &command_pool.command_pool,
+                &geometry_data
+            )?;
+
+            pipelines.insert(geometry_data.shader.clone(), pipeline);
+            geometries.push(geometry);
         }
 
         let (ubo, ubo_mapped) = UniformBufferObject::new(
@@ -179,13 +172,27 @@ impl Renderer {
             Command::BeginRenderPass(&render_pass, &swapchain)
         ];
 
+        let mut last_pipeline       = String::from("");
+        let mut last_descriptor_set = usize::MAX;
+
         for geometry in geometries.iter() {
-            if let Some(i) = geometry.pipeline_id {
-                commands.push(Command::BindPipeline(&pipelines[i]));
+            if geometry.shader != last_pipeline {
+                commands.push(
+                    Command::BindPipeline(
+                        pipelines.get(&geometry.shader)
+                            .context("Pipeline not in hash map")?
+                    )
+                );
+
+                last_pipeline = geometry.shader.clone();
             }
 
             if let Some(i) = geometry.descriptor_set_id {
-                commands.push(Command::BindDescriptorSets(&descriptor_sets[i]));
+                if i != last_descriptor_set {
+                    commands.push(Command::BindDescriptorSets(&descriptor_sets[i]));
+
+                    last_descriptor_set = i;
+                }
             }
 
             commands.append(&mut geometry.draw());
@@ -330,7 +337,7 @@ impl Drop for Renderer {
 
             self.command_pool.destroy(device);
 
-            for pipeline in self.pipelines.iter() {
+            for (_, pipeline) in self.pipelines.iter() {
                 pipeline.destroy(device);
             }
 
