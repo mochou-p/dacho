@@ -39,8 +39,8 @@ impl Scene {
 
         let mut instances: Vec<f32> = vec![];
 
-        let i        = 5;
-        let offset   = (i - 1) as f32 * 0.5;
+        let i      = 5;
+        let offset = (i - 1) as f32 * 0.5;
 
         for z in 0..i {
             for x in 0..i {
