@@ -2,7 +2,7 @@
 
 use std::io::Write;
 
-use anyhow::{Result, anyhow};
+use anyhow::{Context, Result, anyhow};
 
 use ash::vk;
 
@@ -38,41 +38,22 @@ impl Pipeline {
             unsafe { device.create_pipeline_layout(&create_info, None) }?
         };
 
-        let vert_module = {
-            let code = read_spirv(format!("{}.vert.spv", shader_info.name))?;
-
-            let create_info = vk::ShaderModuleCreateInfo::builder()
-                .code(&code);
-
-            unsafe { device.create_shader_module(&create_info, None) }?
-        };
-
-        let frag_module = {
-            let code = read_spirv(format!("{}.frag.spv", shader_info.name))?;
-
-            let create_info = vk::ShaderModuleCreateInfo::builder()
-                .code(&code);
-
-            unsafe { device.create_shader_module(&create_info, None) }?
-        };
+        let modules = shader_modules(&shader_info.name, device)?;
 
         let pipeline = {
             let entry_point = std::ffi::CString::new("main")?;
 
-            let vert_stage = vk::PipelineShaderStageCreateInfo::builder()
-                .stage(vk::ShaderStageFlags::VERTEX)
-                .module(vert_module)
-                .name(&entry_point);
+            let mut stages = vec![];
 
-            let frag_stage = vk::PipelineShaderStageCreateInfo::builder()
-                .stage(vk::ShaderStageFlags::FRAGMENT)
-                .module(frag_module)
-                .name(&entry_point);
+            for (module, stage) in modules.iter() {
+                let stage_ = vk::PipelineShaderStageCreateInfo::builder()
+                    .stage(*stage)
+                    .module(*module)
+                    .name(&entry_point)
+                    .build();
 
-            let stages = vec![
-                vert_stage.build(),
-                frag_stage.build()
-            ];
+                stages.push(stage_);
+            }
 
             let (vertex_binding, mut vertex_attributes, last_location) =
                 vertex_descriptions(&shader_info.vertex_info);
@@ -184,9 +165,8 @@ impl Pipeline {
                 .expect("Error creating pipelines")[0]
         };
 
-        unsafe {
-            device.destroy_shader_module(frag_module, None);
-            device.destroy_shader_module(vert_module, None);
+        for (module, _) in modules.iter() {
+            unsafe { device.destroy_shader_module(*module, None); }
         }
 
         Ok(
@@ -212,7 +192,9 @@ fn read_spirv(filename: String) -> Result<Vec<u32>> {
     Ok(words.to_vec())
 }
 
-pub fn shader_input_types(filename: &String) -> Result<(Vec<Type>, Vec<Type>)> {
+pub fn shader_input_types(
+    filename: &String
+) -> Result<(Vec<Type>, Vec<Type>)> {
     let bytes = &std::fs::read(format!("assets/shaders/{filename}/{filename}.vert"))?;
     let code  = std::str::from_utf8(bytes)?;
 
@@ -234,7 +216,7 @@ pub fn shader_input_types(filename: &String) -> Result<(Vec<Type>, Vec<Type>)> {
         }
 
         if let Some(left) = line.find(in_) {
-            let var = line[(left + in_len)..].trim_start();
+            let var = line[left + in_len..].trim_start();
 
             if let Some(right) = var.find(" ") {
                 let kind = str_to_type(&var[..right]);
@@ -263,5 +245,54 @@ pub fn shader_input_types(filename: &String) -> Result<(Vec<Type>, Vec<Type>)> {
     }
 
     Ok((vertex_info, instance_info))
+}
+
+fn str_to_stage(string: &str) -> vk::ShaderStageFlags {
+    match string {
+        "vert" => vk::ShaderStageFlags::VERTEX,
+        "frag" => vk::ShaderStageFlags::FRAGMENT,
+        _      => { panic!("Unknown shader stage '{string}'"); }
+    }
+}
+
+fn shader_modules(
+    name:   &String,
+    device: &ash::Device
+) -> Result<Vec<(vk::ShaderModule, vk::ShaderStageFlags)>> {
+    let mut modules = vec![];
+
+    let directory = std::fs::read_dir(format!("assets/shaders/{name}"))?;
+
+    for entry in directory {
+        let path = entry?.path();
+
+        if path.is_file() {
+            let mut stage_str = path
+                .to_str()
+                .context("Failed to convert PathBuf to &str")?;
+
+            stage_str = &stage_str[
+                stage_str
+                    .rfind(".")
+                    .context("Failed to parse shader filename")? + 1
+                ..
+            ];
+
+            let stage = str_to_stage(stage_str);
+
+            let module = {
+                let code = read_spirv(format!("{name}.{stage_str}.spv"))?;
+
+                let create_info = vk::ShaderModuleCreateInfo::builder()
+                    .code(&code);
+
+                unsafe { device.create_shader_module(&create_info, None) }?
+            };
+
+            modules.push((module, stage));
+        }
+    }
+
+    Ok(modules)
 }
 

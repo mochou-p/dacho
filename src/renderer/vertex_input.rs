@@ -42,7 +42,7 @@ pub fn str_to_type(string: &str) -> Type {
         "vec2"  => Type::Vec2,
         "vec3"  => Type::Vec3,
         "vec4"  => Type::Vec4,
-        _       => { panic!("Unknown glsl type"); }
+        _       => { panic!("Unknown glsl type '{string}'"); }
     }
 }
 
