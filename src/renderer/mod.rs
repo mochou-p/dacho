@@ -122,13 +122,17 @@ impl Renderer {
         let mut geometries = vec![];
 
         for geometry_data in scene.iter() {
-            let pipeline = Pipeline::new(
-                &device.device,
-                &descriptor_set_layout,
-                &swapchain,
-                &render_pass.render_pass,
-                &geometry_data
-            )?;
+            if pipelines.get(&geometry_data.shader).is_none() {
+                let pipeline = Pipeline::new(
+                    &device.device,
+                    &descriptor_set_layout,
+                    &swapchain,
+                    &render_pass.render_pass,
+                    &geometry_data
+                )?;
+
+                pipelines.insert(geometry_data.shader.clone(), pipeline);
+            }
 
             let geometry = Geometry::new(
                 &instance.instance,
@@ -139,7 +143,6 @@ impl Renderer {
                 &geometry_data
             )?;
 
-            pipelines.insert(geometry_data.shader.clone(), pipeline);
             geometries.push(geometry);
         }
 
@@ -172,8 +175,10 @@ impl Renderer {
             Command::BeginRenderPass(&render_pass, &swapchain)
         ];
 
-        let mut last_pipeline       = String::from("");
-        let mut last_descriptor_set = usize::MAX;
+        let mut last_pipeline = String::from("");
+        let mut first         = true;
+
+        geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
         for geometry in geometries.iter() {
             if geometry.shader != last_pipeline {
@@ -187,12 +192,10 @@ impl Renderer {
                 last_pipeline = geometry.shader.clone();
             }
 
-            if let Some(i) = geometry.descriptor_set_id {
-                if i != last_descriptor_set {
-                    commands.push(Command::BindDescriptorSets(&descriptor_sets[i]));
+            if first {
+                commands.push(Command::BindDescriptorSets(&descriptor_sets[0]));
 
-                    last_descriptor_set = i;
-                }
+                first = false;
             }
 
             commands.append(&mut geometry.draw());
