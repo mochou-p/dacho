@@ -68,67 +68,37 @@ impl Renderer {
         height:      u32,
         scene:      &Vec<GeometryData>
     ) -> Result<Self> {
-        let entry = unsafe { ash::Entry::load() }?;
-
-        let instance = Instance::new(
-            event_loop,
-            &entry
-        )?;
-
+        let entry           = unsafe { ash::Entry::load() }?;
+        let instance        = Instance::new(event_loop, &entry)?;
         #[cfg(debug_assertions)]
-        let debug = Debug::new(
-            &entry,
-            &instance.instance
-        )?;
-
-        let physical_device = PhysicalDevice::new(
-            &instance.instance
-        )?;
-
-        let device = Device::new(
-            &instance.instance,
-            &physical_device
-        )?;
-
-        let surface = Surface::new(
-            &entry,
-            &instance.instance,
-            window
-        )?;
-
-        let render_pass = RenderPass::new(
-            &device.device
-        )?;
+        let debug           = Debug::new(&entry, &instance)?;
+        let physical_device = PhysicalDevice::new(&instance)?;
+        let device          = Device::new(&instance, &physical_device)?;
+        let surface         = Surface::new(&entry, &instance, window)?;
+        let render_pass     = RenderPass::new(&device)?;
 
         let swapchain = Swapchain::new(
-            &instance.instance,
-            &device.device,
+            &instance,
+            &device,
             &surface,
             &physical_device,
-            &render_pass.render_pass,
+            &render_pass,
             width,
             height
         )?;
 
-        let descriptor_set_layout = DescriptorSetLayout::new(
-            &device.device
-        )?;
-
-        let command_pool = CommandPool::new(
-            &device.device
-        )?;
-
+        let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
+        let command_pool          = CommandPool::new(&device)?;
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
         let mut geometries        = vec![];
 
         for geometry_data in scene.iter() {
             let geometry = Geometry::new(
-                &instance.instance,
+                &instance,
                 &physical_device,
-                &device.device,
-                &device.queue,
-                &command_pool.command_pool,
+                &device,
+                &command_pool,
                 &geometry_data,
                 &mut shader_info_cache
             )?;
@@ -138,10 +108,10 @@ impl Renderer {
                     .context(format!("{} not found in shader info cache", geometry_data.shader))?;
 
                 let pipeline = Pipeline::new(
-                    &device.device,
+                    &device,
                     &descriptor_set_layout,
                     &swapchain,
-                    &render_pass.render_pass,
+                    &render_pass,
                     shader_info
                 )?;
 
@@ -151,30 +121,14 @@ impl Renderer {
             geometries.push(geometry);
         }
 
-        let (ubo, ubo_mapped) = UniformBufferObject::new(
-            &instance.instance,
-            &physical_device,
-            &device.device
-        )?;
-
-        let descriptor_pool = DescriptorPool::new(
-            &device.device
-        )?;
+        let (ubo, ubo_mapped) = UniformBufferObject::new(&instance, &physical_device, &device)?;
+        let descriptor_pool   = DescriptorPool::new(&device)?;
 
         let descriptor_sets = vec![
-            DescriptorSet::new(
-                &device.device,
-                &descriptor_pool,
-                &descriptor_set_layout,
-                &ubo.buffer
-            )?
+            DescriptorSet::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?
         ];
 
-        let command_buffers = CommandBuffers::new(
-            &command_pool.command_pool,
-            &swapchain,
-            &device.device
-        )?;
+        let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
 
         let mut commands = vec![
             Command::BeginRenderPass(&render_pass, &swapchain)
@@ -188,10 +142,7 @@ impl Renderer {
         for geometry in geometries.iter() {
             if geometry.shader != last_pipeline {
                 commands.push(
-                    Command::BindPipeline(
-                        pipelines.get(&geometry.shader)
-                            .context("Pipeline not in hash map")?
-                    )
+                    Command::BindPipeline(pipelines.get(&geometry.shader).context("Pipeline not in hash map")?)
                 );
 
                 last_pipeline = geometry.shader.clone();
@@ -206,10 +157,7 @@ impl Renderer {
             commands.append(&mut geometry.draw());
         }
 
-        command_buffers.record(
-            &device.device,
-            &commands
-        )?;
+        command_buffers.record(&device, &commands)?;
 
         Ok(
             Renderer {
@@ -241,13 +189,10 @@ impl Renderer {
         &mut self,
         camera_transform: (glam::Vec3, glam::Vec3)
     ) {
-        let device = &self.device.device;
-        let queue  = &self.device.queue;
-
         let (image_index, _) = unsafe {
             self.swapchain.loader
                 .acquire_next_image(
-                    self.swapchain.swapchain,
+                    self.swapchain.raw,
                     std::u64::MAX,
                     self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
@@ -265,7 +210,7 @@ impl Renderer {
         );
 
         unsafe {
-            device.wait_for_fences(
+            self.device.raw.wait_for_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
                 std::u64::MAX
@@ -274,7 +219,7 @@ impl Renderer {
             .expect("Waiting for fences failed");
 
         unsafe {
-            device.reset_fences(
+            self.device.raw.reset_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]]
             )
         }
@@ -289,7 +234,7 @@ impl Renderer {
         ];
 
         let command_buffers = [
-            self.command_buffers.command_buffers[image_index as usize]
+            self.command_buffers.raw[image_index as usize]
         ];
 
         let semaphores_finished = [
@@ -306,15 +251,15 @@ impl Renderer {
         ];
 
         unsafe {
-            device.queue_submit(
-                *queue,
+            self.device.raw.queue_submit(
+                self.device.queue,
                 &submit_info,
                 self.swapchain.may_begin_drawing[self.swapchain.current_image]
             )
         }
             .expect("Submitting queue failed");
 
-        let swapchains    = [self.swapchain.swapchain];
+        let swapchains    = [self.swapchain.raw];
         let image_indices = [image_index];
 
         let present_info = vk::PresentInfoKHR::builder()
@@ -324,7 +269,7 @@ impl Renderer {
 
         unsafe {
             self.swapchain.loader.queue_present(
-                *queue,
+                self.device.queue,
                 &present_info
             )
         }
@@ -340,31 +285,27 @@ impl Drop for Renderer {
     fn drop(&mut self) {
         self.device.wait();
 
-        {
-            let device = &self.device.device;
+        self.command_pool.destroy(&self.device);
 
-            self.command_pool.destroy(device);
-
-            for (_, pipeline) in self.pipelines.iter() {
-                pipeline.destroy(device);
-            }
-
-            self.render_pass.destroy(device);
-            self.swapchain.destroy(device);
-            self.ubo.destroy(device);
-            self.descriptor_pool.destroy(device);
-            self.descriptor_set_layout.destroy(device);
-
-            for geometry in self.geometries.iter() {
-                geometry.destroy(device);
-            }
+        for (_, pipeline) in self.pipelines.iter() {
+            pipeline.destroy(&self.device);
         }
 
-        self.device.destroy();
-        self.surface.destroy();
+        self.render_pass           .destroy(&self.device);
+        self.swapchain             .destroy(&self.device);
+        self.ubo                   .destroy(&self.device);
+        self.descriptor_pool       .destroy(&self.device);
+        self.descriptor_set_layout .destroy(&self.device);
+
+        for geometry in self.geometries.iter() {
+            geometry.destroy(&self.device);
+        }
+
+        self.device   .destroy();
+        self.surface  .destroy();
         #[cfg(debug_assertions)]
-        self.debug.destroy();
-        self.instance.destroy();
+        self.debug    .destroy();
+        self.instance .destroy();
     }
 }
 

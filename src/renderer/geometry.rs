@@ -8,7 +8,9 @@ use ash::vk;
 
 use super::{
     buffer::{Buffer, IndexBuffer, VertexBuffer},
-    command::Command,
+    command::{Command, CommandPool},
+    device::{Device, PhysicalDevice},
+    instance::Instance,
     pipeline::shader_input_types,
     vertex_input::{ShaderInfo, size_of_types}
 };
@@ -56,11 +58,10 @@ pub struct Geometry {
 
 impl Geometry {
     pub fn new(
-        instance:          &ash::Instance,
-        physical_device:   &vk::PhysicalDevice,
-        device:            &ash::Device,
-        queue:             &vk::Queue,
-        command_pool:      &vk::CommandPool,
+        instance:          &Instance,
+        physical_device:   &PhysicalDevice,
+        device:            &Device,
+        command_pool:      &CommandPool,
         data:              &GeometryData,
         shader_info_cache: &mut HashMap<String, ShaderInfo>
     ) -> Result<Self> {
@@ -97,7 +98,6 @@ impl Geometry {
             instance,
             physical_device,
             device,
-            queue,
             command_pool,
             &data.vertices
         )?;
@@ -106,7 +106,6 @@ impl Geometry {
             instance,
             physical_device,
             device,
-            queue,
             command_pool,
             &data.instances
         )?;
@@ -115,7 +114,6 @@ impl Geometry {
             instance,
             physical_device,
             device,
-            queue,
             command_pool,
             &data.indices
         )?;
@@ -141,7 +139,7 @@ impl Geometry {
         ]
     }
 
-    pub fn destroy(&self, device: &ash::Device) {
+    pub fn destroy(&self, device: &Device) {
         self.vertex_buffer.destroy(device);
         self.instance_buffer.destroy(device);
         self.index_buffer.destroy(device);

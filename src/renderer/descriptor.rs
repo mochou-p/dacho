@@ -9,7 +9,11 @@ use {
     ::glam::EulerRot
 };
 
-use super::buffer::Buffer;
+use super::{
+    buffer::Buffer,
+    device::{Device, PhysicalDevice},
+    instance::Instance
+};
 
 pub struct UniformBufferObject {
     _model:      glam::Mat4,
@@ -19,9 +23,9 @@ pub struct UniformBufferObject {
 
 impl UniformBufferObject {
     pub fn new(
-        instance:        &ash::Instance,
-        physical_device: &vk::PhysicalDevice,
-        device:          &ash::Device
+        instance:        &Instance,
+        physical_device: &PhysicalDevice,
+        device:          &Device
     ) -> Result<(Buffer, *mut std::ffi::c_void)> {
         let buffer_size = std::mem::size_of::<UniformBufferObject>() as u64;
 
@@ -40,7 +44,7 @@ impl UniformBufferObject {
         };
 
         let uniform_buffer_mapped = unsafe {
-            device.map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
+            device.raw.map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
         }?;
 
         Ok((uniform_buffer, uniform_buffer_mapped))
@@ -71,12 +75,12 @@ impl UniformBufferObject {
 }
 
 pub struct DescriptorSetLayout {
-    pub descriptor_set_layout: vk::DescriptorSetLayout
+    pub raw: vk::DescriptorSetLayout
 }
 
 impl DescriptorSetLayout {
-    pub fn new(device: &ash::Device) -> Result<Self> {
-        let descriptor_set_layout = {
+    pub fn new(device: &Device) -> Result<Self> {
+        let raw = {
             let ubo_bindings = [
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(0)
@@ -89,24 +93,24 @@ impl DescriptorSetLayout {
             let create_info = vk::DescriptorSetLayoutCreateInfo::builder()
                 .bindings(&ubo_bindings);
 
-            unsafe { device.create_descriptor_set_layout(&create_info, None) }?
+            unsafe { device.raw.create_descriptor_set_layout(&create_info, None) }?
         };
 
-        Ok(Self { descriptor_set_layout })
+        Ok(Self { raw })
     }
 
-    pub fn destroy(&self, device: &ash::Device) {
-        unsafe { device.destroy_descriptor_set_layout(self.descriptor_set_layout, None); }
+    pub fn destroy(&self, device: &Device) {
+        unsafe { device.raw.destroy_descriptor_set_layout(self.raw, None); }
     }
 }
 
 pub struct DescriptorPool {
-    descriptor_pool: vk::DescriptorPool
+    raw: vk::DescriptorPool
 }
 
 impl DescriptorPool {
-    pub fn new(device: &ash::Device) -> Result<Self> {
-        let descriptor_pool = {
+    pub fn new(device: &Device) -> Result<Self> {
+        let raw = {
             let pool_sizes = [
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::UNIFORM_BUFFER)
@@ -118,39 +122,41 @@ impl DescriptorPool {
                 .pool_sizes(&pool_sizes)
                 .max_sets(1);
 
-            unsafe { device.create_descriptor_pool(&create_info, None) }?
+            unsafe { device.raw.create_descriptor_pool(&create_info, None) }?
         };
 
-        Ok(Self { descriptor_pool })
+        Ok(Self { raw })
     }
 
-    pub fn destroy(&self, device: &ash::Device) {
-        unsafe { device.destroy_descriptor_pool(self.descriptor_pool, None); }
+    pub fn destroy(&self, device: &Device) {
+        unsafe { device.raw.destroy_descriptor_pool(self.raw, None); }
     }
 }
 
-pub struct DescriptorSet;
+pub struct DescriptorSet {
+    pub raw: vk::DescriptorSet
+}
 
 impl DescriptorSet {
     pub fn new(
-        device:                &ash::Device,
+        device:                &Device,
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
-        ubo:                   &vk::Buffer
-    ) -> Result<vk::DescriptorSet> {
-        let descriptor_set = {
-            let set_layouts = [descriptor_set_layout.descriptor_set_layout];
+        ubo:                   &Buffer
+    ) -> Result<Self> {
+        let raw = {
+            let set_layouts = [descriptor_set_layout.raw];
 
             let allocate_info = vk::DescriptorSetAllocateInfo::builder()
-                .descriptor_pool(descriptor_pool.descriptor_pool)
+                .descriptor_pool(descriptor_pool.raw)
                 .set_layouts(&set_layouts);
 
-            unsafe { device.allocate_descriptor_sets(&allocate_info) }?[0]
+            unsafe { device.raw.allocate_descriptor_sets(&allocate_info) }?[0]
         };
 
         let buffer_infos = [
             vk::DescriptorBufferInfo::builder()
-                .buffer(*ubo)
+                .buffer(ubo.raw)
                 .offset(0)
                 .range(std::mem::size_of::<UniformBufferObject>() as u64)
                 .build()
@@ -158,7 +164,7 @@ impl DescriptorSet {
 
         let writes = [
             vk::WriteDescriptorSet::builder()
-                .dst_set(descriptor_set)
+                .dst_set(raw)
                 .dst_binding(0)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
@@ -166,9 +172,9 @@ impl DescriptorSet {
                 .build()
         ];
 
-        unsafe { device.update_descriptor_sets(&writes, &[]); }
+        unsafe { device.raw.update_descriptor_sets(&writes, &[]); }
 
-        Ok(descriptor_set)
+        Ok(Self { raw })
     }
 }
 

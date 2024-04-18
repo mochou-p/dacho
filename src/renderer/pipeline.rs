@@ -8,39 +8,39 @@ use ash::vk;
 
 use super::{
     descriptor::DescriptorSetLayout,
+    device::Device,
+    render_pass::RenderPass,
     swapchain::Swapchain,
     vertex_input::{ShaderInfo, Type, instance_descriptions, str_to_type, vertex_descriptions}
 };
 
 pub struct Pipeline {
-    pub layout:   vk::PipelineLayout,
-    pub pipeline: vk::Pipeline
+    pub layout: vk::PipelineLayout,
+    pub raw:    vk::Pipeline
 }
 
 impl Pipeline {
     pub fn new(
-        device:                &ash::Device,
+        device:                &Device,
         descriptor_set_layout: &DescriptorSetLayout,
         swapchain:             &Swapchain,
-        render_pass:           &vk::RenderPass,
+        render_pass:           &RenderPass,
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
         let layout = {
-            let set_layouts = [
-                descriptor_set_layout.descriptor_set_layout
-            ];
+            let set_layouts = [descriptor_set_layout.raw];
 
             let create_info = {
                 vk::PipelineLayoutCreateInfo::builder()
                     .set_layouts(&set_layouts)
             };
 
-            unsafe { device.create_pipeline_layout(&create_info, None) }?
+            unsafe { device.raw.create_pipeline_layout(&create_info, None) }?
         };
 
         let modules = shader_modules(&shader_info.name, device)?;
 
-        let pipeline = {
+        let raw = {
             let entry_point = std::ffi::CString::new("main")?;
 
             let mut stages = vec![];
@@ -150,13 +150,13 @@ impl Pipeline {
                     .color_blend_state(&color_blend_state)
                     .depth_stencil_state(&depth_stencil_state)
                     .layout(layout)
-                    .render_pass(*render_pass)
+                    .render_pass(render_pass.raw)
                     .subpass(0)
                     .build()
             ];
 
             unsafe {
-                device.create_graphics_pipelines(
+                device.raw.create_graphics_pipelines(
                     vk::PipelineCache::null(),
                     &pipeline_infos,
                     None
@@ -166,21 +166,16 @@ impl Pipeline {
         };
 
         for (module, _) in modules.iter() {
-            unsafe { device.destroy_shader_module(*module, None); }
+            unsafe { device.raw.destroy_shader_module(*module, None); }
         }
 
-        Ok(
-            Self {
-                layout,
-                pipeline
-            }
-        )
+        Ok(Self { layout, raw })
     }
 
-    pub fn destroy(&self, device: &ash::Device) {
+    pub fn destroy(&self, device: &Device) {
         unsafe {
-            device.destroy_pipeline(self.pipeline, None);
-            device.destroy_pipeline_layout(self.layout, None);
+            device.raw.destroy_pipeline(self.raw, None);
+            device.raw.destroy_pipeline_layout(self.layout, None);
         }
     }
 }
@@ -257,7 +252,7 @@ fn str_to_stage(string: &str) -> vk::ShaderStageFlags {
 
 fn shader_modules(
     name:   &String,
-    device: &ash::Device
+    device: &Device
 ) -> Result<Vec<(vk::ShaderModule, vk::ShaderStageFlags)>> {
     let mut modules = vec![];
 
@@ -286,7 +281,7 @@ fn shader_modules(
                 let create_info = vk::ShaderModuleCreateInfo::builder()
                     .code(&code);
 
-                unsafe { device.create_shader_module(&create_info, None) }?
+                unsafe { device.raw.create_shader_module(&create_info, None) }?
             };
 
             modules.push((module, stage));
