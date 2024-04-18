@@ -1,26 +1,24 @@
 // dacho/src/application/scene.rs
 
+use anyhow::Result;
+
 use ash::vk;
 
-use crate::renderer::{
-    geometry::GeometryData,
-    vertex_input::Type
-};
+use crate::renderer::geometry::GeometryData;
 
 pub struct Scene;
 
 impl Scene {
-    pub fn demo() -> Vec<GeometryData> {
-        vec![
-            Self::demo_tiles(),
-            Self::demo_grass()
-        ]
+    pub fn demo() -> Result<Vec<GeometryData>> {
+        let scene = vec![
+            Self::demo_tiles()?,
+            Self::demo_grass()?
+        ];
+
+        Ok(scene)
     }
 
-    fn demo_tiles() -> GeometryData {
-        let   vertex_info = vec![Type::Vec4];
-        let instance_info = vec![Type::Vec3];
-
+    fn demo_tiles() -> Result<GeometryData> {
         let grid_size = 16.0;
         let grid_half = grid_size * 0.5;
         let step_frac = 1.0 / grid_size;
@@ -54,22 +52,19 @@ impl Scene {
         let cull_mode         = vk::CullModeFlags::BACK;
         let descriptor_set_id = Some(0);
 
-        GeometryData::new(
+        let geometry_data = GeometryData::new(
             shader,
             cull_mode,
             descriptor_set_id,
-            vertex_info,
-            instance_info,
             vertices,
             instances,
             indices
-        )
+        )?;
+
+        Ok(geometry_data)
     }
 
-    fn demo_grass() -> GeometryData {
-        let   vertex_info = vec![Type::Vec3];
-        let instance_info = vec![Type::Vec3];
-
+    fn demo_grass() -> Result<GeometryData> {
         let vertices: Vec<f32> = vec![
              0.00, 4.0, 0.0,
              0.08, 2.4, 0.0,
@@ -103,16 +98,16 @@ impl Scene {
         let cull_mode         = vk::CullModeFlags::NONE;
         let descriptor_set_id = None;
 
-        GeometryData::new(
+        let geometry_data = GeometryData::new(
             shader,
             cull_mode,
             descriptor_set_id,
-            vertex_info,
-            instance_info,
             vertices,
             instances,
             indices
-        )
+        )?;
+
+        Ok(geometry_data)
     }
 }
 

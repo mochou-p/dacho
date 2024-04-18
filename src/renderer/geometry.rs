@@ -1,21 +1,22 @@
 // dacho/src/renderer/geometry.rs
 
-use anyhow::Result;
+use std::collections::HashMap;
+
+use anyhow::{Context, Result};
 
 use ash::vk;
 
 use super::{
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     command::Command,
-    vertex_input::{Type, size_of_types}
+    pipeline::shader_input_types,
+    vertex_input::{ShaderInfo, size_of_types}
 };
 
 pub struct GeometryData {
     pub shader:            String,
     pub cull_mode:         vk::CullModeFlags,
         descriptor_set_id: Option<usize>,
-    pub vertex_info:       Vec<Type>,
-    pub instance_info:     Vec<Type>,
         vertices:          Vec<f32>,
         instances:         Vec<f32>,
         indices:           Vec<u16>
@@ -26,22 +27,20 @@ impl GeometryData {
         shader:            String,
         cull_mode:         vk::CullModeFlags,
         descriptor_set_id: Option<usize>,
-        vertex_info:       Vec<Type>,
-        instance_info:     Vec<Type>,
         vertices:          Vec<f32>,
         instances:         Vec<f32>,
         indices:           Vec<u16>
-    ) -> Self {
-        Self {
-            shader,
-            cull_mode,
-            descriptor_set_id,
-            vertex_info,
-            instance_info,
-            vertices,
-            instances,
-            indices,
-        }
+    ) -> Result<Self> {
+        Ok(
+            Self {
+                shader,
+                cull_mode,
+                descriptor_set_id,
+                vertices,
+                instances,
+                indices,
+            }
+        )
     }
 }
 
@@ -57,17 +56,42 @@ pub struct Geometry {
 
 impl Geometry {
     pub fn new(
-        instance:        &ash::Instance,
-        physical_device: &vk::PhysicalDevice,
-        device:          &ash::Device,
-        queue:           &vk::Queue,
-        command_pool:    &vk::CommandPool,
-        data:            &GeometryData
+        instance:          &ash::Instance,
+        physical_device:   &vk::PhysicalDevice,
+        device:            &ash::Device,
+        queue:             &vk::Queue,
+        command_pool:      &vk::CommandPool,
+        data:              &GeometryData,
+        shader_info_cache: &mut HashMap<String, ShaderInfo>
     ) -> Result<Self> {
         let shader            = data.shader.clone();
         let descriptor_set_id = data.descriptor_set_id;
         let index_count       = data.indices.len() as u32;
-        let instance_count    = (data.instances.len() / (size_of_types(&data.instance_info) / 4)) as u32;
+
+        if shader_info_cache.get(&data.shader).is_none() {
+            let name = data.shader.clone();
+            let cull_mode = data.cull_mode;
+            let (vertex_info, instance_info) = shader_input_types(&data.shader)?;
+            let instance_size = size_of_types(&instance_info) / std::mem::size_of::<f32>();
+
+            shader_info_cache.insert(
+                data.shader.clone(),
+                ShaderInfo {
+                    name,
+                    cull_mode,
+                    vertex_info,
+                    instance_info,
+                    instance_size
+                }
+            );
+        }
+
+        let instance_count = (
+            data.instances.len()
+            / shader_info_cache.get(&data.shader)
+                .context("Shader instance size cache HashMap error")?
+                .instance_size
+        ) as u32;
 
         let vertex_buffer = VertexBuffer::new(
             instance,
