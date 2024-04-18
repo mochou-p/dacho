@@ -32,13 +32,7 @@ impl Window {
         window.set_cursor_grab(winit::window::CursorGrabMode::Locked)?;
         window.set_cursor_visible(false);
 
-        Ok(
-            Self {
-                window,
-                width,
-                height
-            }
-        )
+        Ok(Self { window, width, height })
     }
 
     pub fn request_redraw(&self) {

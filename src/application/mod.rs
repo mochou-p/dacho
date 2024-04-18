@@ -38,13 +38,7 @@ impl Application {
         let renderer = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
         let camera   = Camera::new(glam::Vec3::Y * 15.0);
 
-        Ok(
-            Self {
-                window,
-                renderer,
-                camera
-            }
-        )
+        Ok(Self { window, renderer, camera })
     }
 
     pub fn handle_event<T>(&mut self, event: &Event<T>, elwt: &EventLoopWindowTarget<T>) {

@@ -4,15 +4,17 @@ use anyhow::Result;
 
 use ash::vk;
 
+use super::device::Device;
+
 pub struct RenderPass {
-    pub render_pass: vk::RenderPass
+    pub raw: vk::RenderPass
 }
 
 impl RenderPass {
     pub fn new(
-        device: &ash::Device
+        device: &Device
     ) -> Result<Self> {
-        let render_pass = {
+        let raw = {
             let attachments = [
                 vk::AttachmentDescription::builder()
                     .format(vk::Format::B8G8R8A8_SRGB)
@@ -100,18 +102,14 @@ impl RenderPass {
                     .subpasses(&subpasses)
                     .dependencies(&subpass_dependencies);
 
-            unsafe { device.create_render_pass(&create_info, None) }?
+            unsafe { device.raw.create_render_pass(&create_info, None) }?
         };
 
-        Ok(
-            Self {
-                render_pass
-            }
-        )
+        Ok(Self { raw })
     }
 
-    pub fn destroy(&self, device: &ash::Device) {
-        unsafe { device.destroy_render_pass(self.render_pass, None); }
+    pub fn destroy(&self, device: &Device) {
+        unsafe { device.raw.destroy_render_pass(self.raw, None); }
     }
 }
 

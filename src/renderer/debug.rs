@@ -11,6 +11,8 @@ use vk::DebugUtilsMessageSeverityFlagsEXT  as MessageSeverity;
 use vk::DebugUtilsMessageTypeFlagsEXT      as MessageType;
 use vk::DebugUtilsMessengerCallbackDataEXT as CallbackData;
 
+use super::instance::Instance;
+
 pub struct Debug {
     loader:    ext::DebugUtils,
     messenger: vk::DebugUtilsMessengerEXT
@@ -19,9 +21,9 @@ pub struct Debug {
 impl Debug {
     pub fn new(
         entry:    &ash::Entry,
-        instance: &ash::Instance
+        instance: &Instance
     ) -> Result<Self> {
-        let loader = ext::DebugUtils::new(entry, instance);
+        let loader = ext::DebugUtils::new(entry, &instance.raw);
 
         let messenger = {
             let create_info = messenger_create_info();
@@ -29,19 +31,11 @@ impl Debug {
             unsafe { loader.create_debug_utils_messenger(&create_info, None) }?
         };
 
-        Ok(
-            Self {
-                loader,
-                messenger
-            }
-        )
+        Ok(Self { loader, messenger })
     }
 
     pub fn destroy(&self) {
-        unsafe {
-            self.loader
-                .destroy_debug_utils_messenger(self.messenger, None);
-        }
+        unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None); }
     }
 }
 

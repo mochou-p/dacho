@@ -17,7 +17,7 @@ const VALIDATION_LAYERS: [&'static str; 1] = [
 ];
 
 pub struct Instance {
-    pub instance: ash::Instance
+    pub raw: ash::Instance
 }
 
 impl Instance {
@@ -25,7 +25,7 @@ impl Instance {
         event_loop: &EventLoop<()>,
         entry:      &ash::Entry
     ) -> Result<Self> {
-        let instance = {
+        let raw = {
             let application_info = vk::ApplicationInfo::builder()
                 .api_version(vk::API_VERSION_1_3);
 
@@ -80,15 +80,11 @@ impl Instance {
             }
         };
 
-        Ok(
-            Self {
-                instance
-            }
-        )
+        Ok(Self { raw })
     }
 
     pub fn destroy(&self) {
-        unsafe { self.instance.destroy_instance(None); }
+        unsafe { self.raw.destroy_instance(None); }
     }
 }
 
