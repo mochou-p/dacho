@@ -7,38 +7,46 @@ use ash::vk;
 use super::{
     buffer::{Buffer, IndexBuffer, VertexBuffer},
     command::Command,
-    vertex_input::{instance::Instance, vertex::Vertex}
+    vertex_input::{Type, size_of_types}
 };
 
 pub struct GeometryData {
-    pipeline_id:       Option<usize>,
-    descriptor_set_id: Option<usize>,
-    vertices:          Vec<Vertex>,
-    instances:         Vec<Instance>,
-    indices:           Vec<u16>
+    pub shader:            String,
+    pub cull_mode:         vk::CullModeFlags,
+        descriptor_set_id: Option<usize>,
+    pub vertex_info:       Vec<Type>,
+    pub instance_info:     Vec<Type>,
+        vertices:          Vec<f32>,
+        instances:         Vec<f32>,
+        indices:           Vec<u16>
 }
 
 impl GeometryData {
     pub fn new(
-        pipeline_id:       Option<usize>,
+        shader:            String,
+        cull_mode:         vk::CullModeFlags,
         descriptor_set_id: Option<usize>,
-        vertices:          Vec<Vertex>,
-        instances:         Vec<Instance>,
+        vertex_info:       Vec<Type>,
+        instance_info:     Vec<Type>,
+        vertices:          Vec<f32>,
+        instances:         Vec<f32>,
         indices:           Vec<u16>
     ) -> Self {
         Self {
-            pipeline_id,
+            shader,
+            cull_mode,
             descriptor_set_id,
+            vertex_info,
+            instance_info,
             vertices,
             instances,
-            indices
+            indices,
         }
     }
 }
 
-
 pub struct Geometry {
-    pub pipeline_id:       Option<usize>,
+    pub shader:            String,
     pub descriptor_set_id: Option<usize>,
         vertex_buffer:     Buffer,
         instance_buffer:   Buffer,
@@ -56,8 +64,10 @@ impl Geometry {
         command_pool:    &vk::CommandPool,
         data:            &GeometryData
     ) -> Result<Self> {
-        let pipeline_id       = data.pipeline_id;
+        let shader            = data.shader.clone();
         let descriptor_set_id = data.descriptor_set_id;
+        let index_count       = data.indices.len() as u32;
+        let instance_count    = (data.instances.len() / (size_of_types(&data.instance_info) / 4)) as u32;
 
         let vertex_buffer = VertexBuffer::new(
             instance,
@@ -86,12 +96,9 @@ impl Geometry {
             &data.indices
         )?;
 
-        let    index_count = data.indices.len()   as u32;
-        let instance_count = data.instances.len() as u32;
-
         Ok(
             Self {
-                pipeline_id,
+                shader,
                 descriptor_set_id,
                 vertex_buffer,
                 instance_buffer,
