@@ -10,6 +10,14 @@ pub enum Type {
     Vec4
 }
 
+pub struct ShaderInfo {
+    pub name:          String,
+    pub cull_mode:     vk::CullModeFlags,
+    pub vertex_info:   Vec<Type>,
+    pub instance_info: Vec<Type>,
+    pub instance_size: usize
+}
+
 struct TypeInfo {
     format: vk::Format,
     size:   u32
@@ -22,11 +30,21 @@ impl TypeInfo {
 }
 
 const TYPE_INFOS: [TypeInfo; 4] = [
-    TypeInfo::new(vk::Format::R32_SFLOAT,           4),
-    TypeInfo::new(vk::Format::R32G32_SFLOAT,        8),
-    TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    12),
-    TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 16)
+    TypeInfo::new(vk::Format::R32_SFLOAT,          1 * std::mem::size_of::<f32>() as u32),
+    TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * std::mem::size_of::<f32>() as u32),
+    TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * std::mem::size_of::<f32>() as u32),
+    TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * std::mem::size_of::<f32>() as u32)
 ];
+
+pub fn str_to_type(string: &str) -> Type {
+    match string {
+        "float" => Type::Float,
+        "vec2"  => Type::Vec2,
+        "vec3"  => Type::Vec3,
+        "vec4"  => Type::Vec4,
+        _       => { panic!("Unknown glsl type"); }
+    }
+}
 
 pub fn size_of_types(info: &Vec<Type>) -> usize {
     let mut size = 0_usize;

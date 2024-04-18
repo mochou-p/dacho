@@ -118,30 +118,35 @@ impl Renderer {
             &device.device
         )?;
 
-        let mut pipelines  = HashMap::new();
-        let mut geometries = vec![];
+        let mut shader_info_cache = HashMap::new();
+        let mut pipelines         = HashMap::new();
+        let mut geometries        = vec![];
 
         for geometry_data in scene.iter() {
-            if pipelines.get(&geometry_data.shader).is_none() {
-                let pipeline = Pipeline::new(
-                    &device.device,
-                    &descriptor_set_layout,
-                    &swapchain,
-                    &render_pass.render_pass,
-                    &geometry_data
-                )?;
-
-                pipelines.insert(geometry_data.shader.clone(), pipeline);
-            }
-
             let geometry = Geometry::new(
                 &instance.instance,
                 &physical_device,
                 &device.device,
                 &device.queue,
                 &command_pool.command_pool,
-                &geometry_data
+                &geometry_data,
+                &mut shader_info_cache
             )?;
+
+            if pipelines.get(&geometry_data.shader).is_none() {
+                let shader_info = shader_info_cache.get(&geometry_data.shader)
+                    .context(format!("{} not found in shader info cache", geometry_data.shader))?;
+
+                let pipeline = Pipeline::new(
+                    &device.device,
+                    &descriptor_set_layout,
+                    &swapchain,
+                    &render_pass.render_pass,
+                    shader_info
+                )?;
+
+                pipelines.insert(geometry_data.shader.clone(), pipeline);
+            }
 
             geometries.push(geometry);
         }

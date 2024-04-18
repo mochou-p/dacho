@@ -1,14 +1,15 @@
 // dacho/src/renderer/pipeline.rs
 
-use anyhow::Result;
+use std::io::Write;
+
+use anyhow::{Result, anyhow};
 
 use ash::vk;
 
 use super::{
     descriptor::DescriptorSetLayout,
-    geometry::GeometryData,
     swapchain::Swapchain,
-    vertex_input::{instance_descriptions, vertex_descriptions}
+    vertex_input::{ShaderInfo, Type, instance_descriptions, str_to_type, vertex_descriptions}
 };
 
 pub struct Pipeline {
@@ -22,7 +23,7 @@ impl Pipeline {
         descriptor_set_layout: &DescriptorSetLayout,
         swapchain:             &Swapchain,
         render_pass:           &vk::RenderPass,
-        geometry_data:         &GeometryData
+        shader_info:           &ShaderInfo
     ) -> Result<Self> {
         let layout = {
             let set_layouts = [
@@ -38,7 +39,7 @@ impl Pipeline {
         };
 
         let vert_module = {
-            let code = read_spirv(format!("{}.vert.spv", geometry_data.shader))?;
+            let code = read_spirv(format!("{}.vert.spv", shader_info.name))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -47,7 +48,7 @@ impl Pipeline {
         };
 
         let frag_module = {
-            let code = read_spirv(format!("{}.frag.spv", geometry_data.shader))?;
+            let code = read_spirv(format!("{}.frag.spv", shader_info.name))?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -74,10 +75,10 @@ impl Pipeline {
             ];
 
             let (vertex_binding, mut vertex_attributes, last_location) =
-                vertex_descriptions(&geometry_data.vertex_info);
+                vertex_descriptions(&shader_info.vertex_info);
 
             let (instance_binding, mut instance_attributes) =
-                instance_descriptions(&geometry_data.instance_info, last_location);
+                instance_descriptions(&shader_info.instance_info, last_location);
 
             let binding_descriptions = [vertex_binding, instance_binding];
 
@@ -122,7 +123,7 @@ impl Pipeline {
             let rasterization_state = vk::PipelineRasterizationStateCreateInfo::builder()
                 .line_width(1.0)
                 .front_face(vk::FrontFace::CLOCKWISE)
-                .cull_mode(geometry_data.cull_mode);
+                .cull_mode(shader_info.cull_mode);
 
             let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
                 .rasterization_samples(vk::SampleCountFlags::TYPE_8);
@@ -209,5 +210,58 @@ fn read_spirv(filename: String) -> Result<Vec<u32>> {
     let words = bytemuck::cast_slice::<u8, u32>(bytes);
 
     Ok(words.to_vec())
+}
+
+pub fn shader_input_types(filename: &String) -> Result<(Vec<Type>, Vec<Type>)> {
+    let bytes = &std::fs::read(format!("assets/shaders/{filename}/{filename}.vert"))?;
+    let code  = std::str::from_utf8(bytes)?;
+
+    let in_    = " in ";
+    let in_len = in_.len();
+
+    let mut   vertex_info = vec![];
+    let mut instance_info = vec![];
+
+    let (mut found_in, mut found_nl) = (false, false);
+
+    for (i, line) in code.lines().enumerate() {
+        if found_in && line == "" {
+            if found_nl {
+                break;
+            }
+
+            found_nl = true;
+        }
+
+        if let Some(left) = line.find(in_) {
+            let var = line[(left + in_len)..].trim_start();
+
+            if let Some(right) = var.find(" ") {
+                let kind = str_to_type(&var[..right]);
+                found_in = true;
+
+                if found_nl {
+                    instance_info.push(kind);
+                } else {
+                    vertex_info.push(kind);
+                }
+            } else {
+                print!("      ");
+                std::io::stdout().flush()?;
+
+                return Err(
+                    anyhow!(
+                        format!(
+                            "\x1b[31;1mFailed\x1b[0m to parse `{}.vert` at line {}",
+                            filename,
+                            i + 1
+                        )
+                    )
+                );
+            }
+        }
+    }
+
+    Ok((vertex_info, instance_info))
 }
 

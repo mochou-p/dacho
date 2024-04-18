@@ -34,7 +34,7 @@ impl Application {
         compile_shaders()?;
 
         let window   = Window::new("dacho", 1600, 900, event_loop)?;
-        let scene    = Scene::demo();
+        let scene    = Scene::demo()?;
         let renderer = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
         let camera   = Camera::new(glam::Vec3::Y * 15.0);
 
