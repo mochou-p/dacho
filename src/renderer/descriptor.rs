@@ -4,10 +4,7 @@ use anyhow::Result;
 
 use ash::vk;
 
-use {
-    glam::f32 as glam,
-    ::glam::EulerRot
-};
+use glam::f32 as glam;
 
 use super::{
     buffer::Buffer,
@@ -16,9 +13,9 @@ use super::{
 };
 
 pub struct UniformBufferObject {
-    _model:      glam::Mat4,
     _view:       glam::Mat4,
-    _projection: glam::Mat4
+    _projection: glam::Mat4,
+    _camera_pos: glam::Vec3
 }
 
 impl UniformBufferObject {
@@ -56,19 +53,14 @@ impl UniformBufferObject {
         direction:     glam::Vec3,
         aspect_ratio:  f32
     ) {
-        let model  = glam::Mat4::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0);
-        let view   = glam::Mat4::look_at_rh(position, position + direction, glam::Vec3::Y);
+        let view = glam::Mat4::look_at_rh(position, position + direction, glam::Vec3::Y);
 
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
         projection.y_axis.y *= -1.0;
 
-        let mut ubo = UniformBufferObject { _model: model, _view: view, _projection: projection };
-
-        let src = &mut ubo
-            as *mut UniformBufferObject
-            as *mut std::ffi::c_void;
-
-        let size = std::mem::size_of::<UniformBufferObject>();
+        let mut ubo  = UniformBufferObject { _view: view, _projection: projection, _camera_pos: position };
+        let     src  = &mut ubo as *mut UniformBufferObject as *mut std::ffi::c_void;
+        let     size = std::mem::size_of::<UniformBufferObject>();
 
         unsafe { std::ptr::copy_nonoverlapping(src, ubo_mapped, size); }
     }

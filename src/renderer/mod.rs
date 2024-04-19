@@ -135,7 +135,7 @@ impl Renderer {
         ];
 
         let mut last_pipeline = String::from("");
-        let mut first         = true;
+        let mut i             = 0_usize;
 
         geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
@@ -148,10 +148,10 @@ impl Renderer {
                 last_pipeline = geometry.shader.clone();
             }
 
-            if first {
-                commands.push(Command::BindDescriptorSets(&descriptor_sets[0]));
+            if i == 0 {
+                commands.push(Command::BindDescriptorSets(&descriptor_sets[i]));
 
-                first = false;
+                i += 1;
             }
 
             commands.append(&mut geometry.draw());
