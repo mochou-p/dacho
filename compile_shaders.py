@@ -24,8 +24,6 @@ def compile_shader(shader):
     if not isdir(shader_path):
         return
 
-    results = ""
-
     for module in listdir(shader_path):
         module_path = f"{shader_path}/{module}"
 
@@ -36,37 +34,27 @@ def compile_shader(shader):
         status = "Recompiled" if exists(spir_v) else "Compiled"
 
         if system(f"{SHADER_COMPILER} {module_path} -o {spir_v}"):
-            results += f"      {Color.red}Failed{Color.reset} to compile `{module}`\n"
+            print(f"      {Color.red}Failed{Color.reset} to compile `{module}`")
         else:
-            results += f"      {Color.green}{status}{Color.reset} `{module}`\n"
-
-    return results[:-1]
+            print(f"      {Color.green}{status}{Color.reset} `{module}`")
 
 
 def main():
     if not exists(SHADER_CACHE):
         mkdir(SHADER_CACHE)
 
-    shaders = []
-
-    for shader in listdir(SHADER_ROOT):
-        if shader == SHADER_BIN_DIR:
-            continue
-
-        shaders.append(shader)
+    shaders = [shader for shader in listdir(SHADER_ROOT) if shader != SHADER_BIN_DIR]
 
     with ThreadPoolExecutor() as tpe:
-        outputs = tpe.map(compile_shader, shaders)
-
-    [print(output) for output in outputs]
+        tpe.map(compile_shader, shaders)
 
 
 if __name__ == "__main__":
     if which(SHADER_COMPILER) is None:
-        exit(f"{Color.red}{SHADER_COMPILER}{Color.reset} is required to compile shaders")
+        exit(f"      {Color.red}Failed{Color.reset} to run `{__file__.split('/')[-1]}` ({SHADER_COMPILER} is missing)")
 
     try:
         main()
     except Exception as exception:
-        print(f"shader compilation script {Color.red}crashed{Color.reset}\n  {exception=}")
+        print(f"      {Color.red}Failed{Color.reset} to complete `{__file__.split('/')[-1]}` ({exception})")
 
