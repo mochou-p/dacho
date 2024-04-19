@@ -18,7 +18,6 @@ use super::{
 pub struct GeometryData {
     pub shader:            String,
     pub cull_mode:         vk::CullModeFlags,
-        descriptor_set_id: Option<usize>,
         vertices:          Vec<f32>,
         instances:         Vec<f32>,
         indices:           Vec<u16>
@@ -28,7 +27,6 @@ impl GeometryData {
     pub fn new(
         shader:            String,
         cull_mode:         vk::CullModeFlags,
-        descriptor_set_id: Option<usize>,
         vertices:          Vec<f32>,
         instances:         Vec<f32>,
         indices:           Vec<u16>
@@ -37,7 +35,6 @@ impl GeometryData {
             Self {
                 shader,
                 cull_mode,
-                descriptor_set_id,
                 vertices,
                 instances,
                 indices,
@@ -48,7 +45,6 @@ impl GeometryData {
 
 pub struct Geometry {
     pub shader:            String,
-    pub descriptor_set_id: Option<usize>,
         vertex_buffer:     Buffer,
         instance_buffer:   Buffer,
         index_buffer:      Buffer,
@@ -66,7 +62,6 @@ impl Geometry {
         shader_info_cache: &mut HashMap<String, ShaderInfo>
     ) -> Result<Self> {
         let shader            = data.shader.clone();
-        let descriptor_set_id = data.descriptor_set_id;
         let index_count       = data.indices.len() as u32;
 
         if shader_info_cache.get(&data.shader).is_none() {
@@ -121,7 +116,6 @@ impl Geometry {
         Ok(
             Self {
                 shader,
-                descriptor_set_id,
                 vertex_buffer,
                 instance_buffer,
                 index_buffer,

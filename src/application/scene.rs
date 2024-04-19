@@ -11,11 +11,51 @@ pub struct Scene;
 impl Scene {
     pub fn demo() -> Result<Vec<GeometryData>> {
         let scene = vec![
+            Self::demo_skybox()?,
             Self::demo_tiles()?,
             Self::demo_grass()?
         ];
 
         Ok(scene)
+    }
+
+    fn demo_skybox() -> Result<GeometryData> {
+        let vertices: Vec<f32> = vec![
+            -1.0,  1.0, -1.0,
+             1.0,  1.0, -1.0,
+             1.0,  1.0,  1.0,
+            -1.0,  1.0,  1.0,
+            -1.0, -1.0, -1.0,
+             1.0, -1.0, -1.0,
+             1.0, -1.0,  1.0,
+            -1.0, -1.0,  1.0
+        ];
+
+        let indices: Vec<u16> = vec![
+            0, 1, 2, 2, 3, 0,
+            7, 6, 5, 5, 4, 7,
+            4, 5, 1, 1, 0, 4,
+            6, 7, 3, 3, 2, 6,
+            0, 3, 7, 7, 4, 0,
+            2, 1, 5, 5, 6, 2
+        ];
+
+        let instances: Vec<f32> = vec![
+            0.0, 0.0, 0.0
+        ];
+
+        let shader    = String::from("sky");
+        let cull_mode = vk::CullModeFlags::FRONT;
+
+        let geometry_data = GeometryData::new(
+            shader,
+            cull_mode,
+            vertices,
+            instances,
+            indices
+        )?;
+
+        Ok(geometry_data)
     }
 
     fn demo_tiles() -> Result<GeometryData> {
@@ -37,7 +77,7 @@ impl Scene {
 
         let mut instances: Vec<f32> = vec![];
 
-        let i      = 5;
+        let i      = 15;
         let offset = (i - 1) as f32 * 0.5;
 
         for z in 0..i {
@@ -48,14 +88,12 @@ impl Scene {
             }
         }
 
-        let shader            = String::from("tile");
-        let cull_mode         = vk::CullModeFlags::BACK;
-        let descriptor_set_id = Some(0);
+        let shader    = String::from("tile");
+        let cull_mode = vk::CullModeFlags::BACK;
 
         let geometry_data = GeometryData::new(
             shader,
             cull_mode,
-            descriptor_set_id,
             vertices,
             instances,
             indices
@@ -82,7 +120,7 @@ impl Scene {
         let mut instances: Vec<f32> = vec![];
 
         let grid_size = 16.0;
-        let i         = 2;
+        let i         = 10;
         let offset1   = grid_size / i as f32;
         let offset2   = (i - 1) as f32 * 0.5;
 
@@ -94,14 +132,12 @@ impl Scene {
             }
         }
 
-        let shader            = String::from("grass");
-        let cull_mode         = vk::CullModeFlags::NONE;
-        let descriptor_set_id = None;
+        let shader    = String::from("grass");
+        let cull_mode = vk::CullModeFlags::NONE;
 
         let geometry_data = GeometryData::new(
             shader,
             cull_mode,
-            descriptor_set_id,
             vertices,
             instances,
             indices
