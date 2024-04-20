@@ -13,7 +13,8 @@ impl Scene {
         let scene = vec![
             Self::demo_skybox()?,
             Self::demo_tiles()?,
-            Self::demo_grass()?
+            Self::demo_grass()?,
+            Self::demo_vignette()?
         ];
 
         Ok(scene)
@@ -105,7 +106,7 @@ impl Scene {
     fn demo_grass() -> Result<GeometryData> {
         let vertices: Vec<f32> = vec![
              0.00, 4.0, 0.0,
-             0.08, 2.4, 0.0,
+             0.08, 1.8, 0.0,
              0.18, 0.0, 0.0,
             -0.18, 0.0, 0.0,
             -0.08, 1.8, 0.0
@@ -119,24 +120,65 @@ impl Scene {
 
         let mut instances: Vec<f32> = vec![];
 
+        let grid_i    = (15 - 1) / 2;
         let grid_size = 16.0;
         let i         = 32;
         let offset1   = grid_size / i as f32;
         let offset2   = (i - 1) as f32 * 0.5;
 
-        for z in 0..i {
-            for x in 0..i {
-                let x_ = x as f32 - offset2;
-                let z_ = z as f32 - offset2;
+        for chunk_z in -grid_i..grid_i + 1 {
+            for chunk_x in -grid_i..grid_i + 1 {
+                for z in 0..i {
+                    for x in 0..i {
+                        let x_   = x as f32 - offset2;
+                        let z_   = z as f32 - offset2;
 
-                instances.push(offset1 * x_ + noise(x_, z_) * offset1 * 0.5);
-                instances.push(0.0);
-                instances.push(offset1 * z_ + noise(z_, x_) * offset1 * 0.5);
+                        let x__  = offset1 * x_ + noise(x_, z_ + chunk_x as f32) * offset1 * 0.5;
+                        let z__  = offset1 * z_ + noise(z_, x_ + chunk_z as f32) * offset1 * 0.5;
+
+                        let x___ = chunk_x as f32 * grid_size;
+                        let z___ = chunk_z as f32 * grid_size;
+
+                        instances.push(x__ + x___);
+                        instances.push(0.0);
+                        instances.push(z__ + z___);
+                    }
+                }
             }
         }
 
         let shader    = String::from("grass");
         let cull_mode = vk::CullModeFlags::NONE;
+
+        let geometry_data = GeometryData::new(
+            shader,
+            cull_mode,
+            vertices,
+            instances,
+            indices
+        )?;
+
+        Ok(geometry_data)
+    }
+
+    fn demo_vignette() -> Result<GeometryData> {
+        let vertices: Vec<f32> = vec![
+            -1.0, -1.0,
+             1.0, -1.0,
+             1.0,  1.0,
+            -1.0,  1.0
+        ];
+
+        let indices: Vec<u16> = vec![
+            0, 1, 2, 2, 3, 0
+        ];
+
+        let instances: Vec<f32> = vec![
+            0.0, 0.0, 0.0
+        ];
+
+        let shader    = String::from("vignette");
+        let cull_mode = vk::CullModeFlags::BACK;
 
         let geometry_data = GeometryData::new(
             shader,

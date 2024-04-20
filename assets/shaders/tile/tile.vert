@@ -19,6 +19,6 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     gl_Position = ubo.projection * ubo.view * vec4(inPosition.xyz + inInstancePosition, 1.0);
-    outColor    = vec4(vec3(mod((inInstancePosition.x + inInstancePosition.z) * inPosition.w, 2.0)) * 0.006 + 0.01, 1.0);
+    outColor    = vec4(vec3(mod((inInstancePosition.x + inInstancePosition.z) * inPosition.w, 2.0)) * 0.009 + 0.02, 1.0);
 }
 
