@@ -120,15 +120,18 @@ impl Scene {
         let mut instances: Vec<f32> = vec![];
 
         let grid_size = 16.0;
-        let i         = 10;
+        let i         = 32;
         let offset1   = grid_size / i as f32;
         let offset2   = (i - 1) as f32 * 0.5;
 
         for z in 0..i {
             for x in 0..i {
-               instances.push(offset1 * (x as f32 - offset2));
-               instances.push(0.0);
-               instances.push(offset1 * (z as f32 - offset2));
+                let x_ = x as f32 - offset2;
+                let z_ = z as f32 - offset2;
+
+                instances.push(offset1 * x_ + noise(x_, z_) * offset1 * 0.5);
+                instances.push(0.0);
+                instances.push(offset1 * z_ + noise(z_, x_) * offset1 * 0.5);
             }
         }
 
@@ -145,5 +148,9 @@ impl Scene {
 
         Ok(geometry_data)
     }
+}
+
+fn noise(x: f32, y: f32) -> f32 {
+    (glam::Vec2::new(x, y).dot(glam::Vec2::new(12.9898, 4.1414)).sin() * 43758.5453) % 1.0
 }
 

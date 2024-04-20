@@ -23,9 +23,10 @@ use {
 use super::renderer::Renderer;
 
 pub struct Application {
-    window:   Window,
-    renderer: Renderer,
-    camera:   Camera
+    window:     Window,
+    renderer:   Renderer,
+    camera:     Camera,
+    start_time: std::time::Instant
 }
 
 impl Application {
@@ -33,12 +34,13 @@ impl Application {
         #[cfg(debug_assertions)]
         compile_shaders()?;
 
-        let window   = Window::new("dacho", 1600, 900, event_loop)?;
-        let scene    = Scene::demo()?;
-        let renderer = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
-        let camera   = Camera::new(glam::Vec3::Y * 15.0);
+        let window     = Window::new("dacho", 1600, 900, event_loop)?;
+        let scene      = Scene::demo()?;
+        let renderer   = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
+        let camera     = Camera::new(glam::Vec3::Y * 15.0);
+        let start_time = std::time::Instant::now();
 
-        Ok(Self { window, renderer, camera })
+        Ok(Self { window, renderer, camera, start_time })
     }
 
     pub fn handle_event<T>(&mut self, event: &Event<T>, elwt: &EventLoopWindowTarget<T>) {
@@ -61,7 +63,7 @@ impl Application {
                 self.window.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                self.renderer.redraw(self.camera.transform());
+                self.renderer.redraw(self.camera.transform(), self.start_time.elapsed().as_secs_f32());
             },
             _ => ()
         }
