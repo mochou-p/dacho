@@ -187,7 +187,8 @@ impl Renderer {
 
     pub fn redraw(
         &mut self,
-        camera_transform: (glam::Vec3, glam::Vec3)
+        camera_transform: (glam::Vec3, glam::Vec3),
+        time:             f32
     ) {
         let (image_index, _) = unsafe {
             self.swapchain.loader
@@ -206,6 +207,7 @@ impl Renderer {
             self.ubo_mapped,
             camera_transform.0,
             camera_transform.1,
+            time,
             aspect_ratio
         );
 

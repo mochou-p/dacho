@@ -1,13 +1,14 @@
 // dacho/assets/shaders/tile/tile.vert
 
-#version 460
+#version 460 core
 
 precision highp float;
 
 layout(binding = 0) uniform UniformBufferObject {
-    mat4 view;
-    mat4 projection;
-    vec3 camera_pos;
+    mat4  view;
+    mat4  projection;
+    vec3  camera_pos;
+    float time;
 } ubo;
 
 layout(location = 0) in  vec4 inPosition;

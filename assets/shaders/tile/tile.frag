@@ -1,6 +1,6 @@
 // dacho/assets/shaders/tile/tile.frag
 
-#version 460
+#version 460 core
 
 precision lowp float;
 

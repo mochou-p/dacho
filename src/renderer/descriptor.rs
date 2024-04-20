@@ -15,7 +15,8 @@ use super::{
 pub struct UniformBufferObject {
     _view:       glam::Mat4,
     _projection: glam::Mat4,
-    _camera_pos: glam::Vec3
+    _camera_pos: glam::Vec3,
+    _time:       f32
 }
 
 impl UniformBufferObject {
@@ -51,6 +52,7 @@ impl UniformBufferObject {
         ubo_mapped:   *mut std::ffi::c_void,
         position:      glam::Vec3,
         direction:     glam::Vec3,
+        time:          f32,
         aspect_ratio:  f32
     ) {
         let view = glam::Mat4::look_at_rh(position, position + direction, glam::Vec3::Y);
@@ -58,7 +60,13 @@ impl UniformBufferObject {
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
         projection.y_axis.y *= -1.0;
 
-        let mut ubo  = UniformBufferObject { _view: view, _projection: projection, _camera_pos: position };
+        let mut ubo  = UniformBufferObject {
+            _view:       view,
+            _projection: projection,
+            _camera_pos: position,
+            _time:       time
+        };
+
         let     src  = &mut ubo as *mut UniformBufferObject as *mut std::ffi::c_void;
         let     size = std::mem::size_of::<UniformBufferObject>();
 
