@@ -16,25 +16,28 @@ use super::{
 };
 
 pub struct GeometryData {
-    pub shader:            String,
-    pub cull_mode:         vk::CullModeFlags,
-        vertices:          Vec<f32>,
-        instances:         Vec<f32>,
-        indices:           Vec<u16>
+    pub shader:       String,
+    pub cull_mode:    vk::CullModeFlags,
+    pub polygon_mode: vk::PolygonMode,
+        vertices:     Vec<f32>,
+        instances:    Vec<f32>,
+        indices:      Vec<u16>
 }
 
 impl GeometryData {
     pub fn new(
-        shader:            String,
-        cull_mode:         vk::CullModeFlags,
-        vertices:          Vec<f32>,
-        instances:         Vec<f32>,
-        indices:           Vec<u16>
+        shader:       String,
+        cull_mode:    vk::CullModeFlags,
+        polygon_mode: vk::PolygonMode,
+        vertices:     Vec<f32>,
+        instances:    Vec<f32>,
+        indices:      Vec<u16>
     ) -> Result<Self> {
         Ok(
             Self {
                 shader,
                 cull_mode,
+                polygon_mode,
                 vertices,
                 instances,
                 indices,
@@ -65,8 +68,10 @@ impl Geometry {
         let index_count       = data.indices.len() as u32;
 
         if shader_info_cache.get(&data.shader).is_none() {
-            let name = data.shader.clone();
-            let cull_mode = data.cull_mode;
+            let name         = data.shader.clone();
+            let cull_mode    = data.cull_mode;
+            let polygon_mode = data.polygon_mode;
+
             let (vertex_info, instance_info) = shader_input_types(&data.shader)?;
             let instance_size = size_of_types(&instance_info) / std::mem::size_of::<f32>();
 
@@ -75,6 +80,7 @@ impl Geometry {
                 ShaderInfo {
                     name,
                     cull_mode,
+                    polygon_mode,
                     vertex_info,
                     instance_info,
                     instance_size
@@ -89,7 +95,7 @@ impl Geometry {
                 .instance_size
         ) as u32;
 
-        let vertex_buffer = VertexBuffer::new(
+        let vertex_buffer = VertexBuffer::new_buffer(
             instance,
             physical_device,
             device,
@@ -97,7 +103,7 @@ impl Geometry {
             &data.vertices
         )?;
 
-        let instance_buffer = VertexBuffer::new(
+        let instance_buffer = VertexBuffer::new_buffer(
             instance,
             physical_device,
             device,
@@ -105,7 +111,7 @@ impl Geometry {
             &data.instances
         )?;
 
-        let index_buffer = IndexBuffer::new(
+        let index_buffer = IndexBuffer::new_buffer(
             instance,
             physical_device,
             device,

@@ -1,4 +1,4 @@
-// dacho/assets/shaders/tile/tile.frag
+// dacho/assets/shaders/ground/ground.frag
 
 #version 460 core
 

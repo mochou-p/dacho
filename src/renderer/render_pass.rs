@@ -11,9 +11,7 @@ pub struct RenderPass {
 }
 
 impl RenderPass {
-    pub fn new(
-        device: &Device
-    ) -> Result<Self> {
+    pub fn new(device: &Device) -> Result<Self> {
         let raw = {
             let attachments = [
                 vk::AttachmentDescription::builder()
@@ -80,19 +78,19 @@ impl RenderPass {
                     .src_subpass(vk::SUBPASS_EXTERNAL)
                     .src_stage_mask(
                         vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT |
-                            vk::PipelineStageFlags::LATE_FRAGMENT_TESTS
+                        vk::PipelineStageFlags::LATE_FRAGMENT_TESTS
                     )
                     .src_access_mask(
                         vk::AccessFlags::COLOR_ATTACHMENT_WRITE |
-                            vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE
+                        vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE
                     )
                     .dst_subpass(0)
                     .dst_stage_mask(
                         vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT |
-                            vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
+                        vk::PipelineStageFlags::EARLY_FRAGMENT_TESTS)
                     .dst_access_mask(
                         vk::AccessFlags::COLOR_ATTACHMENT_WRITE |
-                            vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE
+                        vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE
                     )
                     .build()
             ];

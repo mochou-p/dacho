@@ -8,17 +8,17 @@ layout(binding = 0) uniform UniformBufferObject {
     mat4  view;
     mat4  projection;
     vec3  camera_pos;
-    float time;
+    float _time;
 } ubo;
 
-layout(location = 0) in  vec3  inPosition;
+layout(location = 0) in  vec3   inVertex;
 
-layout(location = 1) in  vec3  _;
+layout(location = 1) in  float  _inInstance;
 
-layout(location = 0) out vec3  outPosition;
+layout(location = 0) out vec3   outPosition;
 
 void main() { 
-    gl_Position = ubo.projection * ubo.view * vec4(inPosition + ubo.camera_pos, 1.0);
-    outPosition = inPosition;
+    gl_Position = ubo.projection * ubo.view * vec4(inVertex + ubo.camera_pos, 1.0);
+    outPosition = inVertex;
 }
 

@@ -20,7 +20,7 @@ pub struct UniformBufferObject {
 }
 
 impl UniformBufferObject {
-    pub fn new(
+    pub fn new_mapped_buffer(
         instance:        &Instance,
         physical_device: &PhysicalDevice,
         device:          &Device
@@ -86,7 +86,10 @@ impl DescriptorSetLayout {
                     .binding(0)
                     .descriptor_count(1)
                     .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-                    .stage_flags(vk::ShaderStageFlags::VERTEX)
+                    .stage_flags(
+                        vk::ShaderStageFlags::VERTEX |
+                        vk::ShaderStageFlags::TESSELLATION_EVALUATION
+                    )
                     .build()
             ];
 

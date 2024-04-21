@@ -209,17 +209,19 @@ impl Swapchain {
             .depth(1)
             .build();
 
-        let mut create_info        = vk::ImageCreateInfo::default();
-        create_info.image_type     = vk::ImageType::TYPE_2D;
-        create_info.extent         = extent;
-        create_info.mip_levels     = 1;
-        create_info.array_layers   = 1;
-        create_info.format         = format;
-        create_info.tiling         = vk::ImageTiling::OPTIMAL;
-        create_info.initial_layout = vk::ImageLayout::UNDEFINED;
-        create_info.usage          = usage;
-        create_info.samples        = vk::SampleCountFlags::TYPE_8;
-        create_info.sharing_mode   = vk::SharingMode::EXCLUSIVE;
+        let create_info = vk::ImageCreateInfo::builder()
+            .extent(extent)
+            .format(format)
+            .usage(usage)
+            .image_type(vk::ImageType::TYPE_2D)
+            .mip_levels(1)
+            .array_layers(1)
+            .tiling(vk::ImageTiling::OPTIMAL)
+            .initial_layout(vk::ImageLayout::UNDEFINED)
+            .samples(vk::SampleCountFlags::TYPE_8)
+            .sharing_mode(vk::SharingMode::EXCLUSIVE);
+
+        let _ = vk::ImageCreateInfo::builder();
 
         let image = unsafe { device.raw.create_image(&create_info, None) }?;
 

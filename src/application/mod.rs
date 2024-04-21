@@ -37,7 +37,7 @@ impl Application {
         let window     = Window::new("dacho", 1600, 900, event_loop)?;
         let scene      = Scene::demo()?;
         let renderer   = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
-        let camera     = Camera::new(glam::Vec3::Y * 15.0);
+        let camera     = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
         let start_time = std::time::Instant::now();
 
         Ok(Self { window, renderer, camera, start_time })
@@ -53,10 +53,10 @@ impl Application {
                     elwt.exit();
                 }
 
-                self.camera.keyboard_input(&event);
+                self.camera.keyboard_input(event);
             },
             Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
-                self.camera.mouse_motion(&delta);
+                self.camera.mouse_motion(delta);
             },
             Event::AboutToWait => {
                 self.renderer.wait_for_device();
