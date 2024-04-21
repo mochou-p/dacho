@@ -1,35 +1,19 @@
-// dacho/assets/shaders/grass/grass.vert
+// dacho/assets/shaders/ground/ground.tese
 
 #version 460 core
 
 precision highp float;
 
+layout(quads, equal_spacing, ccw) in;
+
 layout(binding = 0) uniform UniformBufferObject {
     mat4  view;
     mat4  projection;
     vec3  _camera_pos;
-    float time;
+    float _time;
 } ubo;
 
-layout(location = 0) in  vec2 inVertex;
-
-layout(location = 1) in  vec2 inInstance;
-
 layout(location = 0) out vec4 outColor;
-
-mat4 rotate_y(float angle) {
-    vec3  a = normalize(vec3(0.0, 1.0, 0.0));
-    float s = sin(angle);
-    float c = cos(angle);
-    float o = 1.0 - c;
-    
-    return mat4(
-        o * a.x * a.x + c,       o * a.x * a.y - a.z * s, o * a.z * a.x + a.y * s, 0.0,
-        o * a.x * a.y + a.z * s, o * a.y * a.y + c,       o * a.y * a.z - a.x * s, 0.0,
-        o * a.z * a.x - a.y * s, o * a.y * a.z + a.x * s, o * a.z * a.z + c,       0.0,
-        0.0,                     0.0,                     0.0,                     1.0
-    );
-}
 
 vec4 permute(vec4 xyzw) {
     return mod(((xyzw * 34.0) + 1.0) * xyzw, 289.0);
@@ -82,16 +66,21 @@ float noise(vec2 xy) {
     return 2.3 * n_xy;
 }
 
-void main() {
-    float angle      = noise(inInstance) * 3.14159;
-    vec3 rotated     = (rotate_y(angle) * vec4(inVertex, 0.0, 1.0)).xyz;
-    vec3 instancePos = vec3(inInstance.x, noise(inInstance * 0.01) * 20.0, inInstance.y);
-    vec3 position    = rotated + instancePos;
-    float posHash    = noise(position.xz);
-    float offset     = sin((ubo.time * 2.71828) + posHash);
-    position.xz     += pow(inVertex.y * 0.2, 2.0) * offset * 1.5;
+void main()
+{
+    float u = gl_TessCoord.x;
+    float v = gl_TessCoord.y;
 
-    gl_Position      = ubo.projection * ubo.view * vec4(position, 1.0);
-    outColor         = vec4(vec3(0.05, 0.8, 0.1) - (posHash * 0.5) - vec3(min(-position.y * 0.025, 0.0)), 1.0);
+    vec4 p00 = gl_in[0].gl_Position;
+    vec4 p01 = gl_in[1].gl_Position;
+    vec4 p10 = gl_in[2].gl_Position;
+    vec4 p11 = gl_in[3].gl_Position;
+
+    vec4 p  = mix(mix(p00, p01, u), mix(p10, p11, u), v);
+    float y = noise(p.xz * 0.01);
+    p.y     = y * 20.0;
+
+    gl_Position = ubo.projection * ubo.view * p;
+    outColor    = vec4(vec3(0.0, 1.0, 0.0) - vec3(-y), 1.0);
 }
 

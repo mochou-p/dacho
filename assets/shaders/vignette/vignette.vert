@@ -4,21 +4,14 @@
 
 precision highp float;
 
-layout(binding = 0) uniform UniformBufferObject {
-    mat4  view;
-    mat4  projection;
-    vec3  camera_pos;
-    float time;
-} ubo;
+layout(location = 0) in  vec2  inVertex;
 
-layout(location = 0) in  vec2 inPosition;
+layout(location = 1) in  float _inInstance;
 
-layout(location = 1) in  vec3 _;
-
-layout(location = 0) out vec2 outPosition;
+layout(location = 0) out vec2  outUV;
 
 void main() {
-    gl_Position = vec4(inPosition, 0.0, 1.0);
-    outPosition = inPosition;
+    gl_Position = vec4(inVertex, 0.0, 1.0);
+    outUV       = inVertex;
 }
 

@@ -38,7 +38,7 @@ impl Pipeline {
             unsafe { device.raw.create_pipeline_layout(&create_info, None) }?
         };
 
-        let modules = shader_modules(&shader_info.name, device)?;
+        let (modules, topology) = shader_modules(&shader_info.name, device)?;
 
         let raw = {
             let entry_point = std::ffi::CString::new("main")?;
@@ -72,7 +72,7 @@ impl Pipeline {
                 .vertex_attribute_descriptions(&attribute_descriptions);
 
             let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::builder()
-                .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
+                .topology(topology);
 
             let viewports = [
                 vk::Viewport::builder()
@@ -104,10 +104,13 @@ impl Pipeline {
             let rasterization_state = vk::PipelineRasterizationStateCreateInfo::builder()
                 .line_width(1.0)
                 .front_face(vk::FrontFace::CLOCKWISE)
+                .polygon_mode(shader_info.polygon_mode)
                 .cull_mode(shader_info.cull_mode);
 
             let multisample_state = vk::PipelineMultisampleStateCreateInfo::builder()
-                .rasterization_samples(vk::SampleCountFlags::TYPE_8);
+                .rasterization_samples(vk::SampleCountFlags::TYPE_8)
+                .sample_shading_enable(true)
+                .min_sample_shading(0.2);
 
             let color_blend_attachments = [
                 vk::PipelineColorBlendAttachmentState::builder()
@@ -139,21 +142,27 @@ impl Pipeline {
                 .max_depth_bounds(1.0)
                 .stencil_test_enable(false);
 
-            let pipeline_infos = [
-                vk::GraphicsPipelineCreateInfo::builder()
-                    .stages(&stages)
-                    .vertex_input_state(&vertex_input_state)
-                    .input_assembly_state(&input_assembly_state)
-                    .viewport_state(&viewport_state)
-                    .rasterization_state(&rasterization_state)
-                    .multisample_state(&multisample_state)
-                    .color_blend_state(&color_blend_state)
-                    .depth_stencil_state(&depth_stencil_state)
-                    .layout(layout)
-                    .render_pass(render_pass.raw)
-                    .subpass(0)
-                    .build()
-            ];
+            let mut pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+                .stages(&stages)
+                .vertex_input_state(&vertex_input_state)
+                .input_assembly_state(&input_assembly_state)
+                .viewport_state(&viewport_state)
+                .rasterization_state(&rasterization_state)
+                .multisample_state(&multisample_state)
+                .color_blend_state(&color_blend_state)
+                .depth_stencil_state(&depth_stencil_state)
+                .layout(layout)
+                .render_pass(render_pass.raw)
+                .subpass(0);
+
+            let tessellation_state = vk::PipelineTessellationStateCreateInfo::builder()
+                .patch_control_points(4);
+
+            if topology == vk::PrimitiveTopology::PATCH_LIST {
+                pipeline_info = pipeline_info.tessellation_state(&tessellation_state);
+            }
+
+            let pipeline_infos = [pipeline_info.build()];
 
             unsafe {
                 device.raw.create_graphics_pipelines(
@@ -202,7 +211,7 @@ pub fn shader_input_types(
     let (mut found_in, mut found_nl) = (false, false);
 
     for (i, line) in code.lines().enumerate() {
-        if found_in && line == "" {
+        if found_in && line.is_empty() {
             if found_nl {
                 break;
             }
@@ -213,7 +222,7 @@ pub fn shader_input_types(
         if let Some(left) = line.find(in_) {
             let var = line[left + in_len..].trim_start();
 
-            if let Some(right) = var.find(" ") {
+            if let Some(right) = var.find(' ') {
                 let kind = str_to_type(&var[..right]);
                 found_in = true;
 
@@ -242,9 +251,15 @@ pub fn shader_input_types(
     Ok((vertex_info, instance_info))
 }
 
-fn str_to_stage(string: &str) -> vk::ShaderStageFlags {
+fn str_to_stage(string: &str, topology: &mut vk::PrimitiveTopology) -> vk::ShaderStageFlags {
     match string {
         "vert" => vk::ShaderStageFlags::VERTEX,
+        "tesc" => {
+            *topology = vk::PrimitiveTopology::PATCH_LIST;
+
+            vk::ShaderStageFlags::TESSELLATION_CONTROL
+        },
+        "tese" => vk::ShaderStageFlags::TESSELLATION_EVALUATION,
         "frag" => vk::ShaderStageFlags::FRAGMENT,
         _      => { panic!("Unknown shader stage '{string}'"); }
     }
@@ -253,8 +268,9 @@ fn str_to_stage(string: &str) -> vk::ShaderStageFlags {
 fn shader_modules(
     name:   &String,
     device: &Device
-) -> Result<Vec<(vk::ShaderModule, vk::ShaderStageFlags)>> {
-    let mut modules = vec![];
+) -> Result<(Vec<(vk::ShaderModule, vk::ShaderStageFlags)>, vk::PrimitiveTopology)> {
+    let mut modules  = vec![];
+    let mut topology = vk::PrimitiveTopology::TRIANGLE_LIST;
 
     let directory = std::fs::read_dir(format!("assets/shaders/{name}"))?;
 
@@ -268,12 +284,12 @@ fn shader_modules(
 
             stage_str = &stage_str[
                 stage_str
-                    .rfind(".")
+                    .rfind('.')
                     .context("Failed to parse shader filename")? + 1
                 ..
             ];
 
-            let stage = str_to_stage(stage_str);
+            let stage = str_to_stage(stage_str, &mut topology);
 
             let module = {
                 let code = read_spirv(format!("{name}.{stage_str}.spv"))?;
@@ -288,6 +304,6 @@ fn shader_modules(
         }
     }
 
-    Ok(modules)
+    Ok((modules, topology))
 }
 

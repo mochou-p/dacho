@@ -133,7 +133,7 @@ impl Buffer {
 struct SomeBuffer;
 
 impl SomeBuffer {
-    pub fn new(
+    pub fn new_buffer(
         instance:        &Instance,
         physical_device: &PhysicalDevice,
         device:          &Device,
@@ -201,19 +201,19 @@ impl SomeBuffer {
 pub struct VertexBuffer;
 
 impl VertexBuffer {
-    pub fn new(
+    pub fn new_buffer(
         instance:        &Instance,
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        vertices:        &Vec<f32>,
+        vertices:        &[f32],
     ) -> Result<Buffer> {
         let vertex_buffer = {
             let data        = vertices.as_ptr() as *mut std::ffi::c_void;
-            let buffer_size = (std::mem::size_of::<f32>() * vertices.len()) as u64;
+            let buffer_size = std::mem::size_of_val(vertices) as u64;
             let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
-            SomeBuffer::new(
+            SomeBuffer::new_buffer(
                 instance,
                 physical_device,
                 device,
@@ -231,19 +231,19 @@ impl VertexBuffer {
 pub struct IndexBuffer;
 
 impl IndexBuffer {
-    pub fn new(
+    pub fn new_buffer(
         instance:        &Instance,
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        indices:         &Vec<u16>
+        indices:         &[u16]
     ) -> Result<Buffer> {
         let index_buffer = {
             let data        = indices.as_ptr() as *mut std::ffi::c_void;
-            let buffer_size = (std::mem::size_of::<u16>() * indices.len()) as u64;
+            let buffer_size = std::mem::size_of_val(indices) as u64;
             let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 
-            SomeBuffer::new(
+            SomeBuffer::new_buffer(
                 instance,
                 physical_device,
                 device,

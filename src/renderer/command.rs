@@ -68,7 +68,7 @@ impl CommandBuffers {
     pub fn record(
         &self,
         device:   &Device,
-        commands: &Vec<Command>
+        commands: &[Command]
     ) -> Result<()> {
         for (i, &command_buffer) in self.raw.iter().enumerate() {
             {
@@ -121,7 +121,7 @@ impl CommandBuffers {
                         }
                     },
                     Command::BindPipeline(pipeline) => {
-                        last_pipeline = Some(&pipeline);
+                        last_pipeline = Some(pipeline);
 
                         unsafe {
                             device.raw.cmd_bind_pipeline(

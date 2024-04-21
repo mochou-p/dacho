@@ -34,10 +34,14 @@ impl Device {
         let raw = {
             let queue_priorities = [1.0];
 
-            let extension_names = [
-                khr::Swapchain::name()
-                    .as_ptr()
-            ];
+            let extension_names = [khr::Swapchain::name().as_ptr()];
+
+            let features = vk::PhysicalDeviceFeatures {
+                tessellation_shader: 1,
+                fill_mode_non_solid: 1,
+                sample_rate_shading: 1,
+                ..Default::default()
+            };
 
             let queue_create_infos = [
                 vk::DeviceQueueCreateInfo::builder()
@@ -48,7 +52,8 @@ impl Device {
 
             let create_info = vk::DeviceCreateInfo::builder()
                 .queue_create_infos(&queue_create_infos)
-                .enabled_extension_names(&extension_names);
+                .enabled_extension_names(&extension_names)
+                .enabled_features(&features);
 
             unsafe { instance.raw.create_device(physical_device.raw, &create_info, None) }?
         };

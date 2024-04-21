@@ -12,7 +12,7 @@ use winit::event_loop::EventLoop;
 use super::debug::messenger_create_info;
 
 #[cfg(debug_assertions)]
-const VALIDATION_LAYERS: [&'static str; 1] = [
+const VALIDATION_LAYERS: [&str; 1] = [
     "VK_LAYER_KHRONOS_validation"
 ];
 

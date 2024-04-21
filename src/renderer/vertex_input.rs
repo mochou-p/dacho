@@ -13,6 +13,7 @@ pub enum Type {
 pub struct ShaderInfo {
     pub name:          String,
     pub cull_mode:     vk::CullModeFlags,
+    pub polygon_mode:  vk::PolygonMode,
     pub vertex_info:   Vec<Type>,
     pub instance_info: Vec<Type>,
     pub instance_size: usize
@@ -30,7 +31,7 @@ impl TypeInfo {
 }
 
 const TYPE_INFOS: [TypeInfo; 4] = [
-    TypeInfo::new(vk::Format::R32_SFLOAT,          1 * std::mem::size_of::<f32>() as u32),
+    TypeInfo::new(vk::Format::R32_SFLOAT,              std::mem::size_of::<f32>() as u32),
     TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * std::mem::size_of::<f32>() as u32),
     TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * std::mem::size_of::<f32>() as u32),
     TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * std::mem::size_of::<f32>() as u32)
@@ -46,7 +47,7 @@ pub fn str_to_type(string: &str) -> Type {
     }
 }
 
-pub fn size_of_types(info: &Vec<Type>) -> usize {
+pub fn size_of_types(info: &[Type]) -> usize {
     let mut size = 0_usize;
 
     for kind in info.iter() {
@@ -57,7 +58,7 @@ pub fn size_of_types(info: &Vec<Type>) -> usize {
 }
 
 pub fn vertex_descriptions(
-    info: &Vec<Type>
+    info: &[Type]
 ) -> (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, u32) {
     let  mut attribute_descriptions = vec![];
     let (mut location, mut offset)  = (0_u32, 0_u32);
@@ -88,7 +89,7 @@ pub fn vertex_descriptions(
 }
 
 pub fn instance_descriptions(
-    info:                 &Vec<Type>,
+    info:                 &[Type],
     vertex_last_location:  u32
 ) -> (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>) {
     let  mut attribute_descriptions = vec![];
