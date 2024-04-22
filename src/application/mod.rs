@@ -38,8 +38,7 @@ pub struct Application {
 
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::info("Creating Application");
             Logger::indent(1);
 

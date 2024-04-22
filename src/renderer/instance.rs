@@ -28,8 +28,7 @@ impl Instance {
         event_loop: &EventLoop<()>,
         entry:      &ash::Entry
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::info("Creating Instance");
             Logger::indent(1);
         }
@@ -42,8 +41,7 @@ impl Instance {
                 event_loop.raw_display_handle()
             )?;
 
-            #[cfg(debug_assertions)]
-            {
+            #[cfg(debug_assertions)] {
                 Logger::info("Enabling Validation Layers");
 
                 let mut extension_names = required_extensions.to_vec();
@@ -78,8 +76,7 @@ impl Instance {
                 unsafe { entry.create_instance(&create_info, None) }?
             }
 
-            #[cfg(not(debug_assertions))]
-            {
+            #[cfg(not(debug_assertions))] {
                 let create_info = vk::InstanceCreateInfo::builder()
                     .application_info(&application_info)
                     .enabled_extension_names(required_extensions);
