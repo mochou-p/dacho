@@ -1,8 +1,10 @@
 // dacho/src/application/mod.rs
 
-mod camera;
-mod scene;
-mod window;
+    mod camera;
+#[cfg(debug_assertions)]
+pub mod logger;
+    mod scene;
+    mod window;
 
 use anyhow::Result;
 
@@ -13,6 +15,9 @@ use winit::{
     event_loop::{EventLoop, EventLoopWindowTarget},
     keyboard::{KeyCode::*, PhysicalKey::Code}
 };
+
+#[cfg(debug_assertions)]
+use logger::Logger;
 
 use {
     camera::Camera,
@@ -32,13 +37,22 @@ pub struct Application {
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
         #[cfg(debug_assertions)]
-        compile_shaders()?;
+        {
+            println!();
+            Logger::info("Creating Application");
+            Logger::indent(1);
+
+            compile_shaders()?;
+        }
 
         let window     = Window::new("dacho", 1600, 900, event_loop)?;
         let scene      = Scene::demo()?;
         let renderer   = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
         let camera     = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
         let start_time = std::time::Instant::now();
+
+        #[cfg(debug_assertions)]
+        Logger::indent(-1);
 
         Ok(Self { window, renderer, camera, start_time })
     }
@@ -72,6 +86,8 @@ impl Application {
 
 #[cfg(debug_assertions)]
 pub fn compile_shaders() -> Result<()> {
+    Logger::info("Running shader compilation script");
+
     let mut filepath = std::env::current_dir()?;
     filepath.push("compile_shaders.py");
 

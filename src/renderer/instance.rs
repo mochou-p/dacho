@@ -9,7 +9,10 @@ use raw_window_handle::HasRawDisplayHandle;
 use winit::event_loop::EventLoop;
 
 #[cfg(debug_assertions)]
-use super::debug::messenger_create_info;
+use {
+    super::debug::messenger_create_info,
+    crate::application::logger::Logger
+};
 
 #[cfg(debug_assertions)]
 const VALIDATION_LAYERS: [&str; 1] = [
@@ -25,6 +28,12 @@ impl Instance {
         event_loop: &EventLoop<()>,
         entry:      &ash::Entry
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        {
+            Logger::info("Creating Instance");
+            Logger::indent(1);
+        }
+
         let raw = {
             let application_info = vk::ApplicationInfo::builder()
                 .api_version(vk::API_VERSION_1_3);
@@ -35,6 +44,8 @@ impl Instance {
 
             #[cfg(debug_assertions)]
             {
+                Logger::info("Enabling Validation Layers");
+
                 let mut extension_names = required_extensions.to_vec();
 
                 let debug     = std::ffi::CString::new("VK_EXT_debug_utils")?;
@@ -54,18 +65,15 @@ impl Instance {
                     .map(|layer| layer.as_ptr())
                     .collect();
 
-                let create_info = vk::InstanceCreateInfo {
-                    s_type:  vk::StructureType::INSTANCE_CREATE_INFO,
-                    p_next: &debug_utils_create_info
-                        as *const vk::DebugUtilsMessengerCreateInfoEXT
-                        as *const std::ffi::c_void,
-                    flags:                       vk::InstanceCreateFlags::empty(),
-                    p_application_info:         &application_info.build(),
-                    pp_enabled_layer_names:      layer_names.as_ptr(),
-                    enabled_layer_count:         layer_names.len() as u32,
-                    pp_enabled_extension_names:  extension_names.as_ptr(),
-                    enabled_extension_count:     extension_names.len() as u32
-                };
+                let mut create_info = vk::InstanceCreateInfo::builder()
+                    .application_info(&application_info)
+                    .enabled_layer_names(&layer_names)
+                    .enabled_extension_names(&extension_names)
+                    .build();
+
+                create_info.p_next = &debug_utils_create_info
+                    as *const vk::DebugUtilsMessengerCreateInfoEXT
+                    as *const std::ffi::c_void;
 
                 unsafe { entry.create_instance(&create_info, None) }?
             }
@@ -80,10 +88,16 @@ impl Instance {
             }
         };
 
+        #[cfg(debug_assertions)]
+        Logger::indent(-1);
+
         Ok(Self { raw })
     }
 
     pub fn destroy(&self) {
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying Instance");
+
         unsafe { self.raw.destroy_instance(None); }
     }
 }

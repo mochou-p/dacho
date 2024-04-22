@@ -6,12 +6,18 @@ use ash::vk;
 
 use super::device::Device;
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct RenderPass {
     pub raw: vk::RenderPass
 }
 
 impl RenderPass {
     pub fn new(device: &Device) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating RenderPass");
+
         let raw = {
             let attachments = [
                 vk::AttachmentDescription::builder()
@@ -107,6 +113,9 @@ impl RenderPass {
     }
 
     pub fn destroy(&self, device: &Device) {
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying RenderPass");
+
         unsafe { device.raw.destroy_render_pass(self.raw, None); }
     }
 }

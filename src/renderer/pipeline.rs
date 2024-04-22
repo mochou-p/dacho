@@ -14,7 +14,11 @@ use super::{
     vertex_input::{ShaderInfo, Type, instance_descriptions, str_to_type, vertex_descriptions}
 };
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct Pipeline {
+    pub name:   String,
     pub layout: vk::PipelineLayout,
     pub raw:    vk::Pipeline
 }
@@ -27,6 +31,14 @@ impl Pipeline {
         render_pass:           &RenderPass,
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        {
+            Logger::info(format!("Creating Pipeline `{}`", shader_info.name));
+            Logger::indent(1);
+        }
+
+        let name = shader_info.name.clone();
+
         let layout = {
             let set_layouts = [descriptor_set_layout.raw];
 
@@ -178,7 +190,10 @@ impl Pipeline {
             unsafe { device.raw.destroy_shader_module(*module, None); }
         }
 
-        Ok(Self { layout, raw })
+        #[cfg(debug_assertions)]
+        Logger::indent(-1);
+
+        Ok(Self { name, layout, raw })
     }
 
     pub fn destroy(&self, device: &Device) {
@@ -190,6 +205,9 @@ impl Pipeline {
 }
 
 fn read_spirv(filename: String) -> Result<Vec<u32>> {
+    #[cfg(debug_assertions)]
+    Logger::info(format!("Reading `{filename}` SPIR-V bytecode"));
+
     let bytes = &std::fs::read(format!("assets/shaders/bin/{filename}"))?;
     let words = bytemuck::cast_slice::<u8, u32>(bytes);
 
@@ -199,6 +217,9 @@ fn read_spirv(filename: String) -> Result<Vec<u32>> {
 pub fn shader_input_types(
     filename: &String
 ) -> Result<(Vec<Type>, Vec<Type>)> {
+    #[cfg(debug_assertions)]
+    Logger::info(format!("Parsing `{filename}` for input types"));
+
     let bytes = &std::fs::read(format!("assets/shaders/{filename}/{filename}.vert"))?;
     let code  = std::str::from_utf8(bytes)?;
 
@@ -269,6 +290,9 @@ fn shader_modules(
     name:   &String,
     device: &Device
 ) -> Result<(Vec<(vk::ShaderModule, vk::ShaderStageFlags)>, vk::PrimitiveTopology)> {
+    #[cfg(debug_assertions)]
+    Logger::info(format!("Scanning `{name}` for shader stages"));
+
     let mut modules  = vec![];
     let mut topology = vk::PrimitiveTopology::TRIANGLE_LIST;
 
