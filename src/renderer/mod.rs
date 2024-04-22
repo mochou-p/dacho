@@ -26,7 +26,10 @@ use winit::{
 };
 
 #[cfg(debug_assertions)]
-use debug::Debug;
+use {
+    debug::Debug,
+    crate::application::logger::Logger
+};
 
 use {
     buffer::Buffer,
@@ -40,9 +43,6 @@ use {
     surface::Surface,
     swapchain::Swapchain,
 };
-
-#[cfg(debug_assertions)]
-use crate::application::logger::Logger;
 
 pub struct Renderer {
     _entry:                 ash::Entry,
@@ -71,16 +71,14 @@ impl Renderer {
         height:      u32,
         scene:      &[GeometryData]
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::info("Creating Renderer");
             Logger::indent(1);
         }
 
-
         #[cfg(debug_assertions)]
         Logger::info("Creating Entry");
-        let entry           = unsafe { ash::Entry::load() }?;
+        let entry = unsafe { ash::Entry::load() }?;
 
         let instance        = Instance::new(event_loop, &entry)?;
         #[cfg(debug_assertions)]
@@ -107,17 +105,15 @@ impl Renderer {
         let mut geometries        = vec![];
 
         #[cfg(debug_assertions)]
-        let mut bytes             = 0;
+        let mut bytes = 0;
 
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::info("Processing GeometryData");
             Logger::indent(1);
         }
 
         for geometry_data in scene.iter() {
-            #[cfg(debug_assertions)]
-            {
+            #[cfg(debug_assertions)] {
                 bytes += std::mem::size_of_val(&geometry_data.vertices);
                 bytes += std::mem::size_of_val(&geometry_data.instances);
             }
@@ -149,8 +145,7 @@ impl Renderer {
             geometries.push(geometry);
         }
 
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::indent(-1);
             Logger::info(format!("Prepared {bytes}B of vertex input data"));
         }
@@ -323,8 +318,7 @@ impl Renderer {
 
 impl Drop for Renderer {
     fn drop(&mut self) {
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::indent(-1);
             println!("\n");
             Logger::info("Destroying Renderer");
@@ -365,8 +359,7 @@ impl Drop for Renderer {
         self.debug    .destroy();
         self.instance .destroy();
 
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::indent(-1);
             println!();
         }

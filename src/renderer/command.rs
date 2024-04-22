@@ -82,8 +82,7 @@ impl CommandBuffers {
         device:   &Device,
         commands: &[Command]
     ) -> Result<()> {
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::info(format!("Recording commands ({} command buffers)", self.raw.len()));
             Logger::indent(1);
         }
@@ -98,8 +97,7 @@ impl CommandBuffers {
         let mut just_drew = false;
 
         for (i, &command_buffer) in self.raw.iter().enumerate() {
-            #[cfg(debug_assertions)]
-            {
+            #[cfg(debug_assertions)] {
                 first_command_buffer = i == 0;
             }
 
@@ -280,8 +278,7 @@ impl CommandBuffers {
             }
         }
 
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::indent(-1);
             Logger::info(format!("Recorded {draw_calls} draw calls and {binds} binds (per command buffer)"));
         }

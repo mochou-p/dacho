@@ -31,8 +31,7 @@ impl Pipeline {
         render_pass:           &RenderPass,
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             Logger::info(format!("Creating Pipeline `{}`", shader_info.name));
             Logger::indent(1);
         }

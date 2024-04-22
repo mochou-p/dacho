@@ -15,7 +15,6 @@ struct CameraRotation {
 }
 
 impl CameraRotation {
-    #[inline]
     fn to_direction(&self) -> glam::Vec3 {
         glam::Vec3::new(
             self.angle.y.sin() * self.angle.x.cos(),

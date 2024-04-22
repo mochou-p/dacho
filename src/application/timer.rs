@@ -27,8 +27,7 @@ impl Timer {
 
         let start_time = std::time::Instant::now();
 
-        #[cfg(debug_assertions)]
-        {
+        #[cfg(debug_assertions)] {
             let last_time   = start_time;
             let last_fps    = 0;
             let frames      = 1;
