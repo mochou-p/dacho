@@ -1,5 +1,7 @@
 // dacho/src/application/logger.rs
 
+use std::io::Write;
+
 struct Color;
 
 static mut INDENTATION: isize = 0;
@@ -20,6 +22,20 @@ impl Logger {
             Color::RESET,
             message
         );
+    }
+
+    pub fn info_r<T: Into<String> + std::fmt::Display>(message: T) {
+        print!(
+            "{}{}Info{} {}\r",
+            " ".repeat((unsafe { INDENTATION } * 5) as usize),
+            Color::BLUE,
+            Color::RESET,
+            message
+        );
+
+        std::io::stdout()
+            .flush()
+            .expect("Failed to flush stdout");
     }
 
     pub fn indent(delta: i8) {
