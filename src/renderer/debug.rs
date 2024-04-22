@@ -13,6 +13,8 @@ use vk::DebugUtilsMessengerCallbackDataEXT as CallbackData;
 
 use super::instance::Instance;
 
+use crate::application::logger::Logger;
+
 pub struct Debug {
     loader:    ext::DebugUtils,
     messenger: vk::DebugUtilsMessengerEXT
@@ -23,6 +25,8 @@ impl Debug {
         entry:    &ash::Entry,
         instance: &Instance
     ) -> Result<Self> {
+        Logger::info("Creating Debug messenger for Validation Layers");
+
         let loader = ext::DebugUtils::new(entry, &instance.raw);
 
         let messenger = {
@@ -35,6 +39,8 @@ impl Debug {
     }
 
     pub fn destroy(&self) {
+        Logger::info("Destroying Debug messenger");
+
         unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None); }
     }
 }

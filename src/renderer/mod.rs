@@ -1,9 +1,9 @@
 // dacho/src/renderer/mod.rs 
 
-#[cfg(debug_assertions)]
-    mod debug;
     mod buffer;
     mod command;
+#[cfg(debug_assertions)]
+    mod debug;
     mod descriptor;
     mod device;
 pub mod geometry;
@@ -41,6 +41,9 @@ use {
     swapchain::Swapchain,
 };
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct Renderer {
     _entry:                 ash::Entry,
     instance:               Instance,
@@ -68,7 +71,17 @@ impl Renderer {
         height:      u32,
         scene:      &[GeometryData]
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        {
+            Logger::info("Creating Renderer");
+            Logger::indent(1);
+        }
+
+
+        #[cfg(debug_assertions)]
+        Logger::info("Creating Entry");
         let entry           = unsafe { ash::Entry::load() }?;
+
         let instance        = Instance::new(event_loop, &entry)?;
         #[cfg(debug_assertions)]
         let debug           = Debug::new(&entry, &instance)?;
@@ -93,7 +106,22 @@ impl Renderer {
         let mut pipelines         = HashMap::new();
         let mut geometries        = vec![];
 
+        #[cfg(debug_assertions)]
+        let mut bytes             = 0;
+
+        #[cfg(debug_assertions)]
+        {
+            Logger::info("Processing GeometryData");
+            Logger::indent(1);
+        }
+
         for geometry_data in scene.iter() {
+            #[cfg(debug_assertions)]
+            {
+                bytes += std::mem::size_of_val(&geometry_data.vertices);
+                bytes += std::mem::size_of_val(&geometry_data.instances);
+            }
+
             let geometry = Geometry::new(
                 &instance,
                 &physical_device,
@@ -121,6 +149,12 @@ impl Renderer {
             geometries.push(geometry);
         }
 
+        #[cfg(debug_assertions)]
+        {
+            Logger::indent(-1);
+            Logger::info(format!("Prepared {bytes}B of vertex input data"));
+        }
+
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
         let descriptor_pool   = DescriptorPool::new(&device)?;
         let descriptor_set    = DescriptorSet::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
@@ -133,12 +167,17 @@ impl Renderer {
         let mut last_pipeline = String::from("");
         let mut first_iter    = true;
 
+        #[cfg(debug_assertions)]
+        Logger::info("Sorting Geometry");
         geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
         for geometry in geometries.iter() {
             if geometry.shader != last_pipeline {
                 commands.push(
-                    Command::BindPipeline(pipelines.get(&geometry.shader).context("Pipeline not in hash map")?)
+                    Command::BindPipeline(
+                        pipelines.get(&geometry.shader)
+                            .context("Pipeline not in hash map")?
+                    )
                 );
 
                 last_pipeline = geometry.shader.clone();
@@ -154,6 +193,9 @@ impl Renderer {
         }
 
         command_buffers.record(&device, &commands)?;
+
+        #[cfg(debug_assertions)]
+        Logger::indent(-1);
 
         Ok(
             Renderer {
@@ -281,9 +323,19 @@ impl Renderer {
 
 impl Drop for Renderer {
     fn drop(&mut self) {
+        #[cfg(debug_assertions)]
+        {
+            println!();
+            Logger::info("Destroying Renderer");
+            Logger::indent(1);
+        }
+
         self.device.wait();
 
         self.command_pool.destroy(&self.device);
+
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying Pipelines");
 
         for (_, pipeline) in self.pipelines.iter() {
             pipeline.destroy(&self.device);
@@ -291,9 +343,16 @@ impl Drop for Renderer {
 
         self.render_pass           .destroy(&self.device);
         self.swapchain             .destroy(&self.device);
+
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying UniformBuffer");
         self.ubo                   .destroy(&self.device);
+
         self.descriptor_pool       .destroy(&self.device);
         self.descriptor_set_layout .destroy(&self.device);
+
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying VertexBuffers and IndexBuffers");
 
         for geometry in self.geometries.iter() {
             geometry.destroy(&self.device);
@@ -304,6 +363,12 @@ impl Drop for Renderer {
         #[cfg(debug_assertions)]
         self.debug    .destroy();
         self.instance .destroy();
+
+        #[cfg(debug_assertions)]
+        {
+            Logger::indent(-1);
+            println!();
+        }
     }
 }
 

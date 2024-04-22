@@ -6,12 +6,18 @@ use ash::{extensions::khr, vk};
 
 use super::instance::Instance;
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct PhysicalDevice {
     pub raw: vk::PhysicalDevice
 }
 
 impl PhysicalDevice {
     pub fn new(instance: &Instance) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Choosing PhysicalDevice");
+
         let raw = unsafe { instance.raw.enumerate_physical_devices() }?
             .into_iter()
             .next()
@@ -31,6 +37,9 @@ impl Device {
         instance:        &Instance,
         physical_device: &PhysicalDevice
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating Device");
+
         let raw = {
             let queue_priorities = [1.0];
 
@@ -69,6 +78,9 @@ impl Device {
     }
 
     pub fn destroy(&self) {
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying Device");
+
         unsafe { self.raw.destroy_device(None); }
     }
 }

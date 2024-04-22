@@ -10,6 +10,9 @@ use super::{
     instance::Instance
 };
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct Buffer {
     pub raw:    vk::Buffer,
     pub memory: vk::DeviceMemory
@@ -208,6 +211,9 @@ impl VertexBuffer {
         command_pool:    &CommandPool,
         vertices:        &[f32],
     ) -> Result<Buffer> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating VertexBuffer");
+
         let vertex_buffer = {
             let data        = vertices.as_ptr() as *mut std::ffi::c_void;
             let buffer_size = std::mem::size_of_val(vertices) as u64;
@@ -238,6 +244,9 @@ impl IndexBuffer {
         command_pool:    &CommandPool,
         indices:         &[u16]
     ) -> Result<Buffer> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating IndexBuffer");
+
         let index_buffer = {
             let data        = indices.as_ptr() as *mut std::ffi::c_void;
             let buffer_size = std::mem::size_of_val(indices) as u64;

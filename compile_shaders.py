@@ -10,11 +10,11 @@ SHADER_COMPILER =  "glslc"
 SHADER_ROOT     =  "assets/shaders"
 SHADER_BIN_DIR  =  "bin"
 SHADER_CACHE    = f"{SHADER_ROOT}/{SHADER_BIN_DIR}"
-
+WS              =  " " * 10
 
 class Color:
     red   = "\033[31;1m"
-    green = "\033[32;1m"
+    cyan  = "\033[36;1m"
     reset = "\033[0m"
 
 
@@ -34,9 +34,9 @@ def compile_shader(shader):
         status = "Recompiled" if exists(spir_v) else "Compiled"
 
         if system(f"{SHADER_COMPILER} {module_path} -o {spir_v}"):
-            print(f"      {Color.red}Failed{Color.reset} to compile `{module}`")
+            print(f"{WS}{Color.red}Error{Color.reset} Failed to compile `{module}`")
         else:
-            print(f"      {Color.green}{status}{Color.reset} `{module}`")
+            print(f"{WS}{Color.cyan}Info{Color.reset} {status} `{module}`")
 
 
 def main():
@@ -51,10 +51,10 @@ def main():
 
 if __name__ == "__main__":
     if which(SHADER_COMPILER) is None:
-        exit(f"      {Color.red}Failed{Color.reset} to run `{__file__.split('/')[-1]}` ({SHADER_COMPILER} is missing)")
+        exit(f"{WS}{Color.red}Error{Color.reset} Failed to run `{__file__.split('/')[-1]}` ({SHADER_COMPILER} is missing)")
 
     try:
         main()
     except Exception as exception:
-        print(f"      {Color.red}Failed{Color.reset} to complete `{__file__.split('/')[-1]}` ({exception})")
+        print(f"{WS}{Color.red}Error{Color.reset} Failed to complete `{__file__.split('/')[-1]}` ({exception})")
 

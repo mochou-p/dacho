@@ -19,8 +19,8 @@ pub struct GeometryData {
     pub shader:       String,
     pub cull_mode:    vk::CullModeFlags,
     pub polygon_mode: vk::PolygonMode,
-        vertices:     Vec<f32>,
-        instances:    Vec<f32>,
+    pub vertices:     Vec<f32>,
+    pub instances:    Vec<f32>,
         indices:      Vec<u16>
 }
 

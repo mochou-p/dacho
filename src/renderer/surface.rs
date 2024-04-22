@@ -10,6 +10,9 @@ use winit::window::Window;
 
 use super::instance::Instance;
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct Surface {
     pub loader: khr::Surface,
     pub raw:    vk::SurfaceKHR
@@ -21,6 +24,9 @@ impl Surface {
         instance: &Instance,
         window:   &Window
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating Surface");
+
         let loader = khr::Surface::new(entry, &instance.raw);
 
         let raw = unsafe {
@@ -37,6 +43,9 @@ impl Surface {
     }
 
     pub fn destroy(&self) {
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying Surface");
+
         unsafe { self.loader.destroy_surface(self.raw, None); }
     }
 }

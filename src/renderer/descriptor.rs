@@ -12,6 +12,9 @@ use super::{
     instance::Instance
 };
 
+#[cfg(debug_assertions)]
+use crate::application::logger::Logger;
+
 pub struct UniformBufferObject {
     _view:       glam::Mat4,
     _projection: glam::Mat4,
@@ -25,6 +28,9 @@ impl UniformBufferObject {
         physical_device: &PhysicalDevice,
         device:          &Device
     ) -> Result<(Buffer, *mut std::ffi::c_void)> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating UniformBuffer");
+
         let buffer_size = std::mem::size_of::<UniformBufferObject>() as u64;
 
         let uniform_buffer = {
@@ -60,15 +66,15 @@ impl UniformBufferObject {
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
         projection.y_axis.y *= -1.0;
 
-        let mut ubo  = UniformBufferObject {
+        let mut ubo = UniformBufferObject {
             _view:       view,
             _projection: projection,
             _camera_pos: position,
             _time:       time
         };
 
-        let     src  = &mut ubo as *mut UniformBufferObject as *mut std::ffi::c_void;
-        let     size = std::mem::size_of::<UniformBufferObject>();
+        let src  = &mut ubo as *mut UniformBufferObject as *mut std::ffi::c_void;
+        let size = std::mem::size_of::<UniformBufferObject>();
 
         unsafe { std::ptr::copy_nonoverlapping(src, ubo_mapped, size); }
     }
@@ -80,6 +86,9 @@ pub struct DescriptorSetLayout {
 
 impl DescriptorSetLayout {
     pub fn new(device: &Device) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating DescriptorSetLayout");
+
         let raw = {
             let ubo_bindings = [
                 vk::DescriptorSetLayoutBinding::builder()
@@ -103,6 +112,9 @@ impl DescriptorSetLayout {
     }
 
     pub fn destroy(&self, device: &Device) {
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying DescriptorSetLayout");
+
         unsafe { device.raw.destroy_descriptor_set_layout(self.raw, None); }
     }
 }
@@ -113,6 +125,9 @@ pub struct DescriptorPool {
 
 impl DescriptorPool {
     pub fn new(device: &Device) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating DescriptorPool");
+
         let raw = {
             let pool_sizes = [
                 vk::DescriptorPoolSize::builder()
@@ -132,6 +147,9 @@ impl DescriptorPool {
     }
 
     pub fn destroy(&self, device: &Device) {
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying DescriptorPool");
+
         unsafe { device.raw.destroy_descriptor_pool(self.raw, None); }
     }
 }
@@ -147,6 +165,9 @@ impl DescriptorSet {
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating DescriptorSet");
+
         let raw = {
             let set_layouts = [descriptor_set_layout.raw];
 
