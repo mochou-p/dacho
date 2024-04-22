@@ -1,8 +1,11 @@
 // dacho/src/application/scene.rs
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 use ash::vk;
+
+#[cfg(debug_assertions)]
+use super::logger::Logger;
 
 use crate::renderer::geometry::GeometryData;
 
@@ -10,14 +13,19 @@ pub struct Scene;
 
 impl Scene {
     pub fn demo() -> Result<Vec<GeometryData>> {
+        #[cfg(debug_assertions)]
+        Logger::info("Loading and generating loading Scene");
+
         let ground_size = 128.0;
 
         let scene = vec![
             Self::demo_skybox()?,
             Self::demo_ground(ground_size)?,
             Self::demo_grass(ground_size)?,
+            Self::demo_helmet()?,
             Self::demo_vignette()?
         ];
+
 
         Ok(scene)
     }
@@ -34,7 +42,7 @@ impl Scene {
             -1.0, -1.0,  1.0
         ];
 
-        let indices: Vec<u16> = vec![
+        let indices: Vec<u32> = vec![
             0, 1, 2, 2, 3, 0,
             7, 6, 5, 5, 4, 7,
             4, 5, 1, 1, 0, 4,
@@ -71,7 +79,7 @@ impl Scene {
             -half,  half
         ];
 
-        let indices: Vec<u16> = vec![
+        let indices: Vec<u32> = vec![
             0, 1, 3, 2
         ];
 
@@ -102,7 +110,7 @@ impl Scene {
             -0.08, 1.8,
         ];
 
-        let indices: Vec<u16> = vec![
+        let indices: Vec<u32> = vec![
             0, 1, 4,
             1, 2, 3,
             1, 3, 4
@@ -143,6 +151,48 @@ impl Scene {
         Ok(geometry_data)
     }
 
+    fn demo_helmet() -> Result<GeometryData> {
+        let (gltf, buffers, _) = gltf::import("assets/models/damaged_helmet.glb")?;
+
+        let mut vertices: Vec<f32> = vec![];
+        let mut indices:  Vec<u32> = vec![];
+
+        for mesh in gltf.meshes() {
+            for primitive in mesh.primitives() {
+                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+
+                vertices = reader
+                    .read_positions()
+                    .context("No gltf positions")?
+                    .flat_map(|vertex| vertex.to_vec())
+                    .collect();
+
+                indices = reader
+                    .read_indices()
+                    .context("No gltf indices")?
+                    .into_u32()
+                    .collect();
+            }
+        }
+
+        let instances: Vec<f32> = vec![3.0];
+
+        let shader       = String::from("test");
+        let cull_mode    = vk::CullModeFlags::FRONT;
+        let polygon_mode = vk::PolygonMode::FILL;
+
+        let geometry_data = GeometryData::new(
+            shader,
+            cull_mode,
+            polygon_mode,
+            vertices,
+            instances,
+            indices
+        )?;
+
+        Ok(geometry_data)
+    }
+
     fn demo_vignette() -> Result<GeometryData> {
         let vertices: Vec<f32> = vec![
             -1.0, -1.0,
@@ -151,7 +201,7 @@ impl Scene {
             -1.0,  1.0
         ];
 
-        let indices: Vec<u16> = vec![
+        let indices: Vec<u32> = vec![
             0, 1, 2, 2, 3, 0
         ];
 

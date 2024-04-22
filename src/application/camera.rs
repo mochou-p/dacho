@@ -7,6 +7,9 @@ use winit::{
     keyboard::{KeyCode::*, PhysicalKey::Code}
 };
 
+#[cfg(debug_assertions)]
+use super::logger::Logger;
+
 struct CameraRotation {
     angle: glam::Vec2
 }
@@ -50,9 +53,10 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(
-        translation: glam::Vec3
-    ) -> Self {
+    pub fn new(translation: glam::Vec3) -> Self {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating Camera");
+
         let rotation = CameraRotation {
             angle: glam::Vec2::new(std::f32::consts::PI * -0.1, std::f32::consts::PI)
         };
