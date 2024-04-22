@@ -325,7 +325,8 @@ impl Drop for Renderer {
     fn drop(&mut self) {
         #[cfg(debug_assertions)]
         {
-            println!();
+            Logger::indent(-1);
+            println!("\n");
             Logger::info("Destroying Renderer");
             Logger::indent(1);
         }

@@ -4,6 +4,7 @@
 #[cfg(debug_assertions)]
 pub mod logger;
     mod scene;
+    mod timer;
     mod window;
 
 use anyhow::Result;
@@ -22,39 +23,42 @@ use logger::Logger;
 use {
     camera::Camera,
     scene::Scene,
+    timer::Timer,
     window::Window
 };
 
 use super::renderer::Renderer;
 
 pub struct Application {
-    window:     Window,
-    renderer:   Renderer,
-    camera:     Camera,
-    start_time: std::time::Instant
+    window:   Window,
+    renderer: Renderer,
+    camera:   Camera,
+    timer:    Timer
 }
 
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
         #[cfg(debug_assertions)]
         {
-            println!();
             Logger::info("Creating Application");
             Logger::indent(1);
 
             compile_shaders()?;
         }
 
-        let window     = Window::new("dacho", 1600, 900, event_loop)?;
-        let scene      = Scene::demo()?;
-        let renderer   = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
-        let camera     = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
-        let start_time = std::time::Instant::now();
+        let window   = Window::new("dacho", 1600, 900, event_loop)?;
+        let scene    = Scene::demo()?;
+        let renderer = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
+        let camera   = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
+        #[cfg(debug_assertions)]
+        let timer    = Timer::new(50);
+        #[cfg(not(debug_assertions))]
+        let timer    = Timer::new();
 
         #[cfg(debug_assertions)]
         Logger::indent(-1);
 
-        Ok(Self { window, renderer, camera, start_time })
+        Ok(Self { window, renderer, camera, timer })
     }
 
     pub fn handle_event<T>(&mut self, event: &Event<T>, elwt: &EventLoopWindowTarget<T>) {
@@ -77,7 +81,10 @@ impl Application {
                 self.window.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                self.renderer.redraw(self.camera.transform(), self.start_time.elapsed().as_secs_f32());
+                self.renderer.redraw(self.camera.transform(), self.timer.elapsed());
+
+                #[cfg(debug_assertions)]
+                self.timer.fps();
             },
             _ => ()
         }
