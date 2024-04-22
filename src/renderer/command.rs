@@ -219,7 +219,7 @@ impl CommandBuffers {
                                 command_buffer,
                                 index_buffer.raw,
                                 0,
-                                vk::IndexType::UINT16
+                                vk::IndexType::UINT32
                             );
                         }
                     },
@@ -283,7 +283,7 @@ impl CommandBuffers {
         #[cfg(debug_assertions)]
         {
             Logger::indent(-1);
-            Logger::info(format!("Recorded {draw_calls} draw calls and {binds} binds per command buffer"));
+            Logger::info(format!("Recorded {draw_calls} draw calls and {binds} binds (per command buffer)"));
         }
 
         Ok(())

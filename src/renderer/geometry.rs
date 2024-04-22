@@ -21,7 +21,7 @@ pub struct GeometryData {
     pub polygon_mode: vk::PolygonMode,
     pub vertices:     Vec<f32>,
     pub instances:    Vec<f32>,
-        indices:      Vec<u16>
+        indices:      Vec<u32>
 }
 
 impl GeometryData {
@@ -31,7 +31,7 @@ impl GeometryData {
         polygon_mode: vk::PolygonMode,
         vertices:     Vec<f32>,
         instances:    Vec<f32>,
-        indices:      Vec<u16>
+        indices:      Vec<u32>
     ) -> Result<Self> {
         Ok(
             Self {

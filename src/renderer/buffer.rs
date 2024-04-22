@@ -242,7 +242,7 @@ impl IndexBuffer {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        indices:         &[u16]
+        indices:         &[u32]
     ) -> Result<Buffer> {
         #[cfg(debug_assertions)]
         Logger::info("Creating IndexBuffer");

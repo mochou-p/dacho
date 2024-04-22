@@ -11,6 +11,9 @@ use winit::{
     }
 };
 
+#[cfg(debug_assertions)]
+use super::logger::Logger;
+
 pub struct Window {
     pub window: winit_Window,
     pub width:  u32,
@@ -24,6 +27,9 @@ impl Window {
         height:      u32,
         event_loop: &EventLoop<()>
     ) -> Result<Self> {
+        #[cfg(debug_assertions)]
+        Logger::info("Creating Window");
+
         let window = WindowBuilder::new()
             .with_title(title)
             .with_inner_size(PhysicalSize::new(width, height))
