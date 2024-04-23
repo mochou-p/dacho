@@ -15,10 +15,7 @@ layout(location = 0) in  vec3   inVertex;
 
 layout(location = 1) in  float  _inInstance;
 
-layout(location = 0) out vec3   outPosition;
-
 void main() { 
     gl_Position = ubo.projection * ubo.view * vec4(inVertex + ubo.camera_pos, 1.0);
-    outPosition = inVertex;
 }
 

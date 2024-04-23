@@ -4,11 +4,11 @@
 
 precision lowp float;
 
-layout(location = 0) in  vec4 inColor;
+layout(location = 0) in  float inHeight;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4  outColor;
 
 void main() {
-    outColor = inColor;
+    outColor = vec4(vec3(0.0, 1.0, 0.0) - vec3(-inHeight), 1.0);
 }
 
