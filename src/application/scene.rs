@@ -22,7 +22,7 @@ impl Scene {
             Self::demo_skybox()?,
             Self::demo_ground(ground_size)?,
             Self::demo_grass(ground_size)?,
-            Self::demo_helmet()?,
+            Self::demo_gltf("damaged_helmet")?,
             Self::demo_vignette()?
         ];
 
@@ -151,8 +151,8 @@ impl Scene {
         Ok(geometry_data)
     }
 
-    fn demo_helmet() -> Result<GeometryData> {
-        let (gltf, buffers, _) = gltf::import("assets/models/damaged_helmet.glb")?;
+    fn demo_gltf(filename: &str) -> Result<GeometryData> {
+        let (gltf, buffers, _) = gltf::import(format!("assets/models/{filename}.glb"))?;
 
         let mut vertices: Vec<f32> = vec![];
         let mut indices:  Vec<u32> = vec![];
@@ -161,11 +161,20 @@ impl Scene {
             for primitive in mesh.primitives() {
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
-                vertices = reader
+                let positions: Vec<[f32; 3]> = reader
                     .read_positions()
                     .context("No gltf positions")?
-                    .flat_map(|vertex| vertex.to_vec())
                     .collect();
+
+                let normals: Vec<[f32; 3]> = reader
+                    .read_normals()
+                    .context("No gltf normals")?
+                    .collect();
+
+                for i in 0..positions.len() {
+                    vertices.extend_from_slice(&positions[i]);
+                    vertices.extend_from_slice(  &normals[i]);
+                }
 
                 indices = reader
                     .read_indices()

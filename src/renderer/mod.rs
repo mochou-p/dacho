@@ -104,20 +104,12 @@ impl Renderer {
         let mut pipelines         = HashMap::new();
         let mut geometries        = vec![];
 
-        #[cfg(debug_assertions)]
-        let mut bytes = 0;
-
         #[cfg(debug_assertions)] {
             Logger::info("Processing GeometryData");
             Logger::indent(1);
         }
 
         for geometry_data in scene.iter() {
-            #[cfg(debug_assertions)] {
-                bytes += std::mem::size_of_val(&geometry_data.vertices);
-                bytes += std::mem::size_of_val(&geometry_data.instances);
-            }
-
             let geometry = Geometry::new(
                 &instance,
                 &physical_device,
@@ -145,10 +137,8 @@ impl Renderer {
             geometries.push(geometry);
         }
 
-        #[cfg(debug_assertions)] {
-            Logger::indent(-1);
-            Logger::info(format!("Prepared {bytes}B of vertex input data"));
-        }
+        #[cfg(debug_assertions)]
+        Logger::indent(-1);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
         let descriptor_pool   = DescriptorPool::new(&device)?;

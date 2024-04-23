@@ -49,10 +49,11 @@ impl Application {
         let scene    = Scene::demo()?;
         let renderer = Renderer::new(event_loop, &window.window, window.width, window.height, &scene)?;
         let camera   = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
-        #[cfg(debug_assertions)]
-        let timer    = Timer::new(50);
-        #[cfg(not(debug_assertions))]
-        let timer    = Timer::new();
+        
+        let timer = Timer::new(
+            #[cfg(debug_assertions)]
+            50
+        );
 
         #[cfg(debug_assertions)]
         Logger::indent(-1);

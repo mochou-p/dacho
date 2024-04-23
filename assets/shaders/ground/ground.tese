@@ -13,7 +13,7 @@ layout(binding = 0) uniform UniformBufferObject {
     float _time;
 } ubo;
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out float outHeight;
 
 vec4 permute(vec4 xyzw) {
     return mod(((xyzw * 34.0) + 1.0) * xyzw, 289.0);
@@ -76,11 +76,10 @@ void main()
     vec4 p10 = gl_in[2].gl_Position;
     vec4 p11 = gl_in[3].gl_Position;
 
-    vec4 p  = mix(mix(p00, p01, u), mix(p10, p11, u), v);
-    float y = noise(p.xz * 0.01);
-    p.y     = y * 20.0;
+    vec4 p    = mix(mix(p00, p01, u), mix(p10, p11, u), v);
+    outHeight = noise(p.xz * 0.01);
+    p.y       = outHeight * 20.0;
 
     gl_Position = ubo.projection * ubo.view * p;
-    outColor    = vec4(vec3(0.0, 1.0, 0.0) - vec3(-y), 1.0);
 }
 
