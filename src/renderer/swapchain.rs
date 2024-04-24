@@ -6,6 +6,7 @@ use ash::{extensions::khr, vk};
 
 use super::{
     device::{Device, PhysicalDevice},
+    image::{Image, ImageView},
     instance::Instance,
     render_pass::RenderPass,
     surface::Surface
@@ -20,13 +21,11 @@ pub struct Swapchain {
     pub extent:             vk::Extent2D,
     pub image_count:        usize,
     pub current_image:      usize,
-        depth_image:        vk::Image,
-        depth_image_view:   vk::ImageView,
-        depth_image_memory: vk::DeviceMemory,
-        color_image:        vk::Image,
-        color_image_view:   vk::ImageView,
-        color_image_memory: vk::DeviceMemory,
-        image_views:        Vec<vk::ImageView>,
+        depth_image:        Image,
+        depth_image_view:   ImageView,
+        color_image:        Image,
+        color_image_view:   ImageView,
+        image_views:        Vec<ImageView>,
     pub framebuffers:       Vec<vk::Framebuffer>,
     pub images_available:   Vec<vk::Semaphore>,
     pub images_finished:    Vec<vk::Semaphore>,
@@ -89,7 +88,7 @@ impl Swapchain {
         let mut image_views = Vec::with_capacity(image_count);
 
         for image in images.iter() {
-            let image_view = Self::create_image_view(
+            let image_view = ImageView::new(
                 device,
                 image,
                 vk::Format::B8G8R8A8_SRGB,
@@ -99,7 +98,7 @@ impl Swapchain {
             image_views.push(image_view);
         }
 
-        let (depth_image, depth_image_memory) = Self::create_image(
+        let depth_image = Image::new(
             device,
             instance,
             physical_device,
@@ -109,14 +108,14 @@ impl Swapchain {
             vk::MemoryPropertyFlags::DEVICE_LOCAL
         )?;
 
-        let depth_image_view = Self::create_image_view(
+        let depth_image_view = ImageView::new(
             device,
-            &depth_image,
+            &depth_image.raw,
             vk::Format::D32_SFLOAT_S8_UINT,
             vk::ImageAspectFlags::DEPTH
         )?;
 
-        let (color_image, color_image_memory) = Self::create_image(
+        let color_image = Image::new(
             device,
             instance,
             physical_device,
@@ -126,9 +125,9 @@ impl Swapchain {
             vk::MemoryPropertyFlags::DEVICE_LOCAL
         )?;
 
-        let color_image_view = Self::create_image_view(
+        let color_image_view = ImageView::new(
             device,
-            &color_image,
+            &color_image.raw,
             vk::Format::B8G8R8A8_SRGB,
             vk::ImageAspectFlags::COLOR
         )?;
@@ -136,7 +135,7 @@ impl Swapchain {
         let mut framebuffers = Vec::with_capacity(image_count);
 
         for image_view in image_views.iter() {
-            let attachments = [color_image_view, depth_image_view, *image_view];
+            let attachments = [color_image_view.raw, depth_image_view.raw, image_view.raw];
 
             let create_info = vk::FramebufferCreateInfo::builder()
                 .render_pass(render_pass.raw)
@@ -186,10 +185,8 @@ impl Swapchain {
                 image_count,
                 current_image,
                 depth_image,
-                depth_image_memory,
                 depth_image_view,
                 color_image,
-                color_image_memory,
                 color_image_view,
                 image_views,
                 framebuffers,
@@ -198,98 +195,6 @@ impl Swapchain {
                 may_begin_drawing
             }
         )
-    }
-
-    fn create_image(
-        device:          &Device,
-        instance:        &Instance,
-        physical_device: &PhysicalDevice,
-        extent_2d:       &vk::Extent2D,
-        format:           vk::Format,
-        usage:            vk::ImageUsageFlags,
-        properties:       vk::MemoryPropertyFlags
-    ) -> Result<(vk::Image, vk::DeviceMemory)> {
-        let extent = vk::Extent3D::builder()
-            .width(extent_2d.width)
-            .height(extent_2d.height)
-            .depth(1)
-            .build();
-
-        let create_info = vk::ImageCreateInfo::builder()
-            .extent(extent)
-            .format(format)
-            .usage(usage)
-            .image_type(vk::ImageType::TYPE_2D)
-            .mip_levels(1)
-            .array_layers(1)
-            .tiling(vk::ImageTiling::OPTIMAL)
-            .initial_layout(vk::ImageLayout::UNDEFINED)
-            .samples(vk::SampleCountFlags::TYPE_8)
-            .sharing_mode(vk::SharingMode::EXCLUSIVE);
-
-        let _ = vk::ImageCreateInfo::builder();
-
-        let image = unsafe { device.raw.create_image(&create_info, None) }?;
-
-        let memory_requirements = unsafe { device.raw.get_image_memory_requirements(image) };
-        let memory_properties   = unsafe { instance.raw.get_physical_device_memory_properties(physical_device.raw) };
-
-        let memory_type_index = {
-            let mut found  = false;
-            let mut result = 0;
-
-            for i in 0..memory_properties.memory_type_count {
-                let a = (memory_requirements.memory_type_bits & (1 << i)) != 0;
-                let b = (memory_properties.memory_types[i as usize].property_flags & properties) == properties;
-
-                if a && b {
-                    found  = true;
-                    result = i;
-                    break;
-                }
-            }
-
-            if !found {
-                panic!("Failed to find a suitable memory type");
-            }
-
-            result
-        };
-
-        let allocate_info = vk::MemoryAllocateInfo::builder()
-            .allocation_size(memory_requirements.size)
-            .memory_type_index(memory_type_index);
-
-        let image_memory = unsafe { device.raw.allocate_memory(&allocate_info, None) }?;
-
-        unsafe { device.raw.bind_image_memory(image, image_memory, 0) }?;
-
-        Ok((image, image_memory))
-    }
-
-    fn create_image_view(
-        device:      &Device,
-        image:       &vk::Image,
-        format:       vk::Format,
-        aspect_mask:  vk::ImageAspectFlags
-    ) -> Result<vk::ImageView> {
-        let subresource_range = vk::ImageSubresourceRange::builder()
-            .aspect_mask(aspect_mask)
-            .base_mip_level(0)
-            .level_count(1)
-            .base_array_layer(0)
-            .layer_count(1)
-            .build();
-
-        let create_info = vk::ImageViewCreateInfo::builder()
-            .image(*image)
-            .view_type(vk::ImageViewType::TYPE_2D)
-            .format(format)
-            .subresource_range(subresource_range);
-
-        let image_view = unsafe { device.raw.create_image_view(&create_info, None) }?;
-
-        Ok(image_view)
     }
 
     pub fn destroy(&self, device: &Device) {
@@ -308,21 +213,17 @@ impl Swapchain {
             unsafe { device.raw.destroy_semaphore(*semaphore, None); }
         }
 
-        unsafe {
-            device.raw.destroy_image_view(self.depth_image_view, None);
-            device.raw.destroy_image(self.depth_image, None);
-            device.raw.free_memory(self.depth_image_memory, None);
-            device.raw.destroy_image_view(self.color_image_view, None);
-            device.raw.destroy_image(self.color_image, None);
-            device.raw.free_memory(self.color_image_memory, None);
-        }
+        self.depth_image_view .destroy(device);
+        self.depth_image      .destroy(device);
+        self.color_image_view .destroy(device);
+        self.color_image      .destroy(device);
 
         for framebuffer in self.framebuffers.iter() {
             unsafe { device.raw.destroy_framebuffer(*framebuffer, None); }
         }
 
         for image_view in self.image_views.iter() {
-            unsafe { device.raw.destroy_image_view(*image_view, None); }
+            image_view.destroy(device);
         }
 
         unsafe { self.loader.destroy_swapchain(self.raw, None); }
