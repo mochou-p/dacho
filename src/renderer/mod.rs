@@ -7,12 +7,13 @@
     mod descriptor;
     mod device;
 pub mod geometry;
+    mod image;
     mod instance;
     mod pipeline;
     mod render_pass;
     mod surface;
     mod swapchain;
-pub mod vertex_input;
+    mod vertex_input;
 
 use std::collections::HashMap;
 
@@ -100,6 +101,7 @@ impl Renderer {
 
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
+
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
         let mut geometries        = vec![];
