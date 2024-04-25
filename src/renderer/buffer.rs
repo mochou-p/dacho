@@ -7,6 +7,7 @@ use ash::vk;
 use super::{
     command::CommandPool,
     device::{Device, PhysicalDevice},
+    image::Image,
     instance::Instance
 };
 
@@ -78,21 +79,7 @@ impl Buffer {
         dst_buffer:   &Buffer,
         size:          vk::DeviceSize
     ) -> Result<()> {
-        let command_buffers = {
-            let allocate_info = vk::CommandBufferAllocateInfo::builder()
-                .level(vk::CommandBufferLevel::PRIMARY)
-                .command_pool(command_pool.raw)
-                .command_buffer_count(1);
-
-            unsafe { device.raw.allocate_command_buffers(&allocate_info) }?
-        };
-
-        {
-            let begin_info = vk::CommandBufferBeginInfo::builder()
-                .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
-
-            unsafe { device.raw.begin_command_buffer(command_buffers[0], &begin_info) }?;
-        }
+        let command_buffer = command_pool.begin_single_time_commands(device)?;
 
         {
             let copy_regions = [
@@ -101,23 +88,53 @@ impl Buffer {
                     .build()
             ];
 
-            unsafe { device.raw.cmd_copy_buffer(command_buffers[0], src_buffer.raw, dst_buffer.raw, &copy_regions); }
+            unsafe { device.raw.cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &copy_regions); }
         }
 
-        unsafe { device.raw.end_command_buffer(command_buffers[0]) }?;
+        command_pool.end_single_time_commands(device, &command_buffer)?;
 
-        {
-            let submit_infos = [
-                vk::SubmitInfo::builder()
-                    .command_buffers(&command_buffers)
-                    .build()
-            ];
+        Ok(())
+    }
 
-            unsafe { device.raw.queue_submit(device.queue, &submit_infos, vk::Fence::null()) }?;
+    pub fn copy_to_image(
+        &self,
+        device:       &Device,
+        command_pool: &CommandPool,
+        image:        &Image,
+        width:        u32,
+        height:       u32
+    ) -> Result<()> {
+        let command_buffer = command_pool.begin_single_time_commands(device)?;
+
+        let subresource_range = vk::ImageSubresourceLayers::builder()
+            .aspect_mask(vk::ImageAspectFlags::COLOR)
+            .mip_level(0)
+            .base_array_layer(0)
+            .layer_count(1)
+            .build();
+
+        let regions = [
+            vk::BufferImageCopy::builder()
+                .buffer_offset(0)
+                .buffer_row_length(0)
+                .buffer_image_height(0)
+                .image_subresource(subresource_range)
+                .image_offset(vk::Offset3D { x: 0,  y: 0,   z: 0     })
+                .image_extent(vk::Extent3D { width, height, depth: 1 })
+                .build()
+        ];
+
+        unsafe {
+            device.raw.cmd_copy_buffer_to_image(
+                command_buffer,
+                self.raw,
+                image.raw,
+                vk::ImageLayout::TRANSFER_DST_OPTIMAL,
+                &regions
+            );
         }
 
-        unsafe { device.raw.queue_wait_idle(device.queue) }?;
-        unsafe { device.raw.free_command_buffers(command_pool.raw, &command_buffers); }
+        command_pool.end_single_time_commands(device, &command_buffer)?;
 
         Ok(())
     }
@@ -130,9 +147,9 @@ impl Buffer {
     }
 }
 
-struct SomeBuffer;
+pub struct StagingBuffer;
 
-impl SomeBuffer {
+impl StagingBuffer {
     pub fn new_buffer(
         instance:        &Instance,
         physical_device: &PhysicalDevice,
@@ -213,7 +230,7 @@ impl VertexBuffer {
             let buffer_size = std::mem::size_of_val(vertices) as u64;
             let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
-            SomeBuffer::new_buffer(
+            StagingBuffer::new_buffer(
                 instance,
                 physical_device,
                 device,
@@ -243,7 +260,7 @@ impl IndexBuffer {
             let buffer_size = std::mem::size_of_val(indices) as u64;
             let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 
-            SomeBuffer::new_buffer(
+            StagingBuffer::new_buffer(
                 instance,
                 physical_device,
                 device,

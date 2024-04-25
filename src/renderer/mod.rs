@@ -38,6 +38,7 @@ use {
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::{Device, PhysicalDevice},
     geometry::{Geometry, GeometryData},
+    image::{Image, ImageView, Sampler, Texture, TextureView},
     instance::Instance,
     pipeline::Pipeline,
     render_pass::RenderPass,
@@ -61,16 +62,23 @@ pub struct Renderer {
     ubo_mapped:            *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
-    command_buffers:        CommandBuffers
+    command_buffers:        CommandBuffers,
+    texture:                Image,
+    texture_view:           ImageView,
+    sampler:                Sampler
 }
 
+#[allow(clippy::too_many_arguments)]
 impl Renderer {
     pub fn new(
-        event_loop: &EventLoop<()>,
-        window:     &Window,
-        width:       u32,
-        height:      u32,
-        scene:      &[GeometryData]
+        event_loop:    &EventLoop<()>,
+        window:        &Window,
+        window_width:   u32,
+        window_height:  u32,
+        scene:         &[GeometryData],
+        gltf_image:    *mut std::ffi::c_void,
+        width:          u32,
+        height:         u32
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             Logger::info("Creating Renderer");
@@ -95,12 +103,19 @@ impl Renderer {
             &surface,
             &physical_device,
             &render_pass,
-            width,
-            height
+            window_width,
+            window_height
         )?;
 
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
+
+        let texture = Texture::new_image(
+            &instance, &physical_device, &device, &command_pool, gltf_image, width, height
+        )?;
+
+        let texture_view = TextureView::new_image_view(&device, &texture)?;
+        let sampler      = Sampler::new(&device)?;
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
@@ -144,8 +159,12 @@ impl Renderer {
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
         let descriptor_pool   = DescriptorPool::new(&device)?;
-        let descriptor_set    = DescriptorSet::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
-        let command_buffers   = CommandBuffers::new(&command_pool, &swapchain, &device)?;
+
+        let descriptor_set = DescriptorSet::new(
+            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &texture_view, &sampler
+        )?;
+
+        let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
 
         let mut commands = vec![
             Command::BeginRenderPass(&render_pass, &swapchain)
@@ -201,7 +220,10 @@ impl Renderer {
                 ubo_mapped,
                 descriptor_pool,
                 command_pool,
-                command_buffers
+                command_buffers,
+                texture,
+                texture_view,
+                sampler
             }
         )
     }
@@ -328,13 +350,15 @@ impl Drop for Renderer {
             pipeline.destroy(&self.device);
         }
 
-        self.render_pass           .destroy(&self.device);
-        self.swapchain             .destroy(&self.device);
+        self.render_pass  .destroy(&self.device);
+        self.swapchain    .destroy(&self.device);
+        self.sampler      .destroy(&self.device);
+        self.texture_view .destroy(&self.device);
+        self.texture      .destroy(&self.device);
 
         #[cfg(debug_assertions)]
         Logger::info("Destroying UniformBuffer");
         self.ubo                   .destroy(&self.device);
-
         self.descriptor_pool       .destroy(&self.device);
         self.descriptor_set_layout .destroy(&self.device);
 

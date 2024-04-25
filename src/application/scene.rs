@@ -12,22 +12,23 @@ use crate::renderer::geometry::GeometryData;
 pub struct Scene;
 
 impl Scene {
-    pub fn demo() -> Result<Vec<GeometryData>> {
+    pub fn demo() -> Result<(Vec<GeometryData>, *mut std::ffi::c_void, u32, u32)> {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
         let ground_size = 128.0;
 
+        let (model, texture, width, height) = Self::demo_gltf("damaged_helmet")?;
+
         let scene = vec![
             Self::demo_skybox()?,
             Self::demo_ground(ground_size)?,
             Self::demo_grass(ground_size)?,
-            Self::demo_gltf("damaged_helmet")?,
+            model,
             Self::demo_vignette()?
         ];
 
-
-        Ok(scene)
+        Ok((scene, texture, width, height))
     }
 
     fn demo_skybox() -> Result<GeometryData> {
@@ -43,12 +44,12 @@ impl Scene {
         ];
 
         let indices: Vec<u32> = vec![
-            0, 1, 2, 2, 3, 0,
-            7, 6, 5, 5, 4, 7,
-            4, 5, 1, 1, 0, 4,
-            6, 7, 3, 3, 2, 6,
-            0, 3, 7, 7, 4, 0,
-            2, 1, 5, 5, 6, 2
+            0, 1, 2,  2, 3, 0,
+            7, 6, 5,  5, 4, 7,
+            4, 5, 1,  1, 0, 4,
+            6, 7, 3,  3, 2, 6,
+            0, 3, 7,  7, 4, 0,
+            2, 1, 5,  5, 6, 2
         ];
 
         let instances: Vec<f32> = vec![0.0];
@@ -151,7 +152,7 @@ impl Scene {
         Ok(geometry_data)
     }
 
-    fn demo_gltf(filename: &str) -> Result<GeometryData> {
+    fn demo_gltf(filename: &str) -> Result<(GeometryData, *mut std::ffi::c_void, u32, u32)> {
         let (gltf, buffers, _) = gltf::import(format!("assets/models/{filename}.glb"))?;
 
         let mut vertices: Vec<f32> = vec![];
@@ -171,9 +172,16 @@ impl Scene {
                     .context("No gltf normals")?
                     .collect();
 
+                let tex_coords: Vec<[f32; 2]> = reader
+                    .read_tex_coords(0)
+                    .context("No gltf texture coordinates")?
+                    .into_f32()
+                    .collect();
+
                 for i in 0..positions.len() {
-                    vertices.extend_from_slice(&positions[i]);
-                    vertices.extend_from_slice(  &normals[i]);
+                    vertices.extend_from_slice( &positions[i]);
+                    vertices.extend_from_slice(   &normals[i]);
+                    vertices.extend_from_slice(&tex_coords[i]);
                 }
 
                 indices = reader
@@ -183,6 +191,10 @@ impl Scene {
                     .collect();
             }
         }
+
+        let pixels = [0u8, 0u8, 0u8, 255u8, 255u8, 255u8, 255u8, 0u8].as_ptr() as *mut std::ffi::c_void;
+        let width  = 2;
+        let height = 1;
 
         let instances: Vec<f32> = vec![3.0];
 
@@ -199,7 +211,7 @@ impl Scene {
             indices
         )?;
 
-        Ok(geometry_data)
+        Ok((geometry_data, pixels, width, height))
     }
 
     fn demo_vignette() -> Result<GeometryData> {
@@ -211,7 +223,7 @@ impl Scene {
         ];
 
         let indices: Vec<u32> = vec![
-            0, 1, 2, 2, 3, 0
+            0, 1, 2,  2, 3, 0
         ];
 
         let instances: Vec<f32> = vec![0.0];
