@@ -9,6 +9,7 @@ use glam::f32 as glam;
 use super::{
     buffer::Buffer,
     device::{Device, PhysicalDevice},
+    image::{ImageView, Sampler},
     instance::Instance
 };
 
@@ -34,8 +35,8 @@ impl UniformBufferObject {
         let buffer_size = std::mem::size_of::<UniformBufferObject>() as u64;
 
         let uniform_buffer = {
-            let usage       = vk::BufferUsageFlags::UNIFORM_BUFFER;
-            let properties  = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
+            let usage      = vk::BufferUsageFlags::UNIFORM_BUFFER;
+            let properties = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
 
             Buffer::new(
                 instance,
@@ -99,6 +100,12 @@ impl DescriptorSetLayout {
                         vk::ShaderStageFlags::VERTEX |
                         vk::ShaderStageFlags::TESSELLATION_EVALUATION
                     )
+                    .build(),
+                vk::DescriptorSetLayoutBinding::builder()
+                    .binding(1)
+                    .descriptor_count(1)
+                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
             ];
 
@@ -133,6 +140,10 @@ impl DescriptorPool {
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::UNIFORM_BUFFER)
                     .descriptor_count(1)
+                    .build(),
+                vk::DescriptorPoolSize::builder()
+                    .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .descriptor_count(1)
                     .build()
             ];
 
@@ -163,7 +174,9 @@ impl DescriptorSet {
         device:                &Device,
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
-        ubo:                   &Buffer
+        ubo:                   &Buffer,
+        texture_view:          &ImageView,
+        sampler:               &Sampler
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSet");
@@ -186,6 +199,14 @@ impl DescriptorSet {
                 .build()
         ];
 
+        let image_infos = [
+            vk::DescriptorImageInfo::builder()
+                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                .image_view(texture_view.raw)
+                .sampler(sampler.raw)
+                .build()
+        ];
+
         let writes = [
             vk::WriteDescriptorSet::builder()
                 .dst_set(raw)
@@ -193,6 +214,13 @@ impl DescriptorSet {
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .buffer_info(&buffer_infos)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_set(raw)
+                .dst_binding(1)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .image_info(&image_infos)
                 .build()
         ];
 

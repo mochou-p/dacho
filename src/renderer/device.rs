@@ -49,6 +49,7 @@ impl Device {
                 tessellation_shader: 1,
                 fill_mode_non_solid: 1,
                 sample_rate_shading: 1,
+                sampler_anisotropy:  1,
                 ..Default::default()
             };
 

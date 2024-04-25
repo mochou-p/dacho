@@ -45,6 +45,51 @@ impl CommandPool {
         Ok(Self { raw })
     }
 
+    pub fn begin_single_time_commands(&self, device: &Device) -> Result<vk::CommandBuffer> {
+        let command_buffer = {
+            let allocate_info = vk::CommandBufferAllocateInfo::builder()
+                .level(vk::CommandBufferLevel::PRIMARY)
+                .command_pool(self.raw)
+                .command_buffer_count(1);
+
+            unsafe { device.raw.allocate_command_buffers(&allocate_info) }?[0]
+        };
+
+        {
+            let begin_info = vk::CommandBufferBeginInfo::builder()
+                .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+
+            unsafe { device.raw.begin_command_buffer(command_buffer, &begin_info) }?;
+        }
+
+        Ok(command_buffer)
+    }
+
+    pub fn end_single_time_commands(
+        &self,
+        device:         &Device,
+        command_buffer: &vk::CommandBuffer
+    ) -> Result<()> {
+        unsafe { device.raw.end_command_buffer(*command_buffer) }?;
+
+        let command_buffers = [*command_buffer];
+
+        {
+            let submit_infos = [
+                vk::SubmitInfo::builder()
+                    .command_buffers(&command_buffers)
+                    .build()
+            ];
+
+            unsafe { device.raw.queue_submit(device.queue, &submit_infos, vk::Fence::null()) }?;
+        }
+
+        unsafe { device.raw.queue_wait_idle(device.queue) }?;
+        unsafe { device.raw.free_command_buffers(self.raw, &command_buffers); }
+
+        Ok(())
+    }
+
     pub fn destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
         Logger::info("Destroying CommandPool");

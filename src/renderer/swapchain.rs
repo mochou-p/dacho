@@ -105,7 +105,8 @@ impl Swapchain {
             &extent,
             vk::Format::D32_SFLOAT_S8_UINT,
             vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::SampleCountFlags::TYPE_8
         )?;
 
         let depth_image_view = ImageView::new(
@@ -122,7 +123,8 @@ impl Swapchain {
             &extent,
             vk::Format::B8G8R8A8_SRGB,
             vk::ImageUsageFlags::TRANSIENT_ATTACHMENT | vk::ImageUsageFlags::COLOR_ATTACHMENT,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL
+            vk::MemoryPropertyFlags::DEVICE_LOCAL,
+            vk::SampleCountFlags::TYPE_8
         )?;
 
         let color_image_view = ImageView::new(
