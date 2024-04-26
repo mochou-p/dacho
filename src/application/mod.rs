@@ -45,17 +45,11 @@ impl Application {
             compile_shaders()?;
         }
 
-        let window = Window::new("dacho", 1600, 900, event_loop)?;
-
-        let (scene, texture, width, height) = Scene::demo()?;
-
-        let renderer = Renderer::new(
-            event_loop, &window.window, window.width, window.height, &scene, texture, width, height
-        )?;
-
-        let camera = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
-        
-        let timer = Timer::new(
+        let window           = Window::new("dacho", 1600, 900, event_loop)?;
+        let (scene, texture) = Scene::demo()?;
+        let renderer         = Renderer::new(event_loop, &window.window, window.width, window.height, &scene, texture)?;
+        let camera           = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
+        let timer            = Timer::new(
             #[cfg(debug_assertions)]
             50
         );

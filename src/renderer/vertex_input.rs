@@ -2,7 +2,7 @@
 
 use ash::vk;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Type {
     Float,
     Vec2,

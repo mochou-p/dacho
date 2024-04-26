@@ -12,13 +12,13 @@ use crate::renderer::geometry::GeometryData;
 pub struct Scene;
 
 impl Scene {
-    pub fn demo() -> Result<(Vec<GeometryData>, *mut std::ffi::c_void, u32, u32)> {
+    pub fn demo() -> Result<(Vec<GeometryData>, Vec<u8>)> {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
         let ground_size = 128.0;
 
-        let (model, texture, width, height) = Self::demo_gltf("damaged_helmet")?;
+        let (model, texture) = Self::demo_gltf("damaged_helmet")?;
 
         let scene = vec![
             Self::demo_skybox()?,
@@ -28,7 +28,7 @@ impl Scene {
             Self::demo_vignette()?
         ];
 
-        Ok((scene, texture, width, height))
+        Ok((scene, texture))
     }
 
     fn demo_skybox() -> Result<GeometryData> {
@@ -108,7 +108,7 @@ impl Scene {
              0.08, 1.8,
              0.18, 0.0,
             -0.18, 0.0,
-            -0.08, 1.8,
+            -0.08, 1.8
         ];
 
         let indices: Vec<u32> = vec![
@@ -152,8 +152,8 @@ impl Scene {
         Ok(geometry_data)
     }
 
-    fn demo_gltf(filename: &str) -> Result<(GeometryData, *mut std::ffi::c_void, u32, u32)> {
-        let (gltf, buffers, _) = gltf::import(format!("assets/models/{filename}.glb"))?;
+    fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<u8>)> {
+        let (gltf, buffers, images) = gltf::import(format!("assets/models/{filename}.glb"))?;
 
         let mut vertices: Vec<f32> = vec![];
         let mut indices:  Vec<u32> = vec![];
@@ -192,14 +192,44 @@ impl Scene {
             }
         }
 
-        let pixels = [0u8, 0u8, 0u8, 255u8, 255u8, 255u8, 255u8, 0u8].as_ptr() as *mut std::ffi::c_void;
-        let width  = 2;
-        let height = 1;
+        let mut pixels: Vec<u8> = vec![255, 0, 70, 255];
+
+        for material in gltf.materials() {
+            let i = material
+                .pbr_metallic_roughness()
+                .base_color_texture()
+                .context("No gltf base color texture")?
+                .texture()
+                .index();
+
+            if images[i].format != gltf::image::Format::R8G8B8 {
+                panic!("Unsupported glTF image format, {:?}", images[i].format);
+            }
+            if images[i].width != images[i].height {
+                panic!("glTF image dimensions do not match, {} != {}", images[i].width, images[i].height);
+            }
+            if (images[i].pixels.len() % 3) != 0 {
+                panic!("glTF image error");
+            }
+
+            pixels.clear();
+
+            for j in (0..(images[i].pixels.len())).step_by(3) {
+                pixels.extend_from_slice(
+                    &[
+                        images[i].pixels[j],
+                        images[i].pixels[j + 1],
+                        images[i].pixels[j + 2],
+                        255
+                    ]
+                );
+            }
+        }
 
         let instances: Vec<f32> = vec![3.0];
 
         let shader       = String::from("test");
-        let cull_mode    = vk::CullModeFlags::FRONT;
+        let cull_mode    = vk::CullModeFlags::NONE;
         let polygon_mode = vk::PolygonMode::FILL;
 
         let geometry_data = GeometryData::new(
@@ -211,7 +241,7 @@ impl Scene {
             indices
         )?;
 
-        Ok((geometry_data, pixels, width, height))
+        Ok((geometry_data, pixels))
     }
 
     fn demo_vignette() -> Result<GeometryData> {

@@ -92,6 +92,6 @@ void main() {
     position.xz     += pow(inVertex.y * 0.2, 2.0) * offset * 1.5;
 
     gl_Position      = ubo.projection * ubo.view * vec4(position, 1.0);
-    outColor         = vec4(vec3(0.05, 0.8, 0.1) - (posHash * 0.5) - vec3(min(-position.y * 0.025, 0.0)), 1.0);
+    outColor         = vec4(vec3(0.05, 0.8, 0.1) - (posHash * 0.5) - vec3(min(-position.y * 0.025, 0.0)) * 0.5, 1.0);
 }
 
