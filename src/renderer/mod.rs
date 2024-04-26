@@ -68,7 +68,6 @@ pub struct Renderer {
     sampler:                Sampler
 }
 
-#[allow(clippy::too_many_arguments)]
 impl Renderer {
     pub fn new(
         event_loop:    &EventLoop<()>,
@@ -76,9 +75,7 @@ impl Renderer {
         window_width:   u32,
         window_height:  u32,
         scene:         &[GeometryData],
-        gltf_image:    *mut std::ffi::c_void,
-        width:          u32,
-        height:         u32
+        gltf_image:     Vec<u8>
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             Logger::info("Creating Renderer");
@@ -109,13 +106,9 @@ impl Renderer {
 
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
-
-        let texture = Texture::new_image(
-            &instance, &physical_device, &device, &command_pool, gltf_image, width, height
-        )?;
-
-        let texture_view = TextureView::new_image_view(&device, &texture)?;
-        let sampler      = Sampler::new(&device)?;
+        let texture               = Texture::new_image(&instance, &physical_device, &device, &command_pool, &gltf_image)?;
+        let texture_view          = TextureView::new_image_view(&device, &texture)?;
+        let sampler               = Sampler::new(&device)?;
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();

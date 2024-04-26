@@ -207,11 +207,10 @@ impl Texture {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        data:            *mut std::ffi::c_void,
-        width:            u32,
-        height:           u32
+        image_data:      &[u8]
     ) -> Result<Image> {
-        let buffer_size = width as u64 * height as u64 * 4_u64;
+        let data        = image_data.as_ptr() as *mut std::ffi::c_void;
+        let buffer_size = std::mem::size_of_val(image_data) as u64;
 
         let buffer = StagingBuffer::new_buffer(
             instance,
@@ -220,9 +219,12 @@ impl Texture {
             command_pool,
             data,
             buffer_size,
-            vk::BufferUsageFlags::TRANSFER_SRC  // could be wrong
+            vk::BufferUsageFlags::TRANSFER_SRC
         )?;
 
+        let width  = ((buffer_size / 4) as f32).sqrt() as u32;
+        let height = width;
+        
         let image = Image::new(
             device,
             instance,
