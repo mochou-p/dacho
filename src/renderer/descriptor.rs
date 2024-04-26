@@ -86,7 +86,10 @@ pub struct DescriptorSetLayout {
 }
 
 impl DescriptorSetLayout {
-    pub fn new(device: &Device) -> Result<Self> {
+    pub fn new(
+        device:        &Device,
+        sampler_count:  usize
+    ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSetLayout");
 
@@ -103,7 +106,7 @@ impl DescriptorSetLayout {
                     .build(),
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(1)
-                    .descriptor_count(1)
+                    .descriptor_count(sampler_count as u32)
                     .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
@@ -131,7 +134,10 @@ pub struct DescriptorPool {
 }
 
 impl DescriptorPool {
-    pub fn new(device: &Device) -> Result<Self> {
+    pub fn new(
+        device:        &Device,
+        sampler_count:  usize
+    ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorPool");
 
@@ -143,7 +149,7 @@ impl DescriptorPool {
                     .build(),
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                    .descriptor_count(1)
+                    .descriptor_count(sampler_count as u32)
                     .build()
             ];
 
@@ -175,8 +181,8 @@ impl DescriptorSet {
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer,
-        texture_view:          &ImageView,
-        sampler:               &Sampler
+        texture_views:         &[ImageView],
+        samplers:              &[Sampler],
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSet");
@@ -199,13 +205,21 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let image_infos = [
-            vk::DescriptorImageInfo::builder()
+        let mut image_infos = vec![];
+
+        for i in 0..samplers.len() {
+            let image_info = vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(texture_view.raw)
-                .sampler(sampler.raw)
-                .build()
-        ];
+                .image_view(texture_views[i].raw)
+                .sampler(samplers[i].raw)
+                .build();
+
+            image_infos.push(image_info);
+        };
+
+        if image_infos.is_empty() {
+            panic!("Failed to create image infos");
+        }
 
         let writes = [
             vk::WriteDescriptorSet::builder()

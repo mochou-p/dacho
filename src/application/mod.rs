@@ -7,6 +7,9 @@ pub mod logger;
     mod timer;
     mod window;
 
+#[cfg(debug_assertions)]
+use anyhow::Context;
+
 use anyhow::Result;
 
 use glam::f32 as glam;
@@ -45,11 +48,11 @@ impl Application {
             compile_shaders()?;
         }
 
-        let window           = Window::new("dacho", 1600, 900, event_loop)?;
-        let (scene, texture) = Scene::demo()?;
-        let renderer         = Renderer::new(event_loop, &window.window, window.width, window.height, &scene, texture)?;
-        let camera           = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
-        let timer            = Timer::new(
+        let window            = Window::new("dacho", 1600, 900, event_loop)?;
+        let (scene, textures) = Scene::demo()?;
+        let renderer          = Renderer::new(event_loop, &window.window, window.width, window.height, &scene, &textures)?;
+        let camera            = Camera::new(glam::Vec3::new(0.0, 60.0, 160.0));
+        let timer             = Timer::new(
             #[cfg(debug_assertions)]
             50
         );
@@ -97,7 +100,7 @@ pub fn compile_shaders() -> Result<()> {
     let mut filepath = std::env::current_dir()?;
     filepath.push("compile_shaders.py");
 
-    std::process::Command::new("python")
+    let output = std::process::Command::new("python")
         .arg(
             filepath
                 .display()
@@ -105,6 +108,10 @@ pub fn compile_shaders() -> Result<()> {
         )
         .spawn()?
         .wait_with_output()?;
+
+    if output.status.code().context("No command exit code")? != 0 {
+        Logger::error("Failed to compile all shaders");
+    }
 
     Ok(())
 }

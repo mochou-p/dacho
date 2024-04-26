@@ -7,6 +7,7 @@ struct Color;
 static mut INDENTATION: isize = 0;
 
 impl Color {
+    const RED:   &'static str = "\x1b[31;1m";
     const BLUE:  &'static str = "\x1b[36;1m";
     const RESET: &'static str = "\x1b[0m";
 }
@@ -36,6 +37,16 @@ impl Logger {
         std::io::stdout()
             .flush()
             .expect("Failed to flush stdout");
+    }
+
+    pub fn error<T: Into<String> + std::fmt::Display>(message: T) {
+        panic!(
+            "{}{}Error{} {}",
+            " ".repeat((unsafe { INDENTATION } * 5) as usize),
+            Color::RED,
+            Color::RESET,
+            message
+        );
     }
 
     pub fn indent(delta: i8) {

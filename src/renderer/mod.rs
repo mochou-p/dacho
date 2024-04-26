@@ -63,9 +63,9 @@ pub struct Renderer {
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers,
-    texture:                Image,
-    texture_view:           ImageView,
-    sampler:                Sampler
+    textures:               Vec<Image>,
+    texture_views:          Vec<ImageView>,
+    samplers:               Vec<Sampler>
 }
 
 impl Renderer {
@@ -75,7 +75,7 @@ impl Renderer {
         window_width:   u32,
         window_height:  u32,
         scene:         &[GeometryData],
-        gltf_image:     Vec<u8>
+        images:        &[Vec<u8>]
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             Logger::info("Creating Renderer");
@@ -104,11 +104,22 @@ impl Renderer {
             window_height
         )?;
 
-        let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
+        let descriptor_set_layout = DescriptorSetLayout::new(&device, images.len())?;
         let command_pool          = CommandPool::new(&device)?;
-        let texture               = Texture::new_image(&instance, &physical_device, &device, &command_pool, &gltf_image)?;
-        let texture_view          = TextureView::new_image_view(&device, &texture)?;
-        let sampler               = Sampler::new(&device)?;
+
+        let mut textures      = vec![];
+        let mut texture_views = vec![];
+        let mut samplers      = vec![];
+
+        for image in images.iter() {
+            let texture      = Texture::new_image(&instance, &physical_device, &device, &command_pool, image)?;
+            let texture_view = TextureView::new_image_view(&device, &texture)?;
+            let sampler      = Sampler::new(&device)?;
+
+            textures.push(texture);
+            texture_views.push(texture_view);
+            samplers.push(sampler);
+        }
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
@@ -151,10 +162,10 @@ impl Renderer {
         Logger::indent(-1);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
-        let descriptor_pool   = DescriptorPool::new(&device)?;
+        let descriptor_pool   = DescriptorPool::new(&device, images.len())?;
 
         let descriptor_set = DescriptorSet::new(
-            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &texture_view, &sampler
+            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &texture_views, &samplers
         )?;
 
         let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
@@ -214,9 +225,9 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers,
-                texture,
-                texture_view,
-                sampler
+                textures,
+                texture_views,
+                samplers
             }
         )
     }
@@ -345,9 +356,21 @@ impl Drop for Renderer {
 
         self.render_pass  .destroy(&self.device);
         self.swapchain    .destroy(&self.device);
-        self.sampler      .destroy(&self.device);
-        self.texture_view .destroy(&self.device);
-        self.texture      .destroy(&self.device);
+
+        #[cfg(debug_assertions)]
+        Logger::info("Destroying Textures");
+
+        for sampler in self.samplers.iter() {
+            sampler.destroy(&self.device);
+        }
+
+        for texture_view in self.texture_views.iter() {
+            texture_view.destroy(&self.device);
+        }
+
+        for texture in self.textures.iter() {
+            texture.destroy(&self.device);
+        }
 
         #[cfg(debug_assertions)]
         Logger::info("Destroying UniformBuffer");
