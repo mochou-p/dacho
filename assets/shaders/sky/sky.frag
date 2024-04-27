@@ -4,10 +4,12 @@
 
 precision lowp float;
 
+#define SKYBOX_DEPTH 0.99999997
+
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    gl_FragDepth = 0.99999997;
-    outColor     = vec4(0.3, 0.7, 1.0, 1.0);
+    gl_FragDepth = SKYBOX_DEPTH;
+    outColor     = vec4(vec3(0.5), 1.0);
 }
 
