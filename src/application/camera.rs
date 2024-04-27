@@ -57,7 +57,7 @@ impl Camera {
         Logger::info("Creating Camera");
 
         let rotation = CameraRotation {
-            angle: glam::Vec2::new(std::f32::consts::PI * -0.1, std::f32::consts::PI)
+            angle: glam::Vec2::new(0.0, std::f32::consts::PI)
         };
 
         let movement = CameraMovement {
@@ -66,7 +66,7 @@ impl Camera {
         };
 
         let speed = CameraSpeed {
-            translation:  0.86525598,
+            translation:  0.025,
             rotation:    -0.001
         };
 

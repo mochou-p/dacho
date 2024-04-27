@@ -16,14 +16,10 @@ impl Scene {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
-        let ground_size = 128.0;
-
         let (model, textures) = Self::demo_gltf("damaged_helmet")?;
 
         let scene = vec![
             Self::demo_skybox()?,
-            Self::demo_ground(ground_size)?,
-            Self::demo_grass(ground_size)?,
             model,
             Self::demo_vignette()?
         ];
@@ -70,88 +66,6 @@ impl Scene {
         Ok(geometry_data)
     }
 
-    fn demo_ground(size: f32) -> Result<GeometryData> {
-        let half = size * 0.5;
-
-        let vertices: Vec<f32> = vec![
-            -half, -half,
-             half, -half,
-             half,  half,
-            -half,  half
-        ];
-
-        let indices: Vec<u32> = vec![
-            0, 1, 3, 2
-        ];
-
-        let instances: Vec<f32> = vec![0.0];
-
-        let shader       = String::from("ground");
-        let cull_mode    = vk::CullModeFlags::NONE;
-        let polygon_mode = vk::PolygonMode::FILL;
-
-        let geometry_data = GeometryData::new(
-            shader,
-            cull_mode,
-            polygon_mode,
-            vertices,
-            instances,
-            indices
-        )?;
-
-        Ok(geometry_data)
-    }
-
-    fn demo_grass(ground_size: f32) -> Result<GeometryData> {
-        let vertices: Vec<f32> = vec![
-             0.00, 4.0,
-             0.08, 1.8,
-             0.18, 0.0,
-            -0.18, 0.0,
-            -0.08, 1.8
-        ];
-
-        let indices: Vec<u32> = vec![
-            0, 1, 4,
-            1, 2, 3,
-            1, 3, 4
-        ];
-
-        let mut instances: Vec<f32> = vec![];
-
-        let i = ground_size as usize;
-        let o = (i - 1) as f32 * 0.5;
-
-        let grass_per_unit = 3;
-
-        for z in 0..i {
-            for x in 0..i {
-                for w in 0..grass_per_unit {
-                    let x_ = x as f32 + w as f32 * 1.0 / grass_per_unit as f32;
-                    let z_ = z as f32 + w as f32 * 1.0 / grass_per_unit as f32;
-
-                    instances.push((x_ - o) + noise(x_, z_) * 0.5);
-                    instances.push((z_ - o) + noise(z_, x_) * 0.5);
-                }
-            }
-        }
-
-        let shader       = String::from("grass");
-        let cull_mode    = vk::CullModeFlags::NONE;
-        let polygon_mode = vk::PolygonMode::FILL;
-
-        let geometry_data = GeometryData::new(
-            shader,
-            cull_mode,
-            polygon_mode,
-            vertices,
-            instances,
-            indices
-        )?;
-
-        Ok(geometry_data)
-    }
-
     fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {
         let (gltf, buffers, images) = gltf::import(format!("assets/models/{filename}.glb"))?;
 
@@ -164,19 +78,26 @@ impl Scene {
 
                 let positions: Vec<[f32; 3]> = reader
                     .read_positions()
-                    .context("No gltf positions")?
+                    .context("No glTF positions")?
                     .collect();
 
                 let normals: Vec<[f32; 3]> = reader
                     .read_normals()
-                    .context("No gltf normals")?
+                    .context("No glTF normals")?
                     .collect();
 
                 let tex_coords: Vec<[f32; 2]> = reader
                     .read_tex_coords(0)
-                    .context("No gltf texture coordinates")?
+                    .context("No glTF texture coordinates")?
                     .into_f32()
                     .collect();
+
+                if !(
+                    positions.len() ==    normals.len() &&
+                    positions.len() == tex_coords.len()
+                ) {
+                    panic!("glTF vertex input error");
+                }
 
                 for i in 0..positions.len() {
                     vertices.extend_from_slice( &positions[i]);
@@ -195,23 +116,39 @@ impl Scene {
         let mut textures: Vec<Vec<u8>> = vec![];
 
         for material in gltf.materials() {
-            let is = [
+            let image_indices = [
                 material
                     .pbr_metallic_roughness()
                     .base_color_texture()
-                    .context("No glTF base color texture")?
+                    .context("No glTF base color")?
                     .texture()
                     .index(),
                 material
                     .normal_texture()
-                    .context("No glTF normal texture")?
+                    .context("No glTF normal map")?
+                    .texture()
+                    .index(),
+                material
+                    .pbr_metallic_roughness()
+                    .metallic_roughness_texture()
+                    .context("No glTF metallic roughness")?
+                    .texture()
+                    .index(),
+                material
+                    .emissive_texture()
+                    .context("No glTF emission")?
+                    .texture()
+                    .index(),
+                material
+                    .occlusion_texture()
+                    .context("No glTF occlusion")?
                     .texture()
                     .index()
             ];
 
-            for i in is {
+            for i in image_indices {
                 if images[i].format != gltf::image::Format::R8G8B8 {
-                    panic!("Unsupported glTF image format");
+                    panic!("Only gltf::image::Format::R8G8B8 is supported");
                 }
 
                 if images[i].width != images[i].height {
@@ -247,9 +184,9 @@ impl Scene {
             panic!("glTF textures missing");
         }
 
-        let instances: Vec<f32> = vec![5.0];
+        let instances: Vec<f32> = vec![0.0];
 
-        let shader       = String::from("test");
+        let shader       = String::from("pbr");
         let cull_mode    = vk::CullModeFlags::NONE;
         let polygon_mode = vk::PolygonMode::FILL;
 
@@ -294,9 +231,5 @@ impl Scene {
 
         Ok(geometry_data)
     }
-}
-
-fn noise(x: f32, y: f32) -> f32 {
-    (glam::Vec2::new(x, y).dot(glam::Vec2::new(12.9898, 4.1414)).sin() * 43758.545) % 1.0
 }
 
