@@ -224,7 +224,7 @@ impl Texture {
 
         let width  = ((buffer_size / 4) as f32).sqrt() as u32;
         let height = width;
-        
+
         let image = Image::new(
             device,
             instance,
@@ -265,7 +265,12 @@ impl TextureView {
         device:  &Device,
         texture: &Image
     ) -> Result<ImageView> {
-        let image_view = ImageView::new(device, &texture.raw, vk::Format::R8G8B8A8_SRGB, vk::ImageAspectFlags::COLOR)?;
+        let image_view = ImageView::new(
+            device,
+            &texture.raw,
+            vk::Format::R8G8B8A8_SRGB,
+            vk::ImageAspectFlags::COLOR
+        )?;
 
         Ok(image_view)
     }

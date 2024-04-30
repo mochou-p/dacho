@@ -63,8 +63,8 @@ pub struct Renderer {
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers,
-    textures:               Vec<Image>,
-    texture_views:          Vec<ImageView>,
+    images:                 Vec<Image>,
+    image_views:            Vec<ImageView>,
     samplers:               Vec<Sampler>
 }
 
@@ -75,7 +75,8 @@ impl Renderer {
         window_width:   u32,
         window_height:  u32,
         scene:         &[GeometryData],
-        images:        &[Vec<u8>]
+        cubemap_data:  &[Vec<u8>],
+        texture_data:  &[Vec<u8>]
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             Logger::info("Creating Renderer");
@@ -104,20 +105,32 @@ impl Renderer {
             window_height
         )?;
 
-        let descriptor_set_layout = DescriptorSetLayout::new(&device, images.len())?;
+        let cubemap_data_len      = cubemap_data.len();
+        let texture_data_len      = texture_data.len();
+        let descriptor_set_layout = DescriptorSetLayout::new(&device, cubemap_data_len, texture_data_len)?;
         let command_pool          = CommandPool::new(&device)?;
 
-        let mut textures      = vec![];
-        let mut texture_views = vec![];
-        let mut samplers      = vec![];
+        let mut images      = vec![];
+        let mut image_views = vec![];
+        let mut samplers    = vec![];
 
-        for image in images.iter() {
-            let texture      = Texture::new_image(&instance, &physical_device, &device, &command_pool, image)?;
+        for data in cubemap_data.iter() {
+            let cubemap      = Texture::new_image(&instance, &physical_device, &device, &command_pool, data)?;
+            let cubemap_view = TextureView::new_image_view(&device, &cubemap)?;
+            let sampler      = Sampler::new(&device)?;
+
+            images.push(cubemap);
+            image_views.push(cubemap_view);
+            samplers.push(sampler);
+        }
+
+        for data in texture_data.iter() {
+            let texture      = Texture::new_image(&instance, &physical_device, &device, &command_pool, data)?;
             let texture_view = TextureView::new_image_view(&device, &texture)?;
             let sampler      = Sampler::new(&device)?;
 
-            textures.push(texture);
-            texture_views.push(texture_view);
+            images.push(texture);
+            image_views.push(texture_view);
             samplers.push(sampler);
         }
 
@@ -162,10 +175,13 @@ impl Renderer {
         Logger::indent(-1);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
-        let descriptor_pool   = DescriptorPool::new(&device, images.len())?;
+        let descriptor_pool   = DescriptorPool::new(&device, cubemap_data_len, texture_data_len)?;
 
         let descriptor_set = DescriptorSet::new(
-            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &texture_views, &samplers
+            &device, &descriptor_pool, &descriptor_set_layout,
+            &ubo,
+            &image_views[..cubemap_data_len], &samplers[..cubemap_data_len],
+            &image_views[cubemap_data_len..], &samplers[cubemap_data_len..]
         )?;
 
         let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
@@ -225,8 +241,8 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers,
-                textures,
-                texture_views,
+                images,
+                image_views,
                 samplers
             }
         )
@@ -358,18 +374,18 @@ impl Drop for Renderer {
         self.swapchain    .destroy(&self.device);
 
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Textures");
+        Logger::info("Destroying Textures and Samplers");
 
         for sampler in self.samplers.iter() {
             sampler.destroy(&self.device);
         }
 
-        for texture_view in self.texture_views.iter() {
-            texture_view.destroy(&self.device);
+        for image_view in self.image_views.iter() {
+            image_view.destroy(&self.device);
         }
 
-        for texture in self.textures.iter() {
-            texture.destroy(&self.device);
+        for image in self.images.iter() {
+            image.destroy(&self.device);
         }
 
         #[cfg(debug_assertions)]

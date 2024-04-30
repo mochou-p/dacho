@@ -101,8 +101,8 @@ impl Buffer {
         device:       &Device,
         command_pool: &CommandPool,
         image:        &Image,
-        width:        u32,
-        height:       u32
+        width:         u32,
+        height:        u32
     ) -> Result<()> {
         let command_buffer = command_pool.begin_single_time_commands(device)?;
 
@@ -119,7 +119,7 @@ impl Buffer {
                 .buffer_row_length(0)
                 .buffer_image_height(0)
                 .image_subresource(subresource_range)
-                .image_offset(vk::Offset3D { x: 0,  y: 0,   z: 0     })
+                .image_offset(vk::Offset3D { x: 0,  y: 0,   z:     0 })
                 .image_extent(vk::Extent3D { width, height, depth: 1 })
                 .build()
         ];

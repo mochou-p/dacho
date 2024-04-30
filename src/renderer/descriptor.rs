@@ -88,7 +88,8 @@ pub struct DescriptorSetLayout {
 impl DescriptorSetLayout {
     pub fn new(
         device:        &Device,
-        sampler_count:  usize
+        cubemap_count:  usize,
+        texture_count:  usize
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSetLayout");
@@ -103,7 +104,13 @@ impl DescriptorSetLayout {
                     .build(),
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(1)
-                    .descriptor_count(sampler_count as u32)
+                    .descriptor_count(cubemap_count as u32)
+                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
+                    .build(),
+                vk::DescriptorSetLayoutBinding::builder()
+                    .binding(2)
+                    .descriptor_count(texture_count as u32)
                     .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
@@ -133,7 +140,8 @@ pub struct DescriptorPool {
 impl DescriptorPool {
     pub fn new(
         device:        &Device,
-        sampler_count:  usize
+        cubemap_count:  usize,
+        texture_count:  usize
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorPool");
@@ -146,7 +154,11 @@ impl DescriptorPool {
                     .build(),
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                    .descriptor_count(sampler_count as u32)
+                    .descriptor_count(cubemap_count as u32)
+                    .build(),
+                vk::DescriptorPoolSize::builder()
+                    .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .descriptor_count(texture_count as u32)
                     .build()
             ];
 
@@ -173,13 +185,16 @@ pub struct DescriptorSet {
 }
 
 impl DescriptorSet {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         device:                &Device,
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer,
+        cubemap_views:         &[ImageView],
+        cubemap_samplers:      &[Sampler],
         texture_views:         &[ImageView],
-        samplers:              &[Sampler],
+        texture_samplers:      &[Sampler]
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSet");
@@ -202,19 +217,35 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let mut image_infos = vec![];
+        let mut cubemap_image_infos = vec![];
 
-        for i in 0..samplers.len() {
+        for i in 0..cubemap_samplers.len() {
+            let image_info = vk::DescriptorImageInfo::builder()
+                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
+                .image_view(cubemap_views[i].raw)
+                .sampler(cubemap_samplers[i].raw)
+                .build();
+
+            cubemap_image_infos.push(image_info);
+        };
+
+        if cubemap_image_infos.is_empty() {
+            panic!("Failed to create image infos");
+        }
+
+        let mut texture_image_infos = vec![];
+
+        for i in 0..texture_samplers.len() {
             let image_info = vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
                 .image_view(texture_views[i].raw)
-                .sampler(samplers[i].raw)
+                .sampler(texture_samplers[i].raw)
                 .build();
 
-            image_infos.push(image_info);
+            texture_image_infos.push(image_info);
         };
 
-        if image_infos.is_empty() {
+        if texture_image_infos.is_empty() {
             panic!("Failed to create image infos");
         }
 
@@ -231,8 +262,16 @@ impl DescriptorSet {
                 .dst_binding(1)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .image_info(&image_infos)
+                .image_info(&cubemap_image_infos)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_set(raw)
+                .dst_binding(2)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .image_info(&texture_image_infos)
                 .build()
+
         ];
 
         unsafe { device.raw.update_descriptor_sets(&writes, &[]); }
