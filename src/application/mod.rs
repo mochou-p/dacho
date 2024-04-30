@@ -48,11 +48,16 @@ impl Application {
             compile_shaders()?;
         }
 
-        let window            = Window::new("dacho", 1600, 900, event_loop)?;
-        let (scene, textures) = Scene::demo()?;
-        let renderer          = Renderer::new(event_loop, &window.window, window.width, window.height, &scene, &textures)?;
-        let camera            = Camera::new(glam::Vec3::new(0.0, 0.0, 8.0));
-        let timer             = Timer::new(
+        let window = Window::new("dacho", 1600, 900, event_loop)?;
+
+        let (scene, cubemap, textures) = Scene::demo()?;
+
+        let renderer = Renderer::new(
+            event_loop, &window.window, window.width, window.height, &scene, &cubemap, &textures
+        )?;
+
+        let camera = Camera::new(glam::Vec3::new(0.0, 0.0, 8.0));
+        let timer  = Timer::new(
             #[cfg(debug_assertions)]
             50
         );

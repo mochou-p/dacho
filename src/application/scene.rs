@@ -12,22 +12,24 @@ use crate::renderer::geometry::GeometryData;
 pub struct Scene;
 
 impl Scene {
-    pub fn demo() -> Result<(Vec<GeometryData>, Vec<Vec<u8>>)> {
+    #[allow(clippy::type_complexity)]
+    pub fn demo() -> Result<(Vec<GeometryData>, Vec<Vec<u8>>, Vec<Vec<u8>>)> {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
+        let (sky, cubemap)    = Self::demo_skybox("nature")?;
         let (model, textures) = Self::demo_gltf("damaged_helmet")?;
 
         let scene = vec![
-            Self::demo_skybox()?,
+            sky,
             model,
             Self::demo_vignette()?
         ];
 
-        Ok((scene, textures))
+        Ok((scene, cubemap, textures))
     }
 
-    fn demo_skybox() -> Result<GeometryData> {
+    fn demo_skybox(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {
         let vertices: Vec<f32> = vec![
             -1.0,  1.0, -1.0,
              1.0,  1.0, -1.0,
@@ -50,7 +52,58 @@ impl Scene {
 
         let instances: Vec<f32> = vec![0.0];
 
-        let shader       = String::from("sky");
+        let mut cubemap: Vec<Vec<u8>> = vec![];
+
+        let faces = [
+            "nx",
+            "px",
+            "ny",
+            "py",
+            "pz",
+            "nz"
+        ];
+
+        let mut axis_size = 0;
+
+        for face in faces.iter() {
+            let image = image::io::Reader::open(
+                format!("assets/textures/skybox/{filename}/{face}.png")
+            )?.decode()?;
+
+            let image_data = image
+                .as_rgba8()
+                .context("Failed to cast Cubemap to R8G8B8A8")?;
+
+            let (width, height) = image_data.dimensions();
+
+            if width != height {
+                panic!("Cubemap face is not square");
+            }
+
+            if axis_size == 0 {
+                axis_size = width
+            } else if width != axis_size {
+                panic!("Cubemap faces do not share dimensions");
+            }
+
+            let mut pixels: Vec<u8> = vec![];
+
+            for pixel in image_data.pixels() {
+                pixels.extend_from_slice(&pixel.0);
+            }
+
+            if pixels.len() as u32 != width * height * 4 {
+                println!("Pixel count error");
+            }
+
+            cubemap.push(pixels);
+        }
+
+        if cubemap.len() != 6 {
+            panic!("Cubemap reading error");
+        }
+
+        let shader       = String::from("skybox");
         let cull_mode    = vk::CullModeFlags::FRONT;
         let polygon_mode = vk::PolygonMode::FILL;
 
@@ -63,7 +116,7 @@ impl Scene {
             indices
         )?;
 
-        Ok(geometry_data)
+        Ok((geometry_data, cubemap))
     }
 
     fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {

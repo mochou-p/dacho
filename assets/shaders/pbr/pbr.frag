@@ -13,7 +13,7 @@ precision lowp float;
 #define OCCLUSION          4
 #define TEXTURE_COUNT      5
 
-layout(binding = 1) uniform sampler2D samplers[TEXTURE_COUNT];
+layout(binding = 2) uniform sampler2D uSamplers[TEXTURE_COUNT];
 
 layout(location = 0) in  vec3 inWorldPosition;
 layout(location = 1) in  vec3 inNormal;
@@ -81,11 +81,11 @@ vec3 PBR(
 }
 
 void main() {
-    vec3  albedo              = texture(samplers[ALBEDO],             inTexCoord).rgb;
-    vec3  normal_map          = texture(samplers[NORMAL],             inTexCoord).xyz;
-    vec2  metallic_roughness  = texture(samplers[METALLIC_ROUGHNESS], inTexCoord).bg;
-    vec3  emission            = texture(samplers[EMISSION],           inTexCoord).rgb;
-    float occlusion           = texture(samplers[OCCLUSION],          inTexCoord).r;
+    vec3  albedo              = texture(uSamplers[ALBEDO],             inTexCoord).rgb;
+    vec3  normal_map          = texture(uSamplers[NORMAL],             inTexCoord).xyz;
+    vec2  metallic_roughness  = texture(uSamplers[METALLIC_ROUGHNESS], inTexCoord).bg;
+    vec3  emission            = texture(uSamplers[EMISSION],           inTexCoord).rgb;
+    float occlusion           = texture(uSamplers[OCCLUSION],          inTexCoord).r;
 
     albedo                   *= occlusion;
 

@@ -6,7 +6,7 @@ precision highp float;
 
 layout(location = 0) in  vec2  inPosition;
 
-layout(location = 1) in  float _inInstance;
+layout(location = 1) in  float inInstance;
 
 layout(location = 0) out vec2  outUV;
 
