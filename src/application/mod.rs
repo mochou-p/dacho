@@ -50,10 +50,10 @@ impl Application {
 
         let window = Window::new("dacho", 1600, 900, event_loop)?;
 
-        let (scene, cubemap, textures) = Scene::demo()?;
+        let (scene, skybox_texture, gltf_textures) = Scene::demo()?;
 
         let renderer = Renderer::new(
-            event_loop, &window.window, window.width, window.height, &scene, &cubemap, &textures
+            event_loop, &window.window, window.width, window.height, &scene, &skybox_texture, &gltf_textures
         )?;
 
         let camera = Camera::new(glam::Vec3::new(0.0, 0.0, 8.0));

@@ -207,7 +207,8 @@ impl Texture {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        image_data:      &[u8]
+        image_data:      &[u8],
+        is_spherical:     bool
     ) -> Result<Image> {
         let data        = image_data.as_ptr() as *mut std::ffi::c_void;
         let buffer_size = std::mem::size_of_val(image_data) as u64;
@@ -222,8 +223,15 @@ impl Texture {
             vk::BufferUsageFlags::TRANSFER_SRC
         )?;
 
-        let width  = ((buffer_size / 4) as f32).sqrt() as u32;
-        let height = width;
+        let (width, height);
+
+        if is_spherical {
+            height = ((buffer_size / 4 / 2) as f32).sqrt() as u32;
+            width  = height * 2;
+        } else {
+            width  = ((buffer_size / 4) as f32).sqrt() as u32;
+            height = width;
+        }
 
         let image = Image::new(
             device,

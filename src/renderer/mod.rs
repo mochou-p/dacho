@@ -70,13 +70,13 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        event_loop:    &EventLoop<()>,
-        window:        &Window,
-        window_width:   u32,
-        window_height:  u32,
-        scene:         &[GeometryData],
-        cubemap_data:  &[Vec<u8>],
-        texture_data:  &[Vec<u8>]
+        event_loop:     &EventLoop<()>,
+        window:         &Window,
+        window_width:    u32,
+        window_height:   u32,
+        scene:          &[GeometryData],
+        skybox_texture: &[u8],
+        gltf_textures:  &[Vec<u8>]
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             Logger::info("Creating Renderer");
@@ -105,27 +105,32 @@ impl Renderer {
             window_height
         )?;
 
-        let cubemap_data_len      = cubemap_data.len();
-        let texture_data_len      = texture_data.len();
-        let descriptor_set_layout = DescriptorSetLayout::new(&device, cubemap_data_len, texture_data_len)?;
+        let gltf_texture_count    = gltf_textures.len();
+        let descriptor_set_layout = DescriptorSetLayout::new(&device, gltf_texture_count)?;
         let command_pool          = CommandPool::new(&device)?;
 
         let mut images      = vec![];
         let mut image_views = vec![];
         let mut samplers    = vec![];
 
-        for data in cubemap_data.iter() {
-            let cubemap      = Texture::new_image(&instance, &physical_device, &device, &command_pool, data)?;
-            let cubemap_view = TextureView::new_image_view(&device, &cubemap)?;
-            let sampler      = Sampler::new(&device)?;
+        {
+            let skybox = Texture::new_image(
+                &instance, &physical_device, &device, &command_pool, skybox_texture, true
+            )?;
 
-            images.push(cubemap);
-            image_views.push(cubemap_view);
+            let skybox_view = TextureView::new_image_view(&device, &skybox)?;
+            let sampler     = Sampler::new(&device)?;
+
+            images.push(skybox);
+            image_views.push(skybox_view);
             samplers.push(sampler);
         }
 
-        for data in texture_data.iter() {
-            let texture      = Texture::new_image(&instance, &physical_device, &device, &command_pool, data)?;
+        for gltf_texture in gltf_textures.iter() {
+            let texture = Texture::new_image(
+                &instance, &physical_device, &device, &command_pool, gltf_texture, false
+            )?;
+
             let texture_view = TextureView::new_image_view(&device, &texture)?;
             let sampler      = Sampler::new(&device)?;
 
@@ -175,13 +180,13 @@ impl Renderer {
         Logger::indent(-1);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
-        let descriptor_pool   = DescriptorPool::new(&device, cubemap_data_len, texture_data_len)?;
+        let descriptor_pool   = DescriptorPool::new(&device, gltf_texture_count)?;
 
         let descriptor_set = DescriptorSet::new(
             &device, &descriptor_pool, &descriptor_set_layout,
             &ubo,
-            &image_views[..cubemap_data_len], &samplers[..cubemap_data_len],
-            &image_views[cubemap_data_len..], &samplers[cubemap_data_len..]
+            &image_views[0  ], &samplers[0  ],
+            &image_views[1..], &samplers[1..]
         )?;
 
         let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
