@@ -87,9 +87,8 @@ pub struct DescriptorSetLayout {
 
 impl DescriptorSetLayout {
     pub fn new(
-        device:        &Device,
-        cubemap_count:  usize,
-        texture_count:  usize
+        device:             &Device,
+        gltf_texture_count:  usize
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSetLayout");
@@ -104,13 +103,13 @@ impl DescriptorSetLayout {
                     .build(),
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(1)
-                    .descriptor_count(cubemap_count as u32)
+                    .descriptor_count(1)
                     .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build(),
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(2)
-                    .descriptor_count(texture_count as u32)
+                    .descriptor_count(gltf_texture_count as u32)
                     .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
@@ -139,9 +138,8 @@ pub struct DescriptorPool {
 
 impl DescriptorPool {
     pub fn new(
-        device:        &Device,
-        cubemap_count:  usize,
-        texture_count:  usize
+        device:             &Device,
+        gltf_texture_count:  usize
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorPool");
@@ -154,11 +152,11 @@ impl DescriptorPool {
                     .build(),
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                    .descriptor_count(cubemap_count as u32)
+                    .descriptor_count(1)
                     .build(),
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                    .descriptor_count(texture_count as u32)
+                    .descriptor_count(gltf_texture_count as u32)
                     .build()
             ];
 
@@ -191,10 +189,10 @@ impl DescriptorSet {
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer,
-        cubemap_views:         &[ImageView],
-        cubemap_samplers:      &[Sampler],
-        texture_views:         &[ImageView],
-        texture_samplers:      &[Sampler]
+        skybox_view:           &ImageView,
+        skybox_sampler:        &Sampler,
+        gltf_texture_views:    &[ImageView],
+        gltf_texture_samplers: &[Sampler]
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSet");
@@ -217,29 +215,21 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let mut cubemap_image_infos = vec![];
-
-        for i in 0..cubemap_samplers.len() {
-            let image_info = vk::DescriptorImageInfo::builder()
+        let skybox_image_infos = vec![
+            vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(cubemap_views[i].raw)
-                .sampler(cubemap_samplers[i].raw)
-                .build();
-
-            cubemap_image_infos.push(image_info);
-        };
-
-        if cubemap_image_infos.is_empty() {
-            panic!("Failed to create image infos");
-        }
+                .image_view(skybox_view.raw)
+                .sampler(skybox_sampler.raw)
+                .build()
+        ];
 
         let mut texture_image_infos = vec![];
 
-        for i in 0..texture_samplers.len() {
+        for i in 0..gltf_texture_samplers.len() {
             let image_info = vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(texture_views[i].raw)
-                .sampler(texture_samplers[i].raw)
+                .image_view(gltf_texture_views[i].raw)
+                .sampler(gltf_texture_samplers[i].raw)
                 .build();
 
             texture_image_infos.push(image_info);
@@ -262,7 +252,7 @@ impl DescriptorSet {
                 .dst_binding(1)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .image_info(&cubemap_image_infos)
+                .image_info(&skybox_image_infos)
                 .build(),
             vk::WriteDescriptorSet::builder()
                 .dst_set(raw)

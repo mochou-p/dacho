@@ -11,7 +11,7 @@ COMPILER =  "glslc"
 ROOT     =  "assets/shaders"
 BIN_DIR  =  "bin"
 CACHE    = f"{ROOT}/{BIN_DIR}"
-WS              =  " " * 10
+WS       =  " " * 10
 
 class Color:
     red   = "\033[31;1m"
