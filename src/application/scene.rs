@@ -17,8 +17,8 @@ impl Scene {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
-        let (skybox_model, skybox_texture ) = Self::demo_skybox("joburg-central-sunset.jpg")?;
-        let (  gltf_model,   gltf_textures) = Self::demo_gltf("damaged_helmet")?;
+        let (skybox_model, skybox_texture ) = Self::demo_skybox("spree-bank.jpg")?;
+        let (  gltf_model,   gltf_textures) = Self::demo_gltf("damaged_helmet.glb")?;
 
         let scene = vec![
             skybox_model,
@@ -29,7 +29,7 @@ impl Scene {
         Ok((scene, skybox_texture, gltf_textures))
     }
 
-    fn demo_skybox(file: &str) -> Result<(GeometryData, Vec<u8>)> {
+    fn demo_skybox(filename: &str) -> Result<(GeometryData, Vec<u8>)> {
         let vertices: Vec<f32> = vec![
             -1.0,  1.0, -1.0,
              1.0,  1.0, -1.0,
@@ -53,7 +53,7 @@ impl Scene {
         let instances: Vec<f32> = vec![0.0];
 
         let image = image::io::Reader::open(
-            format!("assets/textures/skybox/{file}")
+            format!("assets/textures/skybox/{filename}")
         )?.decode()?;
 
         let image_data = image
@@ -96,7 +96,7 @@ impl Scene {
     }
 
     fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {
-        let (gltf, buffers, images) = gltf::import(format!("assets/models/{filename}.glb"))?;
+        let (gltf, buffers, images) = gltf::import(format!("assets/models/{filename}"))?;
 
         let mut vertices: Vec<f32> = vec![];
         let mut indices:  Vec<u32> = vec![];
