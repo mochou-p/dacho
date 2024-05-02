@@ -470,7 +470,6 @@ dependencies = [
  "anyhow",
  "ash",
  "ash-window",
- "bytemuck",
  "glam",
  "gltf",
  "image 0.25.1",

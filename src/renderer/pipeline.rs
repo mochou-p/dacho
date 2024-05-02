@@ -205,10 +205,10 @@ impl Pipeline {
 
 fn read_spirv(filename: String) -> Result<Vec<u32>> {
     #[cfg(debug_assertions)]
-    Logger::info(format!("Reading `{filename}` SPIR-V bytecode"));
+    Logger::info(format!("Reading `{filename}`"));
 
     let bytes = &std::fs::read(format!("assets/shaders/bin/{filename}"))?;
-    let words = bytemuck::cast_slice::<u8, u32>(bytes);
+    let words = unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
 
     Ok(words.to_vec())
 }
