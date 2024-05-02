@@ -1,12 +1,11 @@
 // dacho/src/renderer/instance.rs
 
-use anyhow::Result;
-
-use ash::vk;
-
-use raw_window_handle::HasRawDisplayHandle;
-
-use winit::event_loop::EventLoop;
+use {
+    anyhow::Result,
+    ash::vk,
+    raw_window_handle::HasRawDisplayHandle,
+    winit::event_loop::EventLoop
+};
 
 #[cfg(debug_assertions)]
 use {

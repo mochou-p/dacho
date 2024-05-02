@@ -1,13 +1,14 @@
 // dacho/src/application/scene.rs
 
-use anyhow::{Context, Result};
+use {
+    anyhow::{Context, Result},
+    ash::vk
+};
 
-use ash::vk;
+use crate::renderer::geometry::GeometryData;
 
 #[cfg(debug_assertions)]
 use super::logger::Logger;
-
-use crate::renderer::geometry::GeometryData;
 
 pub struct Scene;
 
@@ -17,7 +18,7 @@ impl Scene {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
-        let (skybox_model, skybox_texture ) = Self::demo_skybox("spree-bank.jpg")?;
+        let (skybox_model, skybox_texture ) = Self::demo_skybox("spree_bank.jpg")?;
         let (  gltf_model,   gltf_textures) = Self::demo_gltf("damaged_helmet.glb")?;
 
         let scene = vec![

@@ -1,10 +1,10 @@
 // dacho/src/renderer/pipeline.rs
 
-use std::io::Write;
-
-use anyhow::{Context, Result, anyhow};
-
-use ash::vk;
+use {
+    std::io::Write,
+    anyhow::{Context, Result, anyhow},
+    ash::vk
+};
 
 use super::{
     descriptor::DescriptorSetLayout,

@@ -1,12 +1,11 @@
 // dacho/src/renderer/surface.rs
 
-use anyhow::Result;
-
-use ash::{extensions::khr, vk};
-
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-
-use winit::window::Window;
+use {
+    anyhow::Result,
+    ash::{extensions::khr, vk},
+    raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle},
+    winit::window::Window
+};
 
 use super::instance::Instance;
 

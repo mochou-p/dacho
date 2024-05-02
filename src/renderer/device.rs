@@ -1,8 +1,9 @@
 // dacho/src/renderer/device.rs
 
-use anyhow::{Context, Result};
-
-use ash::{extensions::khr, vk};
+use {
+    anyhow::{Context, Result},
+    ash::{extensions::khr, vk}
+};
 
 use super::instance::Instance;
 

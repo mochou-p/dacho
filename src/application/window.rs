@@ -1,13 +1,14 @@
 // dacho/src/application/window.rs
 
-use anyhow::Result;
-
-use winit::{
-    dpi::PhysicalSize,
-    event_loop::EventLoop,
-    window::{
-        Window as winit_Window,
-        WindowBuilder
+use {
+    anyhow::Result,
+    winit::{
+        dpi::PhysicalSize,
+        event_loop::EventLoop,
+        window::{
+            Window as winit_Window,
+            WindowBuilder
+        }
     }
 };
 
