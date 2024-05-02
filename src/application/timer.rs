@@ -1,5 +1,8 @@
 // dacho/src/application/timer.rs
 
+#[cfg(debug_assertions)]
+use super::logger::Logger;
+
 pub struct Timer {
     start_time:  std::time::Instant,
     #[cfg(debug_assertions)]
@@ -13,9 +16,6 @@ pub struct Timer {
     #[cfg(debug_assertions)]
     first_frame: bool
 }
-
-#[cfg(debug_assertions)]
-use super::logger::Logger;
 
 impl Timer {
     pub fn new(

@@ -2,10 +2,10 @@
 
 use anyhow::Result;
 
+use dacho::application::Application;
+
 #[cfg(debug_assertions)]
 use dacho::application::logger::Logger;
-
-use dacho::application::Application;
 
 fn main() -> Result<()> {
     #[cfg(debug_assertions)] {

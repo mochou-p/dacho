@@ -1,19 +1,18 @@
 // dacho/src/renderer/debug.rs
 
-use anyhow::Result;
-
-use ash::{
-    extensions::ext,
-    vk
+use {
+    anyhow::Result,
+    ash::{extensions::ext, vk}
 };
 
-use vk::DebugUtilsMessageSeverityFlagsEXT  as MessageSeverity;
-use vk::DebugUtilsMessageTypeFlagsEXT      as MessageType;
-use vk::DebugUtilsMessengerCallbackDataEXT as CallbackData;
+use {
+    super::instance::Instance,
+    crate::application::logger::Logger
+};
 
-use super::instance::Instance;
-
-use crate::application::logger::Logger;
+type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
+type MessageType     = vk::DebugUtilsMessageTypeFlagsEXT;
+type CallbackData    = vk::DebugUtilsMessengerCallbackDataEXT;
 
 pub struct Debug {
     loader:    ext::DebugUtils,

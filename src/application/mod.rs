@@ -7,30 +7,29 @@ pub mod logger;
     mod timer;
     mod window;
 
-#[cfg(debug_assertions)]
-use anyhow::Context;
-
-use anyhow::Result;
-
-use glam::f32 as glam;
-
-use winit::{
-    event::{DeviceEvent, Event, WindowEvent},
-    event_loop::{EventLoop, EventLoopWindowTarget},
-    keyboard::{KeyCode::*, PhysicalKey::Code}
+use {
+    anyhow::Result,
+    glam::f32 as glam,
+    winit::{
+        event::{DeviceEvent, Event, WindowEvent},
+        event_loop::{EventLoop, EventLoopWindowTarget},
+        keyboard::{KeyCode::*, PhysicalKey::Code}
+    }
 };
-
-#[cfg(debug_assertions)]
-use logger::Logger;
 
 use {
     camera::Camera,
     scene::Scene,
     timer::Timer,
-    window::Window
+    window::Window,
+    super::renderer::Renderer
 };
 
-use super::renderer::Renderer;
+#[cfg(debug_assertions)]
+use {
+    anyhow::Context,
+    logger::Logger
+};
 
 pub struct Application {
     window:   Window,

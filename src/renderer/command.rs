@@ -1,8 +1,9 @@
 // dacho/src/renderer/command.rs
 
-use anyhow::Result;
-
-use ash::vk;
+use {
+    anyhow::Result,
+    ash::vk
+};
 
 use super::{
     device::Device,

@@ -1,10 +1,10 @@
 // dacho/src/renderer/descriptor.rs
 
-use anyhow::Result;
-
-use ash::vk;
-
-use glam::f32 as glam;
+use {
+    anyhow::Result,
+    ash::vk,
+    glam::f32 as glam
+};
 
 use super::{
     buffer::Buffer,

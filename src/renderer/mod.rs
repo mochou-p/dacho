@@ -15,21 +15,14 @@ pub mod geometry;
     mod swapchain;
     mod vertex_input;
 
-use std::collections::HashMap;
-
-use anyhow::{Context, Result};
-
-use ash::vk;
-
-use winit::{
-    event_loop::EventLoop,
-    window::Window
-};
-
-#[cfg(debug_assertions)]
 use {
-    debug::Debug,
-    crate::application::logger::Logger
+    std::collections::HashMap,
+    anyhow::{Context, Result},
+    ash::vk,
+    winit::{
+        event_loop::EventLoop,
+        window::Window
+    }
 };
 
 use {
@@ -44,6 +37,12 @@ use {
     render_pass::RenderPass,
     surface::Surface,
     swapchain::Swapchain,
+};
+
+#[cfg(debug_assertions)]
+use {
+    debug::Debug,
+    crate::application::logger::Logger
 };
 
 pub struct Renderer {

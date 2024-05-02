@@ -1,8 +1,9 @@
 // dacho/src/renderer/swapchain.rs
 
-use anyhow::Result;
-
-use ash::{extensions::khr, vk};
+use {
+    anyhow::Result,
+    ash::{extensions::khr, vk}
+};
 
 use super::{
     device::{Device, PhysicalDevice},

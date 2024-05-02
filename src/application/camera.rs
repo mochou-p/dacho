@@ -1,10 +1,11 @@
 // dacho/src/application/camera.rs
 
-use glam::f32 as glam;
-
-use winit::{
-    event::KeyEvent,
-    keyboard::{KeyCode::*, PhysicalKey::Code}
+use {
+    glam::f32 as glam,
+    winit::{
+        event::KeyEvent,
+        keyboard::{KeyCode::*, PhysicalKey::Code}
+    }
 };
 
 #[cfg(debug_assertions)]

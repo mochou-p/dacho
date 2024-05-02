@@ -1,10 +1,10 @@
 // dacho/src/renderer/geometry.rs
 
-use std::collections::HashMap;
-
-use anyhow::{Context, Result};
-
-use ash::vk;
+use {
+    std::collections::HashMap,
+    anyhow::{Context, Result},
+    ash::vk
+};
 
 use super::{
     buffer::{Buffer, IndexBuffer, VertexBuffer},
