@@ -207,7 +207,7 @@ fn read_spirv(filename: String) -> Result<Vec<u32>> {
     #[cfg(debug_assertions)]
     Logger::info(format!("Reading `{filename}`"));
 
-    let bytes = &std::fs::read(format!("assets/shaders/bin/{filename}"))?;
+    let bytes = &std::fs::read(format!("assets/.cache/shaders.{filename}.spv"))?;
     let words = unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
 
     Ok(words.to_vec())
@@ -315,7 +315,7 @@ fn shader_modules(
             let stage = str_to_stage(stage_str, &mut topology);
 
             let module = {
-                let code = read_spirv(format!("{name}.{stage_str}.spv"))?;
+                let code = read_spirv(format!("{name}.{stage_str}"))?;
 
                 let create_info = vk::ShaderModuleCreateInfo::builder()
                     .code(&code);

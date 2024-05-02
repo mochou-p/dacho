@@ -7,11 +7,11 @@ from shutil             import which
 from sys                import exit as sys_exit
 
 
-COMPILER =  "glslc"
-ROOT     =  "assets/shaders"
-BIN_DIR  =  "bin"
-CACHE    = f"{ROOT}/{BIN_DIR}"
-WS       =  " " * 10
+COMPILER  =  "glslc"
+ASSETS    =  "assets"
+CACHE_DIR =  ".cache"
+CACHE     = f"{ASSETS}/{CACHE_DIR}"
+WS        =  " " * 10
 
 class Color:
     red   = "\033[31;1m"
@@ -20,7 +20,7 @@ class Color:
 
 
 def compile_shader(shader):
-    shader_path = f"{ROOT}/{shader}"
+    shader_path = f"{ASSETS}/shaders/{shader}"
 
     if not isdir(shader_path):
         return
@@ -33,7 +33,7 @@ def compile_shader(shader):
         if not isfile(module_path):
             continue
 
-        spir_v = f"{CACHE}/{module}.spv"
+        spir_v = f"{CACHE}/shaders.{module}.spv"
         status = "Recompiled" if exists(spir_v) else "Compiled"
 
         if system(f"{COMPILER} {module_path} -o {spir_v}"):
@@ -48,7 +48,7 @@ def main():
     if not exists(CACHE):
         mkdir(CACHE)
 
-    shaders = [shader for shader in listdir(ROOT) if shader != BIN_DIR]
+    shaders = [shader for shader in listdir(f"{ASSETS}/shaders") if shader != CACHE_DIR]
 
     with ThreadPoolExecutor() as tpe:
         errors = tpe.map(compile_shader, shaders)
