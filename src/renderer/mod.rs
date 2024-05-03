@@ -118,7 +118,7 @@ impl Renderer {
             )?;
 
             let skybox_view = TextureView::new_image_view(&device, &skybox)?;
-            let sampler     = Sampler::new(&device)?;
+            let sampler     = Sampler::new(&device, true)?;
 
             images.push(skybox);
             image_views.push(skybox_view);
@@ -131,7 +131,7 @@ impl Renderer {
             )?;
 
             let texture_view = TextureView::new_image_view(&device, &texture)?;
-            let sampler      = Sampler::new(&device)?;
+            let sampler      = Sampler::new(&device, false)?;
 
             images.push(texture);
             image_views.push(texture_view);
