@@ -46,27 +46,30 @@ impl Timer {
 
     #[cfg(debug_assertions)]
     pub fn fps(&mut self) {
-        if self.frames == self.rate {
-            let now        = std::time::Instant::now();
-            let elapsed    = now.duration_since(self.last_time).as_secs_f32();
-            self.last_time = now;
-            self.frames    = 1;
+        match self {
+            Self { frames, rate, .. } if frames == rate => {
+                let now        = std::time::Instant::now();
+                let elapsed    = now.duration_since(self.last_time).as_secs_f32();
+                self.last_time = now;
+                self.frames    = 1;
 
-            let fps = (self.rate as f32 / elapsed).round() as usize;
+                let fps = (self.rate as f32 / elapsed).round() as usize;
 
-            if fps != self.last_fps {
-                Logger::info_r(format!("{} FPS                           ", fps));
+                if fps != self.last_fps {
+                    Logger::info_r(format!("{} FPS{}", fps, " ".repeat(27)));
 
-                self.last_fps = fps;
+                    self.last_fps = fps;
+                }
+            },
+            _ => {
+                if self.first_frame {
+                    Logger::info_r("Waiting for first Timer tickrate");
+
+                    self.first_frame = false;
+                }
+
+                self.frames += 1
             }
-        } else {
-            if self.first_frame {
-                Logger::info_r("Waiting for first Timer tickrate");
-
-                self.first_frame = false;
-            }
-
-            self.frames += 1
         }
     }
 }

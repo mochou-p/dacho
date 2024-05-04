@@ -9,12 +9,7 @@ pub mod logger;
 
 use {
     anyhow::Result,
-    futures::{
-        executor::block_on,
-        future::join_all
-    },
     glam::f32 as glam,
-    tokio::spawn,
     winit::{
         event::{DeviceEvent, Event, WindowEvent},
         event_loop::{EventLoop, EventLoopWindowTarget},
@@ -33,7 +28,12 @@ use {
 #[cfg(debug_assertions)]
 use {
     anyhow::Context,
-    logger::Logger
+    futures::{
+        executor::block_on,
+        future::join_all
+    },
+    logger::Logger,
+    tokio::spawn
 };
 
 pub struct Application {
@@ -112,12 +112,15 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<Option<(String, 
         .args([in_, "-o", out])
         .output()?;
 
-    if output.status.code().context("Error receiving status code")? == 0 {
-        Logger::info(format!("Compiled `{filename}`"));
+    match output.status.code().context("Error receiving status code")? {
+        0 => {
+            Logger::info(format!("Compiled `{filename}`"));
 
-        Ok(None)
-    } else {
-        Ok(Some((filename.to_string(), String::from_utf8(output.stderr)?)))
+            Ok(None)
+        },
+        _ => {
+            Ok(Some((filename.to_string(), String::from_utf8(output.stderr)?)))
+        }
     }
 }
 
