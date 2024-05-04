@@ -2,7 +2,8 @@
 
 use {
     anyhow::{Context, Result},
-    ash::vk
+    ash::vk,
+    tokio::spawn
 };
 
 use crate::renderer::geometry::GeometryData;
@@ -14,23 +15,28 @@ pub struct Scene;
 
 impl Scene {
     #[allow(clippy::type_complexity)]
-    pub fn demo() -> Result<(Vec<GeometryData>, Vec<u8>, Vec<Vec<u8>>)> {
+    pub async fn demo() -> Result<(Vec<GeometryData>, Vec<u8>, Vec<Vec<u8>>)> {
         #[cfg(debug_assertions)]
         Logger::info("Loading and generating loading Scene");
 
-        let (skybox_model, skybox_texture ) = Self::demo_skybox("spree_bank.jpg")?;
-        let (  gltf_model,   gltf_textures) = Self::demo_gltf("damaged_helmet.glb")?;
+        let skybox   = spawn(Self::demo_skybox("spree_bank.jpg"));
+        let gltf     = spawn(Self::demo_gltf("damaged_helmet.glb"));
+        let vignette = spawn(Self::demo_vignette());
+
+        let (  skybox_g, skybox_t) = skybox   .await??;
+        let (    gltf_g,   gltf_t) = gltf     .await??;
+        let  vignette_g            = vignette .await??;
 
         let scene = vec![
-            skybox_model,
-            gltf_model,
-            Self::demo_vignette()?
+            skybox_g,
+            gltf_g,
+            vignette_g
         ];
 
-        Ok((scene, skybox_texture, gltf_textures))
+        Ok((scene, skybox_t, gltf_t))
     }
 
-    fn demo_skybox(filename: &str) -> Result<(GeometryData, Vec<u8>)> {
+    async fn demo_skybox(filename: &str) -> Result<(GeometryData, Vec<u8>)> {
         let vertices: Vec<f32> = vec![
             -1.0,  1.0, -1.0,
              1.0,  1.0, -1.0,
@@ -96,7 +102,7 @@ impl Scene {
         Ok((geometry_data, pixels))
     }
 
-    fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {
+    async fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {
         let (gltf, buffers, images) = gltf::import(format!("assets/models/{filename}"))?;
 
         let mut vertices: Vec<f32> = vec![];
@@ -232,7 +238,7 @@ impl Scene {
         Ok((geometry_data, textures))
     }
 
-    fn demo_vignette() -> Result<GeometryData> {
+    async fn demo_vignette() -> Result<GeometryData> {
         let vertices: Vec<f32> = vec![
             -1.0, -1.0,
              1.0, -1.0,
