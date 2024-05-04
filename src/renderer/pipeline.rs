@@ -274,6 +274,7 @@ pub fn shader_input_types(
 fn str_to_stage(string: &str, topology: &mut vk::PrimitiveTopology) -> vk::ShaderStageFlags {
     match string {
         "vert" => vk::ShaderStageFlags::VERTEX,
+        "geom" => vk::ShaderStageFlags::GEOMETRY,
         "tesc" => {
             *topology = vk::PrimitiveTopology::PATCH_LIST;
 

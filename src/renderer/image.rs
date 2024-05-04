@@ -94,30 +94,25 @@ impl Image {
     ) -> Result<()> {
         let command_buffer = command_pool.begin_single_time_commands(device)?;
 
-        let src_stage;
-        let dst_stage;
-        let src_access_mask;
-        let dst_access_mask;
-
-        if old_layout == vk::ImageLayout::UNDEFINED
-            && new_layout == vk::ImageLayout::TRANSFER_DST_OPTIMAL
-        {
-            src_access_mask = vk::AccessFlags::empty();
-            dst_access_mask = vk::AccessFlags::TRANSFER_WRITE;
-
-            src_stage = vk::PipelineStageFlags::TOP_OF_PIPE;
-            dst_stage = vk::PipelineStageFlags::TRANSFER;
-        } else if old_layout == vk::ImageLayout::TRANSFER_DST_OPTIMAL
-            && new_layout == vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
-        {
-            src_access_mask = vk::AccessFlags::TRANSFER_WRITE;
-            dst_access_mask = vk::AccessFlags::SHADER_READ;
-
-            src_stage = vk::PipelineStageFlags::TRANSFER;
-            dst_stage = vk::PipelineStageFlags::FRAGMENT_SHADER;
-        } else {
-            panic!("Invalid layout transition");
-        }
+        let (src_am, dst_am, src_stage, dst_stage) = match (old_layout, new_layout) {
+            (vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL) => {
+                (
+                    vk::AccessFlags::empty(),
+                    vk::AccessFlags::TRANSFER_WRITE,
+                    vk::PipelineStageFlags::TOP_OF_PIPE,
+                    vk::PipelineStageFlags::TRANSFER
+                )
+            },
+            (vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL) => {
+                (
+                    vk::AccessFlags::TRANSFER_WRITE,
+                    vk::AccessFlags::SHADER_READ,
+                    vk::PipelineStageFlags::TRANSFER,
+                    vk::PipelineStageFlags::FRAGMENT_SHADER
+                )
+            },
+            _ => { panic!("Invalid layout transition"); }
+        };
 
         let subresource_range = vk::ImageSubresourceRange::builder()
             .aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -135,8 +130,8 @@ impl Image {
                 .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
                 .image(self.raw)
                 .subresource_range(subresource_range)
-                .src_access_mask(src_access_mask)
-                .dst_access_mask(dst_access_mask)
+                .src_access_mask(src_am)
+                .dst_access_mask(dst_am)
                 .build()
         ];
 
@@ -224,15 +219,15 @@ impl Texture {
             vk::BufferUsageFlags::TRANSFER_SRC
         )?;
 
-        let (width, height);
+        let (width, height) = if is_spherical {
+            let y = ((buffer_size / 4 / 2) as f32).sqrt() as u32;
 
-        if is_spherical {
-            height = ((buffer_size / 4 / 2) as f32).sqrt() as u32;
-            width  = height * 2;
+            (y * 2, y)
         } else {
-            width  = ((buffer_size / 4) as f32).sqrt() as u32;
-            height = width;
-        }
+            let x = ((buffer_size / 4) as f32).sqrt() as u32;
+
+            (x, x)
+        };
 
         let image = Image::new(
             device,
