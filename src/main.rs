@@ -7,7 +7,8 @@ use dacho::application::Application;
 #[cfg(debug_assertions)]
 use dacho::application::logger::Logger;
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         Logger::info("Creating EventLoop");
