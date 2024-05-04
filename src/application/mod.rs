@@ -9,7 +9,12 @@ pub mod logger;
 
 use {
     anyhow::Result,
+    futures::{
+        executor::block_on,
+        future::join_all
+    },
     glam::f32 as glam,
+    tokio::spawn,
     winit::{
         event::{DeviceEvent, Event, WindowEvent},
         event_loop::{EventLoop, EventLoopWindowTarget},
@@ -44,7 +49,7 @@ impl Application {
             Logger::info("Creating Application");
             Logger::indent(1);
 
-            compile_shaders()?;
+            block_on(compile_shaders())?;
         }
 
         let window = Window::new("dacho", 1600, 900, event_loop)?;
@@ -98,23 +103,51 @@ impl Application {
 }
 
 #[cfg(debug_assertions)]
-pub fn compile_shaders() -> Result<()> {
-    Logger::info("Running shader compilation script");
+async fn compile_shader(filepath: std::path::PathBuf) -> Result<Option<(String, String)>> {
+    let in_      = &format!("{}", filepath.display());
+    let filename = &in_[in_.rfind('/').context("Error parsing shader path")?+1..];
+    let out      = &format!("assets/.cache/shaders.{filename}.spv");
 
-    let mut filepath = std::env::current_dir()?;
-    filepath.push("compile_shaders.py");
+    let output = std::process::Command::new("glslc")
+        .args([in_, "-o", out])
+        .output()?;
 
-    let output = std::process::Command::new("python")
-        .arg(
-            filepath
-                .display()
-                .to_string()
-        )
-        .spawn()?
-        .wait_with_output()?;
+    if output.status.code().context("Error receiving status code")? == 0 {
+        Logger::info(format!("Compiled `{filename}`"));
 
-    if output.status.code().context("No command exit code")? != 0 {
-        Logger::error("Failed to compile all shaders");
+        Ok(None)
+    } else {
+        Ok(Some((filename.to_string(), String::from_utf8(output.stderr)?)))
+    }
+}
+
+#[cfg(debug_assertions)]
+async fn compile_shaders() -> Result<()> {
+    Logger::info("Compilining shaders");
+    Logger::indent(1);
+
+    let mut futures = vec![];
+
+    for shader in std::fs::read_dir("assets/shaders")? {
+        for stage in std::fs::read_dir(shader?.path())? {
+            futures.push(spawn(compile_shader(stage?.path())));
+        }
+    }
+
+    let     results = join_all(futures).await;
+    let mut errors  = false;
+
+    for result in results {
+        if let Some((filename, error)) = result?? {
+            Logger::error(format!("in `{filename}`:\n{error}"));
+            errors = true;
+        }
+    }
+
+    Logger::indent(-1);
+
+    if errors {
+        Logger::panic("Failed to compile all shaders");
     }
 
     Ok(())

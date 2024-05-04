@@ -157,7 +157,7 @@ impl Renderer {
                 &mut shader_info_cache
             )?;
 
-            if pipelines.get(&geometry_data.shader).is_none() {
+            if !pipelines.contains_key(&geometry_data.shader) {
                 let shader_info = shader_info_cache.get(&geometry_data.shader)
                     .context(format!("{} not found in shader info cache", geometry_data.shader))?;
 
@@ -194,7 +194,7 @@ impl Renderer {
             Command::BeginRenderPass(&render_pass, &swapchain)
         ];
 
-        let mut last_pipeline = String::from("");
+        let mut last_pipeline = "".to_string();
         let mut first_iter    = true;
 
         #[cfg(debug_assertions)]
@@ -210,7 +210,7 @@ impl Renderer {
                     )
                 );
 
-                last_pipeline = geometry.shader.clone();
+                last_pipeline.clone_from(&geometry.shader);
             }
 
             if first_iter {
