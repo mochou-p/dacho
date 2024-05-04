@@ -9,6 +9,7 @@ pub mod logger;
 
 use {
     anyhow::Result,
+    futures::executor::block_on,
     glam::f32 as glam,
     winit::{
         event::{DeviceEvent, Event, WindowEvent},
@@ -28,10 +29,7 @@ use {
 #[cfg(debug_assertions)]
 use {
     anyhow::Context,
-    futures::{
-        executor::block_on,
-        future::join_all
-    },
+    futures::future::join_all,
     logger::Logger,
     tokio::spawn
 };
@@ -54,7 +52,7 @@ impl Application {
 
         let window = Window::new("dacho", 1600, 900, event_loop)?;
 
-        let (scene, skybox_texture, gltf_textures) = Scene::demo()?;
+        let (scene, skybox_texture, gltf_textures) = block_on(Scene::demo())?;
 
         let renderer = Renderer::new(
             event_loop, &window.window, window.width, window.height, &scene, &skybox_texture, &gltf_textures
@@ -104,12 +102,12 @@ impl Application {
 
 #[cfg(debug_assertions)]
 async fn compile_shader(filepath: std::path::PathBuf) -> Result<Option<(String, String)>> {
-    let in_      = &format!("{}", filepath.display());
-    let filename = &in_[in_.rfind('/').context("Error parsing shader path")?+1..];
-    let out      = &format!("assets/.cache/shaders.{filename}.spv");
+    let glsl_in  = &format!("{}", filepath.display());
+    let filename = &glsl_in[glsl_in.rfind('/').context("Error parsing shader path")?+1..];
+    let spv_out  = &format!("assets/.cache/shaders.{filename}.spv");
 
     let output = std::process::Command::new("glslc")
-        .args([in_, "-o", out])
+        .args([glsl_in, "-o", spv_out])
         .output()?;
 
     match output.status.code().context("Error receiving status code")? {
