@@ -2,7 +2,7 @@
 
 use {
     std::io::Write,
-    anyhow::{Context, Result, anyhow},
+    anyhow::{Context, Result, bail},
     ash::vk
 };
 
@@ -255,15 +255,7 @@ pub fn shader_input_types(
                 print!("      ");
                 std::io::stdout().flush()?;
 
-                return Err(
-                    anyhow!(
-                        format!(
-                            "\x1b[31;1mFailed\x1b[0m to parse `{}.vert` at line {}",
-                            filename,
-                            i + 1
-                        )
-                    )
-                );
+                bail!("\x1b[31;1mFailed\x1b[0m to parse `{filename}.vert` at line {}", i + 1);
             }
         }
     }
