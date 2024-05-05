@@ -9,7 +9,7 @@
 pub mod geometry;
     mod image;
     mod instance;
-    mod pipeline;
+pub mod pipeline;
     mod render_pass;
     mod surface;
     mod swapchain;

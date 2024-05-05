@@ -271,7 +271,7 @@ pub fn shader_input_types(
     Ok((vertex_info, instance_info))
 }
 
-fn str_to_stage(string: &str, topology: &mut vk::PrimitiveTopology) -> vk::ShaderStageFlags {
+fn str_to_vk_stage(string: &str, topology: &mut vk::PrimitiveTopology) -> vk::ShaderStageFlags {
     match string {
         "vert" => vk::ShaderStageFlags::VERTEX,
         "geom" => vk::ShaderStageFlags::GEOMETRY,
@@ -313,7 +313,7 @@ fn shader_modules(
                 ..
             ];
 
-            let stage = str_to_stage(stage_str, &mut topology);
+            let stage = str_to_vk_stage(stage_str, &mut topology);
 
             let module = {
                 let code = read_spirv(format!("{name}.{stage_str}"))?;
