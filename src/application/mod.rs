@@ -28,9 +28,14 @@ use {
 
 #[cfg(debug_assertions)]
 use {
-    anyhow::Context,
+    anyhow::{Context, bail},
     futures::future::join_all,
     logger::Logger,
+    naga::{
+        back::spv::{Options as SpvOptions, write_vec},
+        front::wgsl::Frontend,
+        valid::{Capabilities, ValidationFlags, Validator}
+    },
     tokio::spawn
 };
 
@@ -100,12 +105,6 @@ impl Application {
     }
 }
 
-use naga::{
-    back::spv::{Options as SpvOptions, write_vec},
-    front::wgsl::Frontend,
-    valid::{Capabilities, ValidationFlags, Validator}
-};
-
 #[cfg(debug_assertions)]
 async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
@@ -117,19 +116,27 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
         ..Default::default()
     };
 
-    let bytes_in  = &std::fs::read(wgsl_in)?;
-    let code      = std::str::from_utf8(bytes_in)?;
-    let module    = Frontend::new().parse(code);
-    let _         = module.clone().map_err(|error| Logger::error(format!("`{filename}`: {error}")));
-    let info      = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
-    let _         = info.clone().map_err(|error| Logger::error(format!("`{filename}`: {error}")));
-    let words     = write_vec(&module?, &info?, &options, None)?;
+    let bytes_in = &std::fs::read(wgsl_in)?;
+    let code     = std::str::from_utf8(bytes_in)?;
+    let module   = Frontend::new().parse(code);
+
+    if module.clone().map_err(|error| Logger::error(format!("`{wgsl_in}`: {error}"))).is_err() {
+        bail!("");
+    }
+
+    let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
+    
+    if info.clone().map_err(|error| Logger::error(format!("`{wgsl_in}`: {error}"))).is_err() {
+        bail!("");
+    }
+
+    let words = write_vec(&module?, &info?, &options, None)?;
 
     let bytes_out: Vec<u8> = words.iter().flat_map(|word| word.to_ne_bytes().to_vec()).collect();
 
     std::fs::write(spv_out, bytes_out)?;
 
-    Logger::info(format!("Compiled `{spv_out}`"));
+    Logger::info(format!("Compiled `{wgsl_in}`"));
 
     Ok(())
 }
@@ -145,26 +152,33 @@ async fn compile_shaders() -> Result<()> {
     for shader in std::fs::read_dir("assets/shaders")? {
         let path = shader?.path();
 
-        filenames.push(path.clone());
+        filenames.push(path.display().to_string());
         futures.push(spawn(compile_shader(path)));
     }
 
     let results = join_all(futures).await;
 
-    let mut i = 0_usize;
+    let (mut i, mut j) = (0_usize, 0_usize);
 
     for result in results {
-        match result? {
-            Err(r) => { Logger::error(format!("`{}`: {r}", filenames[i].display())); }
-            _ => () 
+        if let Err(error) = result? {
+            if error.to_string() != "" {
+                let filename = &filenames[i][filenames[i].rfind('/').context("Error parsing shader path")?+1..];
+
+                Logger::error(format!("`{filename}`: {error}"));
+            }
+
+            j += 1;
         }
 
         i += 1;
     }
 
-    panic!();
-
     Logger::indent(-1);
+
+    if j != 0 {
+        Logger::panic("Failed to compile all shaders");
+    }
 
     Ok(())
 }

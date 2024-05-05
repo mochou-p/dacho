@@ -2,9 +2,7 @@
 
 # dacho
 
-Run with `--release` if your system is missing:
-- [Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
-- [glslc](https://github.com/google/shaderc/tree/main/glslc)
+Run with `--release` if your system is missing [Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
 
 ## License
 

@@ -55,7 +55,7 @@ fn vertex(in: VertexInput) -> VertexOutput {
 }
 
 @group(0) @binding(1) var smp:  sampler;
-@group(0) @binding(3) var texs: array<texture_2d<f32>, 5>;
+@group(0) @binding(3) var texs: binding_array<texture_2d<f32>, 5>;
 
 struct FragmentInput {
     @location(0) world_pos:  vec3<f32>,
