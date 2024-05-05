@@ -36,7 +36,9 @@ impl Window {
             .with_inner_size(PhysicalSize::new(width, height))
             .build(event_loop)?;
 
-        window.set_cursor_grab(winit::window::CursorGrabMode::Locked)?;
+        window.set_cursor_grab(winit::window::CursorGrabMode::Locked)
+            .expect("Failed to lock the cursor");
+
         window.set_cursor_visible(false);
 
         Ok(Self { window, width, height })

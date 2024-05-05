@@ -100,26 +100,38 @@ impl Application {
     }
 }
 
+use naga::{
+    back::spv::{Options as SpvOptions, write_vec},
+    front::wgsl::Frontend,
+    valid::{Capabilities, ValidationFlags, Validator}
+};
+
 #[cfg(debug_assertions)]
-async fn compile_shader(filepath: std::path::PathBuf) -> Result<Option<(String, String)>> {
-    let glsl_in  = &format!("{}", filepath.display());
-    let filename = &glsl_in[glsl_in.rfind('/').context("Error parsing shader path")?+1..];
+async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
+    let wgsl_in  = &format!("{}", filepath.display());
+    let filename = &wgsl_in[wgsl_in.rfind('/').context("Error parsing shader path")?+1..];
     let spv_out  = &format!("assets/.cache/shaders.{filename}.spv");
 
-    let output = std::process::Command::new("glslc")
-        .args([glsl_in, "-o", spv_out])
-        .output()?;
+    let options = SpvOptions {
+        lang_version: (1, 5),
+        ..Default::default()
+    };
 
-    match output.status.code().context("Error receiving status code")? {
-        0 => {
-            Logger::info(format!("Compiled `{filename}`"));
+    let bytes_in  = &std::fs::read(wgsl_in)?;
+    let code      = std::str::from_utf8(bytes_in)?;
+    let module    = Frontend::new().parse(code);
+    let _         = module.clone().map_err(|error| Logger::error(format!("`{filename}`: {error}")));
+    let info      = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
+    let _         = info.clone().map_err(|error| Logger::error(format!("`{filename}`: {error}")));
+    let words     = write_vec(&module?, &info?, &options, None)?;
 
-            Ok(None)
-        },
-        _ => {
-            Ok(Some((filename.to_string(), String::from_utf8(output.stderr)?)))
-        }
-    }
+    let bytes_out: Vec<u8> = words.iter().flat_map(|word| word.to_ne_bytes().to_vec()).collect();
+
+    std::fs::write(spv_out, bytes_out)?;
+
+    Logger::info(format!("Compiled `{spv_out}`"));
+
+    Ok(())
 }
 
 #[cfg(debug_assertions)]
@@ -127,29 +139,32 @@ async fn compile_shaders() -> Result<()> {
     Logger::info("Compilining shaders");
     Logger::indent(1);
 
-    let mut futures = vec![];
+    let mut filenames = vec![];
+    let mut futures   = vec![];
 
     for shader in std::fs::read_dir("assets/shaders")? {
-        for stage in std::fs::read_dir(shader?.path())? {
-            futures.push(spawn(compile_shader(stage?.path())));
-        }
+        let path = shader?.path();
+
+        filenames.push(path.clone());
+        futures.push(spawn(compile_shader(path)));
     }
 
-    let     results = join_all(futures).await;
-    let mut errors  = false;
+    let results = join_all(futures).await;
+
+    let mut i = 0_usize;
 
     for result in results {
-        if let Some((filename, error)) = result?? {
-            Logger::error(format!("in `{filename}`:\n{error}"));
-            errors = true;
+        match result? {
+            Err(r) => { Logger::error(format!("`{}`: {r}", filenames[i].display())); }
+            _ => () 
         }
+
+        i += 1;
     }
+
+    panic!();
 
     Logger::indent(-1);
-
-    if errors {
-        Logger::panic("Failed to compile all shaders");
-    }
 
     Ok(())
 }
