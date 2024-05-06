@@ -285,18 +285,12 @@ pub struct Sampler {
 }
 
 impl Sampler {
-    pub fn new(device: &Device, is_spherical: bool) -> Result<Self> {
+    pub fn new(device: &Device, address_move_v: vk::SamplerAddressMode) -> Result<Self> {
         let create_info = vk::SamplerCreateInfo::builder()
             .mag_filter(vk::Filter::LINEAR)
             .min_filter(vk::Filter::LINEAR)
             .address_mode_u(vk::SamplerAddressMode::REPEAT)
-            .address_mode_v(
-                if is_spherical {
-                    vk::SamplerAddressMode::CLAMP_TO_EDGE
-                } else {
-                    vk::SamplerAddressMode::REPEAT
-                }
-            )
+            .address_mode_v(address_move_v)
             .address_mode_w(vk::SamplerAddressMode::REPEAT)
             .anisotropy_enable(true)
             .max_anisotropy(4.0)

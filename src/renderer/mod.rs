@@ -110,7 +110,11 @@ impl Renderer {
 
         let mut images      = vec![];
         let mut image_views = vec![];
-        let mut samplers    = vec![];
+
+        let samplers = vec![
+            Sampler::new(&device, vk::SamplerAddressMode::CLAMP_TO_EDGE)?,
+            Sampler::new(&device, vk::SamplerAddressMode::REPEAT)?
+        ];
 
         {
             let skybox = Texture::new_image(
@@ -118,11 +122,9 @@ impl Renderer {
             )?;
 
             let skybox_view = TextureView::new_image_view(&device, &skybox)?;
-            let sampler     = Sampler::new(&device, true)?;
 
             images.push(skybox);
             image_views.push(skybox_view);
-            samplers.push(sampler);
         }
 
         for gltf_texture in gltf_textures.iter() {
@@ -131,11 +133,9 @@ impl Renderer {
             )?;
 
             let texture_view = TextureView::new_image_view(&device, &texture)?;
-            let sampler      = Sampler::new(&device, false)?;
 
             images.push(texture);
             image_views.push(texture_view);
-            samplers.push(sampler);
         }
 
         let mut shader_info_cache = HashMap::new();
@@ -182,17 +182,12 @@ impl Renderer {
         let descriptor_pool   = DescriptorPool::new(&device, gltf_texture_count)?;
 
         let descriptor_set = DescriptorSet::new(
-            &device, &descriptor_pool, &descriptor_set_layout,
-            &ubo,
-            &image_views[0  ], &samplers[0  ],
-            &image_views[1..], &samplers[1..]
+            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &samplers, &image_views
         )?;
 
         let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
 
-        let mut commands = vec![
-            Command::BeginRenderPass(&render_pass, &swapchain)
-        ];
+        let mut commands = vec![Command::BeginRenderPass(&render_pass, &swapchain)];
 
         let mut last_pipeline = "".to_string();
         let mut first_iter    = true;
@@ -298,21 +293,10 @@ impl Renderer {
         }
             .expect("Resetting fences failed");
 
-        let semaphores_available = [
-            self.swapchain.images_available[self.swapchain.current_image]
-        ];
-
-        let waiting_stages = [
-            vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT
-        ];
-
-        let command_buffers = [
-            self.command_buffers.raw[image_index as usize]
-        ];
-
-        let semaphores_finished = [
-            self.swapchain.images_finished[self.swapchain.current_image]
-        ];
+        let semaphores_available = [self.swapchain.images_available[self.swapchain.current_image]];
+        let waiting_stages       = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT              ];
+        let command_buffers      = [self.command_buffers.raw[image_index as usize]               ];
+        let semaphores_finished  = [self.swapchain.images_finished[self.swapchain.current_image] ];
 
         let submit_info = [
             vk::SubmitInfo::builder()
@@ -374,8 +358,8 @@ impl Drop for Renderer {
             pipeline.destroy(&self.device);
         }
 
-        self.render_pass  .destroy(&self.device);
-        self.swapchain    .destroy(&self.device);
+        self.render_pass .destroy(&self.device);
+        self.swapchain   .destroy(&self.device);
 
         #[cfg(debug_assertions)]
         Logger::info("Destroying Textures and Samplers");

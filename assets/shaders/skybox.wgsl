@@ -57,7 +57,7 @@ fn fragment(in: FragmentInput) -> FragmentOutput {
 fn sphere_uv(view_dir: vec3<f32>) -> vec2<f32> {
     return vec2<f32>(
         atan2(view_dir.z, view_dir.x) / 6.2831853076 + 0.5,
-        1.0 - (view_dir.y * 0.5 + 0.5)
+        (view_dir.y * 0.5 + 0.5)
     );
 }
 

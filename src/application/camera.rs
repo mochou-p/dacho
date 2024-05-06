@@ -99,8 +99,8 @@ impl Camera {
             Code(KeyD)      => { self.movement.positive.x = speed; },
             Code(KeyW)      => { self.movement.negative.z = speed; },
             Code(KeyS)      => { self.movement.positive.z = speed; },
-            Code(ShiftLeft) => { self.movement.positive.y = speed; },
-            Code(Space)     => { self.movement.negative.y = speed; },
+            Code(ShiftLeft) => { self.movement.negative.y = speed; },
+            Code(Space)     => { self.movement.positive.y = speed; },
             _ => ()
         }
     }
@@ -111,7 +111,7 @@ impl Camera {
 
         self.rotation.angle.y += y;
 
-        self.rotation.angle.x = (self.rotation.angle.x + x)
+        self.rotation.angle.x = (self.rotation.angle.x - x)
             .clamp(self.bounds.rotation_x.min, self.bounds.rotation_x.max);
     }
 
