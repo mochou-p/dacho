@@ -1,6 +1,9 @@
 // dacho/src/renderer/vertex_input/mod.rs
 
-use ash::vk;
+use {
+    anyhow::{Context, Result},
+    ash::vk
+};
 
 #[derive(Clone, Copy, Debug)]
 pub enum Type {
@@ -37,14 +40,25 @@ const TYPE_INFOS: [TypeInfo; 4] = [
     TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * std::mem::size_of::<f32>() as u32)
 ];
 
-pub fn str_to_type(string: &str) -> Type {
-    match string {
-        "float" => Type::Float,
-        "vec2"  => Type::Vec2,
-        "vec3"  => Type::Vec3,
-        "vec4"  => Type::Vec4,
-        _       => { panic!("Unknown glsl type '{string}'"); }
-    }
+pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
+    let wgsl_type = &field[
+        field
+            .rfind(' ')
+            .context("Failed to parse wgsl field type")?
+            +1
+        ..
+        field.len() - (field.chars().last().context("Failed to get the last char")? == ',') as i32 as usize
+    ];
+
+    let kind = match wgsl_type {
+        "f32"       => Type::Float,
+        "vec2<f32>" => Type::Vec2,
+        "vec3<f32>" => Type::Vec3,
+        "vec4<f32>" => Type::Vec4,
+        _           => { panic!("Unknown glsl type `{wgsl_type}`"); }
+    };
+
+    Ok(kind)
 }
 
 pub fn size_of_types(info: &[Type]) -> usize {

@@ -2,14 +2,15 @@
 
 struct VertexInput {
     @location(0) pos:      vec2<f32>,
+
     @location(1) instance: f32
-};
+}
 
 struct VertexOutput {
     @builtin(position) position: vec4<f32>,
 
     @location(0) uv: vec2<f32>
-};
+}
 
 @vertex
 fn vertex(in: VertexInput) -> VertexOutput {
@@ -23,11 +24,11 @@ fn vertex(in: VertexInput) -> VertexOutput {
 
 struct FragmentInput {
     @location(0) uv: vec2<f32>
-};
+}
 
 struct FragmentOutput {
     @location(0) color: vec4<f32>
-};
+}
 
 @fragment
 fn fragment(in: FragmentInput) -> FragmentOutput {

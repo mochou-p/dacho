@@ -1,7 +1,6 @@
 // dacho/src/application/mod.rs
 
     mod camera;
-#[cfg(debug_assertions)]
 pub mod logger;
     mod scene;
     mod timer;

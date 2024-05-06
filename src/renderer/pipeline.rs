@@ -1,21 +1,20 @@
 // dacho/src/renderer/pipeline.rs
 
 use {
-    std::io::Write,
-    anyhow::{Context, Result, bail},
+    anyhow::Result,
     ash::vk
 };
 
-use super::{
-    descriptor::DescriptorSetLayout,
-    device::Device,
-    render_pass::RenderPass,
-    swapchain::Swapchain,
-    vertex_input::{ShaderInfo, Type, instance_descriptions, str_to_type, vertex_descriptions}
+use {
+    super::{
+        descriptor::DescriptorSetLayout,
+        device::Device,
+        render_pass::RenderPass,
+        swapchain::Swapchain,
+        vertex_input::{ShaderInfo, Type, instance_descriptions, wgsl_field_to_type, vertex_descriptions}
+    },
+    crate::application::logger::Logger
 };
-
-#[cfg(debug_assertions)]
-use crate::application::logger::Logger;
 
 pub struct Pipeline {
     pub name:   String,
@@ -36,8 +35,6 @@ impl Pipeline {
             Logger::indent(1);
         }
 
-        let name = shader_info.name.clone();
-
         let layout = {
             let set_layouts = [descriptor_set_layout.raw];
 
@@ -49,22 +46,31 @@ impl Pipeline {
             unsafe { device.raw.create_pipeline_layout(&create_info, None) }?
         };
 
-        let (modules, topology) = shader_modules(&shader_info.name, device)?;
+        let module = {
+            let code = read_spirv(format!("assets/.cache/shaders.{}.wgsl.spv", shader_info.name))?;
+
+            let create_info = vk::ShaderModuleCreateInfo::builder()
+                .code(&code);
+
+            unsafe { device.raw.create_shader_module(&create_info, None) }?
+        };
 
         let raw = {
-            let entry_point = std::ffi::CString::new("main")?;
+            let vert_entry = std::ffi::CString::new("vertex")?;
+            let frag_entry = std::ffi::CString::new("fragment")?;
 
-            let mut stages = vec![];
-
-            for (module, stage) in modules.iter() {
-                let stage_ = vk::PipelineShaderStageCreateInfo::builder()
-                    .stage(*stage)
-                    .module(*module)
-                    .name(&entry_point)
-                    .build();
-
-                stages.push(stage_);
-            }
+            let stages = vec![
+                vk::PipelineShaderStageCreateInfo::builder()
+                    .stage(vk::ShaderStageFlags::VERTEX)
+                    .module(module)
+                    .name(&vert_entry)
+                    .build(),
+                vk::PipelineShaderStageCreateInfo::builder()
+                    .stage(vk::ShaderStageFlags::FRAGMENT)
+                    .module(module)
+                    .name(&frag_entry)
+                    .build()
+            ];
 
             let (vertex_binding, mut vertex_attributes, last_location) =
                 vertex_descriptions(&shader_info.vertex_info);
@@ -83,7 +89,7 @@ impl Pipeline {
                 .vertex_attribute_descriptions(&attribute_descriptions);
 
             let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::builder()
-                .topology(topology);
+                .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
 
             let viewports = [
                 vk::Viewport::builder()
@@ -153,27 +159,21 @@ impl Pipeline {
                 .max_depth_bounds(1.0)
                 .stencil_test_enable(false);
 
-            let mut pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
-                .stages(&stages)
-                .vertex_input_state(&vertex_input_state)
-                .input_assembly_state(&input_assembly_state)
-                .viewport_state(&viewport_state)
-                .rasterization_state(&rasterization_state)
-                .multisample_state(&multisample_state)
-                .color_blend_state(&color_blend_state)
-                .depth_stencil_state(&depth_stencil_state)
-                .layout(layout)
-                .render_pass(render_pass.raw)
-                .subpass(0);
-
-            let tessellation_state = vk::PipelineTessellationStateCreateInfo::builder()
-                .patch_control_points(4);
-
-            if topology == vk::PrimitiveTopology::PATCH_LIST {
-                pipeline_info = pipeline_info.tessellation_state(&tessellation_state);
-            }
-
-            let pipeline_infos = [pipeline_info.build()];
+            let pipeline_infos = [
+                vk::GraphicsPipelineCreateInfo::builder()
+                    .stages(&stages)
+                    .vertex_input_state(&vertex_input_state)
+                    .input_assembly_state(&input_assembly_state)
+                    .viewport_state(&viewport_state)
+                    .rasterization_state(&rasterization_state)
+                    .multisample_state(&multisample_state)
+                    .color_blend_state(&color_blend_state)
+                    .depth_stencil_state(&depth_stencil_state)
+                    .layout(layout)
+                    .render_pass(render_pass.raw)
+                    .subpass(0)
+                    .build()
+            ];
 
             unsafe {
                 device.raw.create_graphics_pipelines(
@@ -185,12 +185,12 @@ impl Pipeline {
                 .expect("Error creating pipelines")[0]
         };
 
-        for (module, _) in modules.iter() {
-            unsafe { device.raw.destroy_shader_module(*module, None); }
-        }
+        unsafe { device.raw.destroy_shader_module(module, None); }
 
         #[cfg(debug_assertions)]
         Logger::indent(-1);
+
+        let name = shader_info.name.clone();
 
         Ok(Self { name, layout, raw })
     }
@@ -203,14 +203,23 @@ impl Pipeline {
     }
 }
 
-fn read_spirv(filename: String) -> Result<Vec<u32>> {
+fn read_spirv(filepath: String) -> Result<Vec<u32>> {
     #[cfg(debug_assertions)]
-    Logger::info(format!("Reading `{filename}`"));
+    Logger::info(format!("Reading `{filepath}`"));
 
-    let bytes = &std::fs::read(format!("assets/.cache/shaders.{filename}.spv"))?;
+    let bytes = &std::fs::read(filepath)?;
     let words = unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
 
     Ok(words.to_vec())
+}
+
+#[derive(Default, PartialEq)]
+enum ParseState {
+    #[default]
+    Searching,
+    Vertex,
+    Instance,
+    Finished
 }
 
 pub fn shader_input_types(
@@ -219,107 +228,44 @@ pub fn shader_input_types(
     #[cfg(debug_assertions)]
     Logger::info(format!("Parsing `{filename}` for input types"));
 
-    let bytes = &std::fs::read(format!("assets/shaders/{filename}/{filename}.vert"))?;
+    let bytes = &std::fs::read(format!("assets/shaders/{filename}.wgsl"))?;
     let code  = std::str::from_utf8(bytes)?;
 
-    let in_    = " in ";
-    let in_len = in_.len();
+    let (mut vertex_types, mut instance_types) = (vec![], vec![]);
 
-    let mut   vertex_info = vec![];
-    let mut instance_info = vec![];
+    let mut parse_state = ParseState::default();
 
-    let (mut found_in, mut found_nl) = (false, false);
-
-    for (i, line) in code.lines().enumerate() {
-        if found_in && line.is_empty() {
-            if found_nl {
+    for line in code.lines() {
+        match parse_state {
+            ParseState::Searching => {
+                if line == "struct VertexInput {" {
+                    parse_state = ParseState::Vertex;
+                }
+            },
+            ParseState::Vertex => {
+                if line.is_empty() {
+                    parse_state = ParseState::Instance;
+                } else {
+                    vertex_types.push(wgsl_field_to_type(line)?);
+                }
+            },
+            ParseState::Instance => {
+                if line == "}" {
+                    parse_state = ParseState::Finished;
+                } else {
+                    instance_types.push(wgsl_field_to_type(line)?);
+                }
+            },
+            ParseState::Finished => {
                 break;
             }
-
-            found_nl = true;
-        }
-
-        if let Some(left) = line.find(in_) {
-            let var = line[left + in_len..].trim_start();
-
-            if let Some(right) = var.find(' ') {
-                let kind = str_to_type(&var[..right]);
-                found_in = true;
-
-                if found_nl {
-                    instance_info.push(kind);
-                } else {
-                    vertex_info.push(kind);
-                }
-            } else {
-                print!("      ");
-                std::io::stdout().flush()?;
-
-                bail!("\x1b[31;1mFailed\x1b[0m to parse `{filename}.vert` at line {}", i + 1);
-            }
         }
     }
 
-    Ok((vertex_info, instance_info))
-}
-
-fn str_to_vk_stage(string: &str, topology: &mut vk::PrimitiveTopology) -> vk::ShaderStageFlags {
-    match string {
-        "vert" => vk::ShaderStageFlags::VERTEX,
-        "geom" => vk::ShaderStageFlags::GEOMETRY,
-        "tesc" => {
-            *topology = vk::PrimitiveTopology::PATCH_LIST;
-
-            vk::ShaderStageFlags::TESSELLATION_CONTROL
-        },
-        "tese" => vk::ShaderStageFlags::TESSELLATION_EVALUATION,
-        "frag" => vk::ShaderStageFlags::FRAGMENT,
-        _      => { panic!("Unknown shader stage '{string}'"); }
-    }
-}
-
-fn shader_modules(
-    name:   &String,
-    device: &Device
-) -> Result<(Vec<(vk::ShaderModule, vk::ShaderStageFlags)>, vk::PrimitiveTopology)> {
-    #[cfg(debug_assertions)]
-    Logger::info(format!("Scanning `{name}` for shader stages"));
-
-    let mut modules  = vec![];
-    let mut topology = vk::PrimitiveTopology::TRIANGLE_LIST;
-
-    let directory = std::fs::read_dir(format!("assets/shaders/{name}"))?;
-
-    for entry in directory {
-        let path = entry?.path();
-
-        if path.is_file() {
-            let mut stage_str = path
-                .to_str()
-                .context("Failed to convert PathBuf to &str")?;
-
-            stage_str = &stage_str[
-                stage_str
-                    .rfind('.')
-                    .context("Failed to parse shader filename")? + 1
-                ..
-            ];
-
-            let stage = str_to_vk_stage(stage_str, &mut topology);
-
-            let module = {
-                let code = read_spirv(format!("{name}.{stage_str}"))?;
-
-                let create_info = vk::ShaderModuleCreateInfo::builder()
-                    .code(&code);
-
-                unsafe { device.raw.create_shader_module(&create_info, None) }?
-            };
-
-            modules.push((module, stage));
-        }
+    if parse_state != ParseState::Finished {
+        Logger::panic(format!("Failed to parse `{filename}` for input types"));
     }
 
-    Ok((modules, topology))
+    Ok((vertex_types, instance_types))
 }
 
