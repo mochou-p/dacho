@@ -104,13 +104,25 @@ impl DescriptorSetLayout {
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(1)
                     .descriptor_count(1)
-                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .descriptor_type(vk::DescriptorType::SAMPLER)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build(),
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(2)
+                    .descriptor_count(1)
+                    .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
+                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
+                    .build(),
+                vk::DescriptorSetLayoutBinding::builder()
+                    .binding(3)
+                    .descriptor_count(1)
+                    .descriptor_type(vk::DescriptorType::SAMPLER)
+                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
+                    .build(),
+                vk::DescriptorSetLayoutBinding::builder()
+                    .binding(4)
                     .descriptor_count(gltf_texture_count as u32)
-                    .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
             ];
@@ -151,11 +163,19 @@ impl DescriptorPool {
                     .descriptor_count(1)
                     .build(),
                 vk::DescriptorPoolSize::builder()
-                    .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .ty(vk::DescriptorType::SAMPLER)
                     .descriptor_count(1)
                     .build(),
                 vk::DescriptorPoolSize::builder()
-                    .ty(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                    .ty(vk::DescriptorType::SAMPLED_IMAGE)
+                    .descriptor_count(1)
+                    .build(),
+                vk::DescriptorPoolSize::builder()
+                    .ty(vk::DescriptorType::SAMPLER)
+                    .descriptor_count(1)
+                    .build(),
+                vk::DescriptorPoolSize::builder()
+                    .ty(vk::DescriptorType::SAMPLED_IMAGE)
                     .descriptor_count(gltf_texture_count as u32)
                     .build()
             ];
@@ -189,10 +209,8 @@ impl DescriptorSet {
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer,
-        skybox_view:           &ImageView,
-        skybox_sampler:        &Sampler,
-        gltf_texture_views:    &[ImageView],
-        gltf_texture_samplers: &[Sampler]
+        samplers:              &[Sampler],
+        image_views:           &[ImageView]
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         Logger::info("Creating DescriptorSet");
@@ -215,21 +233,36 @@ impl DescriptorSet {
                 .build()
         ];
 
+        let skybox_sampler_image_infos = vec![
+            vk::DescriptorImageInfo::builder()
+                .image_view(vk::ImageView::null())
+                .sampler(samplers[0].raw)
+                .build()
+        ];
+
+        let texture_sampler_image_infos = vec![
+            vk::DescriptorImageInfo::builder()
+                .image_view(vk::ImageView::null())
+                .sampler(samplers[1].raw)
+                .build()
+        ];
+
+
         let skybox_image_infos = vec![
             vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(skybox_view.raw)
-                .sampler(skybox_sampler.raw)
+                .image_view(image_views[0].raw)
+                .sampler(vk::Sampler::null())
                 .build()
         ];
 
         let mut texture_image_infos = vec![];
 
-        for i in 0..gltf_texture_samplers.len() {
+        for view in image_views[1..].iter() {
             let image_info = vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(gltf_texture_views[i].raw)
-                .sampler(gltf_texture_samplers[i].raw)
+                .image_view(view.raw)
+                .sampler(vk::Sampler::null())
                 .build();
 
             texture_image_infos.push(image_info);
@@ -251,17 +284,30 @@ impl DescriptorSet {
                 .dst_set(raw)
                 .dst_binding(1)
                 .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-                .image_info(&skybox_image_infos)
+                .descriptor_type(vk::DescriptorType::SAMPLER)
+                .image_info(&skybox_sampler_image_infos)
                 .build(),
             vk::WriteDescriptorSet::builder()
                 .dst_set(raw)
                 .dst_binding(2)
                 .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
+                .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
+                .image_info(&skybox_image_infos)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_set(raw)
+                .dst_binding(3)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::SAMPLER)
+                .image_info(&texture_sampler_image_infos)
+                .build(),
+            vk::WriteDescriptorSet::builder()
+                .dst_set(raw)
+                .dst_binding(4)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
                 .image_info(&texture_image_infos)
                 .build()
-
         ];
 
         unsafe { device.raw.update_descriptor_sets(&writes, &[]); }

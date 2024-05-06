@@ -40,8 +40,7 @@ fn vertex(in: VertexInput) -> VertexOutput {
          0.0, 0.0, -1.0
     );
 
-    let fixed_position = mat3x3<f32>(rotation_y * rotation_x) * in.pos;
-    let pos            = vec4<f32>(fixed_position.x, -fixed_position.y, fixed_position.z, 1.0);
+    let pos = vec4<f32>(mat3x3<f32>(rotation_y * rotation_x) * in.pos, 1.0);
 
     var out: VertexOutput;
 
@@ -54,8 +53,8 @@ fn vertex(in: VertexInput) -> VertexOutput {
     return out;
 }
 
-@group(0) @binding(1) var smp:  sampler;
-@group(0) @binding(3) var texs: binding_array<texture_2d<f32>, 5>;
+@group(0) @binding(3) var smp:  sampler;
+@group(0) @binding(4) var texs: binding_array<texture_2d<f32>, 5>;
 
 struct FragmentInput {
     @location(0) world_pos:  vec3<f32>,

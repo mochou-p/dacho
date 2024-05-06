@@ -87,7 +87,7 @@ impl Scene {
         }
 
         let shader       = String::from("skybox");
-        let cull_mode    = vk::CullModeFlags::FRONT;
+        let cull_mode    = vk::CullModeFlags::BACK;
         let polygon_mode = vk::PolygonMode::FILL;
 
         let geometry_data = GeometryData::new(
