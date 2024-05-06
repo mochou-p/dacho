@@ -1,5 +1,6 @@
 # dacho/.gitignore
 
-/target
+/assets/.cache
 /private
+/target
 
