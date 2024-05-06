@@ -2,7 +2,8 @@
 
 use {
     anyhow::Result,
-    ash::vk
+    ash::vk,
+    futures::executor::block_on
 };
 
 use {
@@ -13,7 +14,10 @@ use {
         swapchain::Swapchain,
         vertex_input::{ShaderInfo, Type, instance_descriptions, wgsl_field_to_type, vertex_descriptions}
     },
-    crate::application::logger::Logger
+    crate::application::{
+        logger::Logger,
+        compile_shaders
+    }
 };
 
 pub struct Pipeline {
@@ -47,7 +51,7 @@ impl Pipeline {
         };
 
         let module = {
-            let code = read_spirv(format!("assets/.cache/shaders.{}.wgsl.spv", shader_info.name))?;
+            let code = read_spirv(&shader_info.name)?;
 
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
@@ -203,11 +207,27 @@ impl Pipeline {
     }
 }
 
-fn read_spirv(filepath: String) -> Result<Vec<u32>> {
+fn read_spirv(filename: &str) -> Result<Vec<u32>> {
     #[cfg(debug_assertions)]
-    Logger::info(format!("Reading `{filepath}`"));
+    Logger::info(format!("Reading `{filename}` SPIR-V"));
 
-    let bytes = &std::fs::read(filepath)?;
+    let spv = &format!("assets/.cache/shaders.{filename}.wgsl.spv");
+
+    let read = std::fs::read(spv);
+
+    let bytes = match read {
+        Ok(_) => { read? },
+        Err(_) => {
+            if !std::path::Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
+                Logger::panic(format!("Shader `{filename}.wgsl` not found"));
+            }
+
+            block_on(compile_shaders())?;
+
+            std::fs::read(spv)?
+        }
+    };
+
     let words = unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
 
     Ok(words.to_vec())

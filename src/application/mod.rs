@@ -7,9 +7,19 @@ pub mod logger;
     mod window;
 
 use {
-    anyhow::Result,
-    futures::executor::block_on,
+    anyhow::{Context, Result, bail},
+    futures::{
+        executor::block_on,
+        future::join_all
+    },
     glam::f32 as glam,
+    logger::Logger,
+    naga::{
+        back::spv::{Options as SpvOptions, write_vec},
+        front::wgsl::Frontend,
+        valid::{Capabilities, ValidationFlags, Validator}
+    },
+    tokio::spawn,
     winit::{
         event::{DeviceEvent, Event, WindowEvent},
         event_loop::{EventLoop, EventLoopWindowTarget},
@@ -23,19 +33,6 @@ use {
     timer::Timer,
     window::Window,
     super::renderer::Renderer
-};
-
-#[cfg(debug_assertions)]
-use {
-    anyhow::{Context, bail},
-    futures::future::join_all,
-    logger::Logger,
-    naga::{
-        back::spv::{Options as SpvOptions, write_vec},
-        front::wgsl::Frontend,
-        valid::{Capabilities, ValidationFlags, Validator}
-    },
-    tokio::spawn
 };
 
 pub struct Application {
@@ -104,7 +101,6 @@ impl Application {
     }
 }
 
-#[cfg(debug_assertions)]
 async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
     let filename = &wgsl_in[wgsl_in.rfind('/').context("Error parsing shader path")?+1..];
@@ -133,17 +129,27 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
 
     let bytes_out: Vec<u8> = words.iter().flat_map(|word| word.to_ne_bytes().to_vec()).collect();
 
+    {
+        let cache_dir = "assets/.cache";
+
+        if !std::path::Path::new(cache_dir).exists() {
+            std::fs::create_dir(cache_dir)?;
+        }
+    }
+
     std::fs::write(spv_out, bytes_out)?;
 
+    #[cfg(debug_assertions)]
     Logger::info(format!("Compiled `{wgsl_in}`"));
 
     Ok(())
 }
 
-#[cfg(debug_assertions)]
-async fn compile_shaders() -> Result<()> {
-    Logger::info("Compilining shaders");
-    Logger::indent(1);
+pub async fn compile_shaders() -> Result<()> {
+    #[cfg(debug_assertions)] {
+        Logger::info("Compiling shaders");
+        Logger::indent(1);
+    }
 
     let mut filenames = vec![];
     let mut futures   = vec![];
@@ -173,6 +179,7 @@ async fn compile_shaders() -> Result<()> {
         i += 1;
     }
 
+    #[cfg(debug_assertions)]
     Logger::indent(-1);
 
     if j != 0 {
