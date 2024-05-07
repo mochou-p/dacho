@@ -233,14 +233,14 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let skybox_sampler_image_infos = vec![
+        let skybox_sampler_image_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_view(vk::ImageView::null())
                 .sampler(samplers[0].raw)
                 .build()
         ];
 
-        let texture_sampler_image_infos = vec![
+        let texture_sampler_image_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_view(vk::ImageView::null())
                 .sampler(samplers[1].raw)
@@ -248,7 +248,7 @@ impl DescriptorSet {
         ];
 
 
-        let skybox_image_infos = vec![
+        let skybox_image_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
                 .image_view(image_views[0].raw)

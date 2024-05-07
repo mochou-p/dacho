@@ -75,15 +75,10 @@ impl CommandPool {
 
         let command_buffers = [*command_buffer];
 
-        {
-            let submit_infos = [
-                vk::SubmitInfo::builder()
-                    .command_buffers(&command_buffers)
-                    .build()
-            ];
+        let submit_info = vk::SubmitInfo::builder()
+            .command_buffers(&command_buffers);
 
-            unsafe { device.raw.queue_submit(device.queue, &submit_infos, vk::Fence::null()) }?;
-        }
+        unsafe { device.raw.queue_submit(device.queue, &[*submit_info], vk::Fence::null()) }?;
 
         unsafe { device.raw.queue_wait_idle(device.queue) }?;
         unsafe { device.raw.free_command_buffers(self.raw, &command_buffers); }
@@ -234,19 +229,12 @@ impl CommandBuffers {
                             binds += 1
                         }
 
-                        let vertex_buffers = [
-                            vertex_buffer.raw,
-                            instance_buffer.raw
-                        ];
-
-                        let offsets = [0, 0];
-
                         unsafe {
                             device.raw.cmd_bind_vertex_buffers(
                                 command_buffer,
                                 0,
-                                &vertex_buffers,
-                                &offsets
+                                &[vertex_buffer.raw, instance_buffer.raw],
+                                &[0, 0]
                             );
                         }
                     },
@@ -275,15 +263,13 @@ impl CommandBuffers {
                             binds += 1
                         }
 
-                        let descriptor_sets = [descriptor_set.raw];
-
                         unsafe {
                             device.raw.cmd_bind_descriptor_sets(
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
                                 last_pipeline.unwrap().layout,
                                 0,
-                                &descriptor_sets,
+                                &[descriptor_set.raw],
                                 &[]
                             );
                         }

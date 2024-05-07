@@ -64,7 +64,7 @@ pub struct Renderer {
     command_buffers:        CommandBuffers,
     images:                 Vec<Image>,
     image_views:            Vec<ImageView>,
-    samplers:               Vec<Sampler>
+    samplers:               [Sampler; 2]
 }
 
 impl Renderer {
@@ -111,7 +111,7 @@ impl Renderer {
         let mut images      = vec![];
         let mut image_views = vec![];
 
-        let samplers = vec![
+        let samplers = [
             Sampler::new(&device, vk::SamplerAddressMode::CLAMP_TO_EDGE)?,
             Sampler::new(&device, vk::SamplerAddressMode::REPEAT)?
         ];
@@ -298,19 +298,16 @@ impl Renderer {
         let command_buffers      = [self.command_buffers.raw[image_index as usize]               ];
         let semaphores_finished  = [self.swapchain.images_finished[self.swapchain.current_image] ];
 
-        let submit_info = [
-            vk::SubmitInfo::builder()
-                .wait_semaphores(&semaphores_available)
-                .wait_dst_stage_mask(&waiting_stages)
-                .command_buffers(&command_buffers)
-                .signal_semaphores(&semaphores_finished)
-                .build()
-        ];
+        let submit_info = vk::SubmitInfo::builder()
+            .wait_semaphores(&semaphores_available)
+            .wait_dst_stage_mask(&waiting_stages)
+            .command_buffers(&command_buffers)
+            .signal_semaphores(&semaphores_finished);
 
         unsafe {
             self.device.raw.queue_submit(
                 self.device.queue,
-                &submit_info,
+                &[*submit_info],
                 self.swapchain.may_begin_drawing[self.swapchain.current_image]
             )
         }

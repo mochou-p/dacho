@@ -83,13 +83,9 @@ impl Buffer {
         let command_buffer = command_pool.begin_single_time_commands(device)?;
 
         {
-            let copy_regions = [
-                vk::BufferCopy::builder()
-                    .size(size)
-                    .build()
-            ];
+            let copy_region = vk::BufferCopy::builder().size(size);
 
-            unsafe { device.raw.cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &copy_regions); }
+            unsafe { device.raw.cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &[*copy_region]); }
         }
 
         command_pool.end_single_time_commands(device, &command_buffer)?;
@@ -114,16 +110,13 @@ impl Buffer {
             .layer_count(1)
             .build();
 
-        let regions = [
-            vk::BufferImageCopy::builder()
-                .buffer_offset(0)
-                .buffer_row_length(0)
-                .buffer_image_height(0)
-                .image_subresource(subresource_range)
-                .image_offset(vk::Offset3D { x: 0,  y: 0,   z:     0 })
-                .image_extent(vk::Extent3D { width, height, depth: 1 })
-                .build()
-        ];
+        let region = vk::BufferImageCopy::builder()
+            .buffer_offset(0)
+            .buffer_row_length(0)
+            .buffer_image_height(0)
+            .image_subresource(subresource_range)
+            .image_offset(vk::Offset3D { x: 0,  y: 0,   z:     0 })
+            .image_extent(vk::Extent3D { width, height, depth: 1 });
 
         unsafe {
             device.raw.cmd_copy_buffer_to_image(
@@ -131,7 +124,7 @@ impl Buffer {
                 self.raw,
                 image.raw,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-                &regions
+                &[*region]
             );
         }
 

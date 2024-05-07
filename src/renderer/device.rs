@@ -42,8 +42,6 @@ impl Device {
         Logger::info("Creating Device");
 
         let raw = {
-            let queue_priorities = [1.0];
-
             let extension_names = [khr::Swapchain::name().as_ptr()];
 
             let features = vk::PhysicalDeviceFeatures {
@@ -57,7 +55,7 @@ impl Device {
             let queue_create_infos = [
                 vk::DeviceQueueCreateInfo::builder()
                     .queue_family_index(0)
-                    .queue_priorities(&queue_priorities)
+                    .queue_priorities(&[1.0])
                     .build()
             ];
 

@@ -62,7 +62,7 @@ pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
 }
 
 pub fn size_of_types(info: &[Type]) -> usize {
-    let mut size = 0_usize;
+    let mut size = 0;
 
     for kind in info.iter() {
         size += TYPE_INFOS[*kind as usize].size as usize;
@@ -75,7 +75,7 @@ pub fn vertex_descriptions(
     info: &[Type]
 ) -> (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, u32) {
     let  mut attribute_descriptions = vec![];
-    let (mut location, mut offset)  = (0_u32, 0_u32);
+    let (mut location, mut offset)  = (0, 0);
 
     for kind in info.iter() {
         let attribute_description = vk::VertexInputAttributeDescription::builder()
@@ -107,7 +107,7 @@ pub fn instance_descriptions(
     vertex_last_location:  u32
 ) -> (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>) {
     let  mut attribute_descriptions = vec![];
-    let (mut location, mut offset) = (vertex_last_location, 0);
+    let (mut location, mut offset)  = (vertex_last_location, 0);
 
     for kind in info.iter() {
         let attribute_description = vk::VertexInputAttributeDescription::builder()
