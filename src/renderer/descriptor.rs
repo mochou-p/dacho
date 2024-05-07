@@ -256,7 +256,7 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let mut texture_image_infos = vec![];
+        let mut texture_image_infos = Vec::with_capacity(image_views.len() - 1);
 
         for view in image_views[1..].iter() {
             let image_info = vk::DescriptorImageInfo::builder()
@@ -267,10 +267,6 @@ impl DescriptorSet {
 
             texture_image_infos.push(image_info);
         };
-
-        if texture_image_infos.is_empty() {
-            panic!("Failed to create image infos");
-        }
 
         let writes = [
             vk::WriteDescriptorSet::builder()

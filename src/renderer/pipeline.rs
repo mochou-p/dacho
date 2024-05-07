@@ -84,7 +84,7 @@ impl Pipeline {
 
             let binding_descriptions = [vertex_binding, instance_binding];
 
-            let mut attribute_descriptions = vec![];
+            let mut attribute_descriptions = Vec::with_capacity(vertex_attributes.len() + instance_attributes.len());
             attribute_descriptions.append(&mut vertex_attributes);
             attribute_descriptions.append(&mut instance_attributes);
 
