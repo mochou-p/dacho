@@ -54,7 +54,7 @@ impl Instance {
 
                 let layers_raw: Vec<std::ffi::CString> = VALIDATION_LAYERS
                     .iter()
-                    .map(|layer| std::ffi::CString::new(*layer).unwrap())
+                    .map(|layer| std::ffi::CString::new(*layer).expect("CString error"))
                     .collect();
 
                 let layer_names: Vec<*const i8> = layers_raw
