@@ -1,7 +1,7 @@
 // dacho/src/renderer/command.rs
 
 use {
-    anyhow::Result,
+    anyhow::{Context, Result},
     ash::vk
 };
 
@@ -267,7 +267,7 @@ impl CommandBuffers {
                             device.raw.cmd_bind_descriptor_sets(
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
-                                last_pipeline.unwrap().layout,
+                                last_pipeline.context("No last pipeline")?.layout,
                                 0,
                                 &[descriptor_set.raw],
                                 &[]
