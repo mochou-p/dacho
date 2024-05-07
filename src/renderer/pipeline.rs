@@ -63,7 +63,7 @@ impl Pipeline {
             let vert_entry = std::ffi::CString::new("vertex")?;
             let frag_entry = std::ffi::CString::new("fragment")?;
 
-            let stages = vec![
+            let stages = [
                 vk::PipelineShaderStageCreateInfo::builder()
                     .stage(vk::ShaderStageFlags::VERTEX)
                     .module(module)
@@ -163,26 +163,23 @@ impl Pipeline {
                 .max_depth_bounds(1.0)
                 .stencil_test_enable(false);
 
-            let pipeline_infos = [
-                vk::GraphicsPipelineCreateInfo::builder()
-                    .stages(&stages)
-                    .vertex_input_state(&vertex_input_state)
-                    .input_assembly_state(&input_assembly_state)
-                    .viewport_state(&viewport_state)
-                    .rasterization_state(&rasterization_state)
-                    .multisample_state(&multisample_state)
-                    .color_blend_state(&color_blend_state)
-                    .depth_stencil_state(&depth_stencil_state)
-                    .layout(layout)
-                    .render_pass(render_pass.raw)
-                    .subpass(0)
-                    .build()
-            ];
+            let pipeline_info = vk::GraphicsPipelineCreateInfo::builder()
+                .stages(&stages)
+                .vertex_input_state(&vertex_input_state)
+                .input_assembly_state(&input_assembly_state)
+                .viewport_state(&viewport_state)
+                .rasterization_state(&rasterization_state)
+                .multisample_state(&multisample_state)
+                .color_blend_state(&color_blend_state)
+                .depth_stencil_state(&depth_stencil_state)
+                .layout(layout)
+                .render_pass(render_pass.raw)
+                .subpass(0);
 
             unsafe {
                 device.raw.create_graphics_pipelines(
                     vk::PipelineCache::null(),
-                    &pipeline_infos,
+                    &[*pipeline_info],
                     None
                 )
             }

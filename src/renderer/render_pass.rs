@@ -51,7 +51,7 @@ impl RenderPass {
                     .final_layout(vk::ImageLayout::PRESENT_SRC_KHR)
                     .samples(vk::SampleCountFlags::TYPE_1)
                     .build()
-                ];
+            ];
 
             let color_attachments = [
                 vk::AttachmentReference::builder()

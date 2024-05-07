@@ -25,7 +25,7 @@ pub struct GeometryData {
 }
 
 impl GeometryData {
-    pub fn new(
+    pub const fn new(
         shader:       String,
         cull_mode:    vk::CullModeFlags,
         polygon_mode: vk::PolygonMode,

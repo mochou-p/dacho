@@ -55,8 +55,6 @@ impl Swapchain {
                 )
             }?;
 
-            let queue_families = [0];
-
             let extent = vk::Extent2D::builder()
                 .width(width)
                 .height(height)
@@ -71,7 +69,7 @@ impl Swapchain {
                 .image_array_layers(1)
                 .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
                 .image_sharing_mode(vk::SharingMode::EXCLUSIVE)
-                .queue_family_indices(&queue_families)
+                .queue_family_indices(&[0])
                 .pre_transform(surface_capabilities.current_transform)
                 .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
                 .present_mode(vk::PresentModeKHR::FIFO);

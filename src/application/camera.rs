@@ -8,9 +8,6 @@ use {
     }
 };
 
-#[cfg(debug_assertions)]
-use super::logger::Logger;
-
 struct CameraRotation {
     angle: glam::Vec2
 }
@@ -45,18 +42,15 @@ struct CameraBounds {
 }
 
 pub struct Camera {
-    translation:  glam::Vec3,
-    rotation:     CameraRotation,
-    movement:     CameraMovement,
-    speed:        CameraSpeed,
-    bounds:       CameraBounds
+    translation: glam::Vec3,
+    rotation:    CameraRotation,
+    movement:    CameraMovement,
+    speed:       CameraSpeed,
+    bounds:      CameraBounds
 }
 
 impl Camera {
-    pub fn new(translation: glam::Vec3) -> Self {
-        #[cfg(debug_assertions)]
-        Logger::info("Creating Camera");
-
+    pub const fn new(translation: glam::Vec3) -> Self {
         let rotation = CameraRotation {
             angle: glam::Vec2::new(0.0, std::f32::consts::PI)
         };
@@ -73,8 +67,9 @@ impl Camera {
 
         let bounds = CameraBounds {
             rotation_x: Bound {
-                min: -std::f32::consts::PI * 0.5 + f32::EPSILON * 3000.0,
-                max:  std::f32::consts::PI * 0.5 - f32::EPSILON * 3000.0
+                #[allow(clippy::approx_constant)]
+                min: -1.570_796_3,
+                max:  std::f32::consts::FRAC_PI_2
             }
         };
 
@@ -112,7 +107,10 @@ impl Camera {
         self.rotation.angle.y += y;
 
         self.rotation.angle.x = (self.rotation.angle.x - x)
-            .clamp(self.bounds.rotation_x.min, self.bounds.rotation_x.max);
+            .clamp(
+                self.bounds.rotation_x.min + f32::EPSILON * 1000.0,
+                self.bounds.rotation_x.max - f32::EPSILON * 1000.0
+            );
     }
 
     pub fn transform(&mut self) -> (glam::Vec3, glam::Vec3) {

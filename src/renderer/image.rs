@@ -122,18 +122,15 @@ impl Image {
             .layer_count(1)
             .build();
 
-        let barriers = [
-            vk::ImageMemoryBarrier::builder()
-                .old_layout(old_layout)
-                .new_layout(new_layout)
-                .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-                .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
-                .image(self.raw)
-                .subresource_range(subresource_range)
-                .src_access_mask(src_am)
-                .dst_access_mask(dst_am)
-                .build()
-        ];
+        let barrier = vk::ImageMemoryBarrier::builder()
+            .old_layout(old_layout)
+            .new_layout(new_layout)
+            .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .dst_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
+            .image(self.raw)
+            .subresource_range(subresource_range)
+            .src_access_mask(src_am)
+            .dst_access_mask(dst_am);
 
         unsafe {
             device.raw.cmd_pipeline_barrier(
@@ -143,7 +140,7 @@ impl Image {
                 vk::DependencyFlags::empty(),
                 &[],
                 &[],
-                &barriers
+                &[*barrier]
             );
         }
 
