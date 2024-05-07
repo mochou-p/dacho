@@ -150,8 +150,8 @@ impl Swapchain {
             framebuffers.push(framebuffer);
         }
 
-        let mut images_available = vec![];
-        let mut images_finished  = vec![];
+        let mut images_available = Vec::with_capacity(image_count);
+        let mut images_finished  = Vec::with_capacity(image_count);
 
         {
             let create_info = vk::SemaphoreCreateInfo::builder();
@@ -165,7 +165,7 @@ impl Swapchain {
             }
         }
 
-        let mut may_begin_drawing = vec![];
+        let mut may_begin_drawing = Vec::with_capacity(image_count);
 
         {
             let create_info = vk::FenceCreateInfo::builder()

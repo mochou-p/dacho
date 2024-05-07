@@ -73,17 +73,13 @@ impl Scene {
             panic!("Skybox is not spherical");
         }
 
-        let mut pixels: Vec<u8> = vec![];
+        let mut pixels: Vec<u8> = Vec::with_capacity((width * height * 4) as usize);
 
         for pixel in image_data.pixels() {
             let pixel = &pixel.0;
             pixels.extend_from_slice(
                 &[pixel[0], pixel[1], pixel[2], 255]
             );
-        }
-
-        if pixels.len() as u32 != width * height * 4 {
-            println!("Pixel count error");
         }
 
         let shader       = String::from("skybox");
@@ -128,12 +124,7 @@ impl Scene {
                     .into_f32()
                     .collect();
 
-                if !(
-                    positions.len() ==    normals.len() &&
-                    positions.len() == tex_coords.len()
-                ) {
-                    panic!("glTF vertex input error");
-                }
+                vertices.reserve_exact(positions.len() * 3 + normals.len() * 3 + tex_coords.len() * 2);
 
                 for i in 0..positions.len() {
                     vertices.extend_from_slice( &positions[i]);
@@ -149,7 +140,7 @@ impl Scene {
             }
         }
 
-        let mut textures: Vec<Vec<u8>> = vec![];
+        let mut textures: Vec<Vec<u8>> = Vec::with_capacity(5);
 
         for material in gltf.materials() {
             let image_indices = [
@@ -195,7 +186,7 @@ impl Scene {
                     panic!("glTF image pixel data error");
                 }
 
-                let mut pixels: Vec<u8> = vec![];
+                let mut pixels: Vec<u8> = Vec::with_capacity(images[i].pixels.len() / 3 * 4);
 
                 for j in (0..(images[i].pixels.len())).step_by(3) {
                     pixels.extend_from_slice(
@@ -208,16 +199,8 @@ impl Scene {
                     );
                 }
 
-                if pixels.is_empty() {
-                    panic!("glTF image pixel reading error");
-                }
-
                 textures.push(pixels);
             }
-        }
-
-        if textures.is_empty() {
-            panic!("glTF textures missing");
         }
 
         let instances: Vec<f32> = vec![0.0];

@@ -108,8 +108,8 @@ impl Renderer {
         let descriptor_set_layout = DescriptorSetLayout::new(&device, gltf_texture_count)?;
         let command_pool          = CommandPool::new(&device)?;
 
-        let mut images      = vec![];
-        let mut image_views = vec![];
+        let mut images      = Vec::with_capacity(gltf_texture_count + 1);
+        let mut image_views = Vec::with_capacity(gltf_texture_count + 1);
 
         let samplers = [
             Sampler::new(&device, vk::SamplerAddressMode::CLAMP_TO_EDGE)?,
@@ -140,7 +140,7 @@ impl Renderer {
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
-        let mut geometries        = vec![];
+        let mut geometries        = Vec::with_capacity(scene.len());
 
         #[cfg(debug_assertions)] {
             Logger::info("Processing GeometryData");
