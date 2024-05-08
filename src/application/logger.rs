@@ -4,12 +4,28 @@ use std::io::Write;
 
 struct Color;
 
-static mut INDENTATION: isize = 0;
+#[macro_export]
+macro_rules! log_indent {
+    ($i:expr) => {
+        Logger::indent($i)
+    };
+}
+
+#[macro_export]
+macro_rules! log {
+    ($f:ident, $($arg:expr),*) => {
+        Logger::$f(format!($($arg),*))
+    };
+}
+
+static mut INDENTATION:      isize = 0;
+static     INDENTATION_SIZE: isize = 5;
 
 impl Color {
-    const RED:   &'static str = "\x1b[31;1m";
-    const CYAN:  &'static str = "\x1b[36;1m";
-    const RESET: &'static str = "\x1b[0m";
+    const RED:    &'static str = "\x1b[31;1m";
+    const YELLOW: &'static str = "\x1b[33;1m";
+    const CYAN:   &'static str = "\x1b[36;1m";
+    const RESET:  &'static str = "\x1b[0m";
 }
 
 pub struct Logger;
@@ -18,8 +34,18 @@ impl Logger {
     fn info_str<T: Into<String> + std::fmt::Display>(s: T) -> String {
         format!(
             "{}{}Info{} {}",
-            " ".repeat((unsafe { INDENTATION } * 5) as usize),
+            " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
             Color::CYAN,
+            Color::RESET,
+            s
+        )
+    }
+
+    fn warning_str<T: Into<String> + std::fmt::Display>(s: T) -> String {
+        format!(
+            "{}{}Warning{} {}",
+            " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
+            Color::YELLOW,
             Color::RESET,
             s
         )
@@ -28,7 +54,7 @@ impl Logger {
     fn error_str<T: Into<String> + std::fmt::Display>(s: T) -> String {
         format!(
             "{}{}Error{} {}",
-            " ".repeat((unsafe { INDENTATION } * 5) as usize),
+            " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
             Color::RED,
             Color::RESET,
             s
@@ -51,6 +77,10 @@ impl Logger {
         std::io::stdout()
             .flush()
             .expect("Failed to flush stdout");
+    }
+
+    pub fn warning<T: Into<String> + std::fmt::Display>(message: T) {
+        println!("{}", Self::warning_str(message));
     }
 
     pub fn error<T: Into<String> + std::fmt::Display>(message: T) {

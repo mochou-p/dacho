@@ -9,7 +9,7 @@
 pub mod geometry;
     mod image;
     mod instance;
-pub mod pipeline;
+    mod pipeline;
     mod render_pass;
     mod surface;
     mod swapchain;
@@ -42,7 +42,10 @@ use {
 #[cfg(debug_assertions)]
 use {
     debug::Debug,
-    crate::application::logger::Logger
+    super::{
+        application::logger::Logger,
+        log, log_indent
+    }
 };
 
 pub struct Renderer {
@@ -78,12 +81,13 @@ impl Renderer {
         gltf_textures:  &[Vec<u8>]
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
-            Logger::info("Creating Renderer");
-            Logger::indent(1);
+            log!(info, "Creating Renderer");
+            log_indent!(1);
         }
 
         #[cfg(debug_assertions)]
-        Logger::info("Creating Entry");
+        log!(info, "Creating Entry");
+
         let entry = unsafe { ash::Entry::load() }?;
 
         let instance        = Instance::new(event_loop, &entry)?;
@@ -143,8 +147,8 @@ impl Renderer {
         let mut geometries        = Vec::with_capacity(scene.len());
 
         #[cfg(debug_assertions)] {
-            Logger::info("Processing GeometryData");
-            Logger::indent(1);
+            log!(info, "Processing GeometryData");
+            log_indent!(1);
         }
 
         for geometry_data in scene.iter() {
@@ -176,7 +180,7 @@ impl Renderer {
         }
 
         #[cfg(debug_assertions)]
-        Logger::indent(-1);
+        log_indent!(-1);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
         let descriptor_pool   = DescriptorPool::new(&device, gltf_texture_count)?;
@@ -193,7 +197,8 @@ impl Renderer {
         let mut first_iter    = true;
 
         #[cfg(debug_assertions)]
-        Logger::info("Sorting Geometry");
+        log!(info, "Sorting Geometry");
+
         geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
         for geometry in geometries.iter() {
@@ -220,7 +225,7 @@ impl Renderer {
         command_buffers.record(&device, &commands)?;
 
         #[cfg(debug_assertions)]
-        Logger::indent(-1);
+        log_indent!(-1);
 
         Ok(
             Renderer {
@@ -338,10 +343,10 @@ impl Renderer {
 impl Drop for Renderer {
     fn drop(&mut self) {
         #[cfg(debug_assertions)] {
-            Logger::indent(-1);
+            log_indent!(-1);
             println!("\n");
-            Logger::info("Destroying Renderer");
-            Logger::indent(1);
+            log!(info, "Destroying Renderer");
+            log_indent!(1);
         }
 
         self.device.wait();
@@ -349,7 +354,7 @@ impl Drop for Renderer {
         self.command_pool.destroy(&self.device);
 
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Pipelines");
+        log!(info, "Destroying Pipelines");
 
         for (_, pipeline) in self.pipelines.iter() {
             pipeline.destroy(&self.device);
@@ -359,7 +364,7 @@ impl Drop for Renderer {
         self.swapchain   .destroy(&self.device);
 
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Textures and Samplers");
+        log!(info, "Destroying Textures and Samplers");
 
         for sampler in self.samplers.iter() {
             sampler.destroy(&self.device);
@@ -374,13 +379,14 @@ impl Drop for Renderer {
         }
 
         #[cfg(debug_assertions)]
-        Logger::info("Destroying UniformBuffer");
+        log!(info, "Destroying UniformBuffer");
+
         self.ubo                   .destroy(&self.device);
         self.descriptor_pool       .destroy(&self.device);
         self.descriptor_set_layout .destroy(&self.device);
 
         #[cfg(debug_assertions)]
-        Logger::info("Destroying VertexBuffers and IndexBuffers");
+        log!(info, "Destroying VertexBuffers and IndexBuffers");
 
         for geometry in self.geometries.iter() {
             geometry.destroy(&self.device);
@@ -393,7 +399,7 @@ impl Drop for Renderer {
         self.instance .destroy();
 
         #[cfg(debug_assertions)] {
-            Logger::indent(-1);
+            log_indent!(-1);
             println!();
         }
     }

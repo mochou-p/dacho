@@ -15,7 +15,10 @@ use super::{
 };
 
 #[cfg(debug_assertions)]
-use crate::application::logger::Logger;
+use crate::{
+    application::logger::Logger,
+    log, log_indent
+};
 
 pub enum Command<'a> {
     BeginRenderPass(&'a RenderPass, &'a Swapchain),
@@ -33,7 +36,7 @@ pub struct CommandPool {
 impl CommandPool {
     pub fn new(device: &Device) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating CommandPool");
+        log!(info, "Creating CommandPool");
 
         let raw = {
             let create_info = vk::CommandPoolCreateInfo::builder()
@@ -88,7 +91,7 @@ impl CommandPool {
 
     pub fn destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying CommandPool");
+        log!(info, "Destroying CommandPool");
 
         unsafe { device.raw.destroy_command_pool(self.raw, None); }
     }
@@ -105,7 +108,7 @@ impl CommandBuffers {
        device:       &Device
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating CommandBuffers");
+        log!(info, "Creating CommandBuffers");
 
         let raw = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
@@ -124,8 +127,8 @@ impl CommandBuffers {
         commands: &[Command]
     ) -> Result<()> {
         #[cfg(debug_assertions)] {
-            Logger::info(format!("Recording commands ({} command buffers)", self.raw.len()));
-            Logger::indent(1);
+            log!(info, "Recording commands ({} command buffers)", self.raw.len());
+            log_indent!(1);
         }
 
         #[cfg(debug_assertions)]
@@ -155,8 +158,8 @@ impl CommandBuffers {
                     Command::BeginRenderPass(render_pass, swapchain) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            Logger::info("Beginning RenderPass");
-                            Logger::indent(1);
+                            log!(info, "Beginning RenderPass");
+                            log_indent!(1);
                         }
 
                         let clear_values = [
@@ -200,8 +203,8 @@ impl CommandBuffers {
                     Command::BindPipeline(pipeline) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            Logger::info(format!("Binding Pipeline `{}`", pipeline.name));
-                            Logger::indent(1);
+                            log!(info, "Binding Pipeline `{}`", pipeline.name);
+                            log_indent!(1);
 
                             just_drew  = false;
                             binds     += 1
@@ -221,10 +224,10 @@ impl CommandBuffers {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
                             if just_drew {
-                                Logger::indent(1);
+                                log_indent!(1);
                             }
 
-                            Logger::info("Binding VertexBuffers");
+                            log!(info, "Binding VertexBuffers");
 
                             binds += 1
                         }
@@ -241,7 +244,7 @@ impl CommandBuffers {
                     Command::BindIndexBuffer(index_buffer) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            Logger::info("Binding IndexBuffer");
+                            log!(info, "Binding IndexBuffer");
 
                             binds += 1
                         }
@@ -258,7 +261,7 @@ impl CommandBuffers {
                     Command::BindDescriptorSets(descriptor_set) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            Logger::info("Binding DescriptoSet");
+                            log!(info, "Binding DescriptoSet");
 
                             binds += 1
                         }
@@ -277,8 +280,8 @@ impl CommandBuffers {
                     Command::DrawIndexed(index_count, instance_count) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            Logger::indent(-1);
-                            Logger::info("Drawing");
+                            log_indent!(-1);
+                            log!(info, "Drawing");
 
                             just_drew   = true;
                             draw_calls += 1;
@@ -300,8 +303,8 @@ impl CommandBuffers {
 
             #[cfg(debug_assertions)]
             if first_command_buffer {
-                Logger::indent(-1);
-                Logger::info("Ending RenderPass");
+                log_indent!(-1);
+                log!(info, "Ending RenderPass");
             }
 
             unsafe {
@@ -311,8 +314,8 @@ impl CommandBuffers {
         }
 
         #[cfg(debug_assertions)] {
-            Logger::indent(-1);
-            Logger::info(format!("Recorded {draw_calls} draw calls and {binds} binds (per command buffer)"));
+            log_indent!(-1);
+            log!(info, "Recorded {draw_calls} draw calls and {binds} binds (per command buffer)");
         }
 
         Ok(())

@@ -10,7 +10,10 @@ use {
 #[cfg(debug_assertions)]
 use {
     super::debug::messenger_create_info,
-    crate::application::logger::Logger
+    crate::{
+        application::logger::Logger,
+        log, log_indent
+    }
 };
 
 #[cfg(debug_assertions)]
@@ -28,8 +31,8 @@ impl Instance {
         entry:      &ash::Entry
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
-            Logger::info("Creating Instance");
-            Logger::indent(1);
+            log!(info, "Creating Instance");
+            log_indent!(1);
         }
 
         let raw = {
@@ -41,7 +44,7 @@ impl Instance {
             )?;
 
             #[cfg(debug_assertions)] {
-                Logger::info("Enabling Validation Layers");
+                log!(info, "Enabling Validation Layers");
 
                 let mut extension_names = required_extensions.to_vec();
 
@@ -85,14 +88,14 @@ impl Instance {
         };
 
         #[cfg(debug_assertions)]
-        Logger::indent(-1);
+        log_indent!(-1);
 
         Ok(Self { raw })
     }
 
     pub fn destroy(&self) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Instance");
+        log!(info, "Destroying Instance");
 
         unsafe { self.raw.destroy_instance(None); }
     }

@@ -8,7 +8,10 @@ use {
 use super::instance::Instance;
 
 #[cfg(debug_assertions)]
-use crate::application::logger::Logger;
+use crate::{
+    application::logger::Logger,
+    log
+};
 
 pub struct PhysicalDevice {
     pub raw: vk::PhysicalDevice
@@ -17,7 +20,7 @@ pub struct PhysicalDevice {
 impl PhysicalDevice {
     pub fn new(instance: &Instance) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Choosing PhysicalDevice");
+        log!(info, "Choosing PhysicalDevice");
 
         let raw = unsafe { instance.raw.enumerate_physical_devices() }?
             .into_iter()
@@ -39,7 +42,7 @@ impl Device {
         physical_device: &PhysicalDevice
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating Device");
+        log!(info, "Creating Device");
 
         let raw = {
             let extension_names = [khr::Swapchain::name().as_ptr()];
@@ -79,7 +82,7 @@ impl Device {
 
     pub fn destroy(&self) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Device");
+        log!(info, "Destroying Device");
 
         unsafe { self.raw.destroy_device(None); }
     }

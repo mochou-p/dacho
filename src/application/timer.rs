@@ -1,7 +1,10 @@
 // dacho/src/application/timer.rs
 
 #[cfg(debug_assertions)]
-use super::logger::Logger;
+use {
+    super::logger::Logger,
+    crate::log
+};
 
 pub struct Timer {
     start_time:  std::time::Instant,
@@ -23,7 +26,7 @@ impl Timer {
         rate: usize
     ) -> Self {
         #[cfg(debug_assertions)]
-        Logger::info("Creating Timer");
+        log!(info, "Creating Timer");
 
         let start_time = std::time::Instant::now();
 
@@ -56,14 +59,14 @@ impl Timer {
                 let fps = (self.rate as f32 / elapsed).round() as usize;
 
                 if fps != self.last_fps {
-                    Logger::info_r(format!("{} FPS{}", fps, " ".repeat(27)));
+                    log!(info_r, "{fps} FPS{}", " ".repeat(27));
 
                     self.last_fps = fps;
                 }
             },
             _ => {
                 if self.first_frame {
-                    Logger::info_r("Waiting for first Timer tickrate");
+                    log!(info_r, "Waiting for first Timer tick");
 
                     self.first_frame = false;
                 }

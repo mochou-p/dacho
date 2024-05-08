@@ -8,7 +8,10 @@ use {
 use super::device::Device;
 
 #[cfg(debug_assertions)]
-use crate::application::logger::Logger;
+use crate::{
+    application::logger::Logger,
+    log
+};
 
 pub struct RenderPass {
     pub raw: vk::RenderPass
@@ -17,7 +20,7 @@ pub struct RenderPass {
 impl RenderPass {
     pub fn new(device: &Device) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating RenderPass");
+        log!(info, "Creating RenderPass");
 
         let raw = {
             let attachments = [
@@ -115,7 +118,7 @@ impl RenderPass {
 
     pub fn destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying RenderPass");
+        log!(info, "Destroying RenderPass");
 
         unsafe { device.raw.destroy_render_pass(self.raw, None); }
     }

@@ -5,6 +5,11 @@ use {
     ash::vk
 };
 
+use crate::{
+    application::logger::Logger,
+    log
+};
+
 #[derive(Clone, Copy, Debug)]
 pub enum Type {
     Float,
@@ -55,7 +60,7 @@ pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
         "vec2<f32>" => Type::Vec2,
         "vec3<f32>" => Type::Vec3,
         "vec4<f32>" => Type::Vec4,
-        _           => { panic!("Unknown glsl type `{wgsl_type}`"); }
+        _           => { log!(panic, "Unknown glsl type `{wgsl_type}`"); panic!(); }
     };
 
     Ok(kind)

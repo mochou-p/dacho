@@ -5,11 +5,17 @@ use {
     ash::vk
 };
 
-use super::{
-    buffer::StagingBuffer,
-    command::CommandPool,
-    device::{Device, PhysicalDevice},
-    instance::Instance
+use {
+    super::{
+        buffer::StagingBuffer,
+        command::CommandPool,
+        device::{Device, PhysicalDevice},
+        instance::Instance
+    },
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 pub struct Image {
@@ -68,7 +74,7 @@ impl Image {
             }
 
             if !found {
-                panic!("Failed to find a suitable memory type");
+                log!(panic, "Failed to find a suitable memory type"); panic!();
             }
 
             result
@@ -111,7 +117,7 @@ impl Image {
                     vk::PipelineStageFlags::FRAGMENT_SHADER
                 )
             },
-            _ => { panic!("Invalid layout transition"); }
+            _ => { log!(panic, "Invalid layout transition"); panic!(); }
         };
 
         let subresource_range = vk::ImageSubresourceRange::builder()

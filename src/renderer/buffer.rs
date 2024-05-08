@@ -5,11 +5,17 @@ use {
     ash::vk
 };
 
-use super::{
-    command::CommandPool,
-    device::{Device, PhysicalDevice},
-    image::Image,
-    instance::Instance
+use {
+    super::{
+        command::CommandPool,
+        device::{Device, PhysicalDevice},
+        image::Image,
+        instance::Instance
+    },
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 pub struct Buffer {
@@ -55,7 +61,7 @@ impl Buffer {
                 }
 
                 if !found {
-                    panic!("Failed to find a suitable memory type");
+                    log!(panic, "Failed to find a suitable memory type");
                 }
 
                 result
