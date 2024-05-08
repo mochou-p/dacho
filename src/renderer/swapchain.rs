@@ -14,7 +14,10 @@ use super::{
 };
 
 #[cfg(debug_assertions)]
-use crate::application::logger::Logger;
+use crate::{
+    application::logger::Logger,
+    log
+};
 
 pub struct Swapchain {
     pub loader:             khr::Swapchain,
@@ -44,7 +47,7 @@ impl Swapchain {
         height:           u32
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating Swapchain");
+        log!(info, "Creating Swapchain");
 
         let loader = khr::Swapchain::new(&instance.raw, &device.raw);
 
@@ -200,7 +203,7 @@ impl Swapchain {
 
     pub fn destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Swapchain");
+        log!(info, "Destroying Swapchain");
 
         for fence in self.may_begin_drawing.iter() {
             unsafe { device.raw.destroy_fence(*fence, None); }

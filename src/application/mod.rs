@@ -13,7 +13,6 @@ use {
         future::join_all
     },
     glam::f32 as glam,
-    logger::Logger,
     naga::{
         back::spv::{Options as SpvOptions, write_vec},
         front::wgsl::Frontend,
@@ -29,11 +28,18 @@ use {
 
 use {
     camera::Camera,
+    logger::Logger,
     scene::Scene,
     timer::Timer,
     window::Window,
-    super::renderer::Renderer
+    super::{
+        renderer::Renderer,
+        log
+    }
 };
+
+#[cfg(debug_assertions)]
+use super::log_indent;
 
 pub struct Application {
     window:   Window,
@@ -45,8 +51,8 @@ pub struct Application {
 impl Application {
     pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
         #[cfg(debug_assertions)] {
-            Logger::info("Creating Application");
-            Logger::indent(1);
+            log!(info, "Creating Application");
+            log_indent!(1);
 
             block_on(compile_shaders())?;
         }
@@ -66,7 +72,7 @@ impl Application {
         );
 
         #[cfg(debug_assertions)]
-        Logger::indent(-1);
+        log_indent!(-1);
 
         Ok(Self { window, renderer, camera, timer })
     }
@@ -115,13 +121,13 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
     let code     = std::str::from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
-    if module.clone().map_err(|error| Logger::error(format!("`{wgsl_in}`: {error}"))).is_err() {
+    if module.clone().map_err(|error| log!(error, "`{wgsl_in}`: {error}")).is_err() {
         bail!("");
     }
 
     let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
     
-    if info.clone().map_err(|error| Logger::error(format!("`{wgsl_in}`: {error}"))).is_err() {
+    if info.clone().map_err(|error| log!(error, "`{wgsl_in}`: {error}")).is_err() {
         bail!("");
     }
 
@@ -140,15 +146,15 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
     std::fs::write(spv_out, bytes_out)?;
 
     #[cfg(debug_assertions)]
-    Logger::info(format!("Compiled `{wgsl_in}`"));
+    log!(info, "Compiled `{wgsl_in}`");
 
     Ok(())
 }
 
 pub async fn compile_shaders() -> Result<()> {
     #[cfg(debug_assertions)] {
-        Logger::info("Compiling shaders");
-        Logger::indent(1);
+        log!(info, "Compiling shaders");
+        log_indent!(1);
     }
 
     let mut filenames = vec![];
@@ -170,7 +176,7 @@ pub async fn compile_shaders() -> Result<()> {
             if error.to_string() != "" {
                 let filename = &filenames[i][filenames[i].rfind('/').context("Error parsing shader path")?+1..];
 
-                Logger::error(format!("`{filename}`: {error}"));
+                log!(error, "`{filename}`: {error}");
             }
 
             j += 1;
@@ -180,10 +186,10 @@ pub async fn compile_shaders() -> Result<()> {
     }
 
     #[cfg(debug_assertions)]
-    Logger::indent(-1);
+    log_indent!(-1);
 
     if j != 0 {
-        Logger::panic("Failed to compile all shaders");
+        log!(panic, "Failed to compile all shaders");
     }
 
     Ok(())

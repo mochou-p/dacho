@@ -6,10 +6,13 @@ use {
     tokio::spawn
 };
 
-use crate::renderer::geometry::GeometryData;
-
-#[cfg(debug_assertions)]
-use super::logger::Logger;
+use {
+    super::logger::Logger,
+    crate::{
+        renderer::geometry::GeometryData,
+        log
+    }
+};
 
 pub struct Scene;
 
@@ -17,7 +20,7 @@ impl Scene {
     #[allow(clippy::type_complexity)]
     pub async fn demo() -> Result<(Vec<GeometryData>, Vec<u8>, Vec<Vec<u8>>)> {
         #[cfg(debug_assertions)]
-        Logger::info("Loading and generating loading Scene");
+        log!(info, "Loading and generating loading Scene");
 
         let skybox   = spawn(Self::demo_skybox("spree_bank.jpg"));
         let gltf     = spawn(Self::demo_gltf("damaged_helmet.glb"));
@@ -70,7 +73,7 @@ impl Scene {
         let (width, height) = image_data.dimensions();
 
         if width != height * 2 {
-            panic!("Skybox is not spherical");
+            log!(panic, "Skybox is not spherical");
         }
 
         let mut pixels: Vec<u8> = Vec::with_capacity((width * height * 4) as usize);
@@ -175,15 +178,11 @@ impl Scene {
 
             for i in image_indices {
                 if images[i].format != gltf::image::Format::R8G8B8 {
-                    panic!("Only gltf::image::Format::R8G8B8 is supported");
+                    log!(panic, "Only R8G8B8 gltf images are supported");
                 }
 
                 if images[i].width != images[i].height {
-                    panic!("glTF image dimensions do not match");
-                }
-
-                if (images[i].pixels.len() % 3) != 0 {
-                    panic!("glTF image pixel data error");
+                    log!(panic, "glTF image dimensions do not match");
                 }
 
                 let mut pixels: Vec<u8> = Vec::with_capacity(images[i].pixels.len() / 3 * 4);
@@ -206,7 +205,7 @@ impl Scene {
         let instances: Vec<f32> = vec![0.0];
 
         let shader       = String::from("pbr");
-        let cull_mode    = vk::CullModeFlags::NONE;
+        let cull_mode    = vk::CullModeFlags::BACK;
         let polygon_mode = vk::PolygonMode::FILL;
 
         let geometry_data = GeometryData::new(
@@ -236,7 +235,7 @@ impl Scene {
         let instances: Vec<f32> = vec![0.0];
 
         let shader       = String::from("vignette");
-        let cull_mode    = vk::CullModeFlags::BACK;
+        let cull_mode    = vk::CullModeFlags::FRONT;
         let polygon_mode = vk::PolygonMode::FILL;
 
         let geometry_data = GeometryData::new(

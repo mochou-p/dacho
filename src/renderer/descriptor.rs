@@ -14,7 +14,10 @@ use super::{
 };
 
 #[cfg(debug_assertions)]
-use crate::application::logger::Logger;
+use crate::{
+    application::logger::Logger,
+    log
+};
 
 pub struct UniformBufferObject {
     _view:       glam::Mat4,
@@ -30,7 +33,7 @@ impl UniformBufferObject {
         device:          &Device
     ) -> Result<(Buffer, *mut std::ffi::c_void)> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating UniformBuffer");
+        log!(info, "Creating UniformBuffer");
 
         let buffer_size = std::mem::size_of::<UniformBufferObject>() as u64;
 
@@ -91,7 +94,7 @@ impl DescriptorSetLayout {
         gltf_texture_count:  usize
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating DescriptorSetLayout");
+        log!(info, "Creating DescriptorSetLayout");
 
         let raw = {
             let ubo_bindings = [
@@ -138,7 +141,7 @@ impl DescriptorSetLayout {
 
     pub fn destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying DescriptorSetLayout");
+        log!(info, "Destroying DescriptorSetLayout");
 
         unsafe { device.raw.destroy_descriptor_set_layout(self.raw, None); }
     }
@@ -154,7 +157,7 @@ impl DescriptorPool {
         gltf_texture_count:  usize
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating DescriptorPool");
+        log!(info, "Creating DescriptorPool");
 
         let raw = {
             let pool_sizes = [
@@ -192,7 +195,7 @@ impl DescriptorPool {
 
     pub fn destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying DescriptorPool");
+        log!(info, "Destroying DescriptorPool");
 
         unsafe { device.raw.destroy_descriptor_pool(self.raw, None); }
     }
@@ -213,7 +216,7 @@ impl DescriptorSet {
         image_views:           &[ImageView]
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating DescriptorSet");
+        log!(info, "Creating DescriptorSet");
 
         let raw = {
             let set_layouts = [descriptor_set_layout.raw];

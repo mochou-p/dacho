@@ -10,7 +10,10 @@ use {
 use super::instance::Instance;
 
 #[cfg(debug_assertions)]
-use crate::application::logger::Logger;
+use crate::{
+    application::logger::Logger,
+    log
+};
 
 pub struct Surface {
     pub loader: khr::Surface,
@@ -24,7 +27,7 @@ impl Surface {
         window:   &Window
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
-        Logger::info("Creating Surface");
+        log!(info, "Creating Surface");
 
         let loader = khr::Surface::new(entry, &instance.raw);
 
@@ -43,7 +46,7 @@ impl Surface {
 
     pub fn destroy(&self) {
         #[cfg(debug_assertions)]
-        Logger::info("Destroying Surface");
+        log!(info, "Destroying Surface");
 
         unsafe { self.loader.destroy_surface(self.raw, None); }
     }

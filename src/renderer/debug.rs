@@ -7,7 +7,10 @@ use {
 
 use {
     super::instance::Instance,
-    crate::application::logger::Logger
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
@@ -24,7 +27,7 @@ impl Debug {
         entry:    &ash::Entry,
         instance: &Instance
     ) -> Result<Self> {
-        Logger::info("Creating Debug messenger for Validation Layers");
+        log!(info, "Creating Debug messenger for Validation Layers");
 
         let loader = ext::DebugUtils::new(entry, &instance.raw);
 
@@ -38,7 +41,7 @@ impl Debug {
     }
 
     pub fn destroy(&self) {
-        Logger::info("Destroying Debug messenger");
+        log!(info, "Destroying Debug messenger");
 
         unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None); }
     }

@@ -14,11 +14,17 @@ use {
         swapchain::Swapchain,
         vertex_input::{ShaderInfo, Type, instance_descriptions, wgsl_field_to_type, vertex_descriptions}
     },
-    crate::application::{
-        logger::Logger,
-        compile_shaders
+    crate::{
+        application::{
+            logger::Logger,
+            compile_shaders
+        },
+        log
     }
 };
+
+#[cfg(debug_assertions)]
+use crate::log_indent;
 
 pub struct Pipeline {
     pub name:   String,
@@ -35,8 +41,8 @@ impl Pipeline {
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
-            Logger::info(format!("Creating Pipeline `{}`", shader_info.name));
-            Logger::indent(1);
+            log!(info, "Creating Pipeline `{}`", shader_info.name);
+            log_indent!(1);
         }
 
         let layout = {
@@ -189,7 +195,7 @@ impl Pipeline {
         unsafe { device.raw.destroy_shader_module(module, None); }
 
         #[cfg(debug_assertions)]
-        Logger::indent(-1);
+        log_indent!(-1);
 
         let name = shader_info.name.clone();
 
@@ -206,7 +212,7 @@ impl Pipeline {
 
 fn read_spirv(filename: &str) -> Result<Vec<u32>> {
     #[cfg(debug_assertions)]
-    Logger::info(format!("Reading `{filename}` SPIR-V"));
+    log!(info, "Reading `{filename}` SPIR-V");
 
     let spv = &format!("assets/.cache/shaders.{filename}.wgsl.spv");
 
@@ -216,7 +222,7 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
         Ok(_) => { read? },
         Err(_) => {
             if !std::path::Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
-                Logger::panic(format!("Shader `{filename}.wgsl` not found"));
+                log!(panic, "Shader `{filename}.wgsl` not found");
             }
 
             block_on(compile_shaders())?;
@@ -243,7 +249,7 @@ pub fn shader_input_types(
     filename: &String
 ) -> Result<(Vec<Type>, Vec<Type>)> {
     #[cfg(debug_assertions)]
-    Logger::info(format!("Parsing `{filename}` for input types"));
+    log!(info, "Parsing `{filename}` for input types");
 
     let bytes = &std::fs::read(format!("assets/shaders/{filename}.wgsl"))?;
     let code  = std::str::from_utf8(bytes)?;
@@ -280,7 +286,7 @@ pub fn shader_input_types(
     }
 
     if parse_state != ParseState::Finished {
-        Logger::panic(format!("Failed to parse `{filename}` for input types"));
+        log!(panic, "Failed to parse `{filename}` for input types");
     }
 
     Ok((vertex_types, instance_types))
