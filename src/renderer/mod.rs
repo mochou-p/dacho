@@ -65,9 +65,9 @@ pub struct Renderer {
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers,
-    images:                 Vec<Image>,
-    image_views:            Vec<ImageView>,
-    samplers:               [Sampler; 2]
+    image:                  Image,
+    image_view:             ImageView,
+    sampler:                Sampler
 }
 
 impl Renderer {
@@ -77,8 +77,7 @@ impl Renderer {
         window_width:    u32,
         window_height:   u32,
         scene:          &[GeometryData],
-        skybox_texture: &[u8],
-        gltf_textures:  &[Vec<u8>]
+        skybox_texture: &[u8]
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
@@ -108,39 +107,12 @@ impl Renderer {
             window_height
         )?;
 
-        let gltf_texture_count    = gltf_textures.len();
-        let descriptor_set_layout = DescriptorSetLayout::new(&device, gltf_texture_count)?;
+        let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
 
-        let mut images      = Vec::with_capacity(gltf_texture_count + 1);
-        let mut image_views = Vec::with_capacity(gltf_texture_count + 1);
-
-        let samplers = [
-            Sampler::new(&device, vk::SamplerAddressMode::CLAMP_TO_EDGE)?,
-            Sampler::new(&device, vk::SamplerAddressMode::REPEAT)?
-        ];
-
-        {
-            let skybox = Texture::new_image(
-                &instance, &physical_device, &device, &command_pool, skybox_texture, true
-            )?;
-
-            let skybox_view = TextureView::new_image_view(&device, &skybox)?;
-
-            images.push(skybox);
-            image_views.push(skybox_view);
-        }
-
-        for gltf_texture in gltf_textures.iter() {
-            let texture = Texture::new_image(
-                &instance, &physical_device, &device, &command_pool, gltf_texture, false
-            )?;
-
-            let texture_view = TextureView::new_image_view(&device, &texture)?;
-
-            images.push(texture);
-            image_views.push(texture_view);
-        }
+        let sampler    = Sampler::new(&device)?;
+        let image      = Texture::new_image(&instance, &physical_device, &device, &command_pool, skybox_texture)?;
+        let image_view = TextureView::new_image_view(&device, &image)?;
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
@@ -183,10 +155,10 @@ impl Renderer {
         log_indent!(-1);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
-        let descriptor_pool   = DescriptorPool::new(&device, gltf_texture_count)?;
+        let descriptor_pool   = DescriptorPool::new(&device)?;
 
         let descriptor_set = DescriptorSet::new(
-            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &samplers, &image_views
+            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &sampler, &image_view
         )?;
 
         let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
@@ -245,9 +217,9 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers,
-                images,
-                image_views,
-                samplers
+                image,
+                image_view,
+                sampler
             }
         )
     }
@@ -366,17 +338,9 @@ impl Drop for Renderer {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Textures and Samplers");
 
-        for sampler in self.samplers.iter() {
-            sampler.destroy(&self.device);
-        }
-
-        for image_view in self.image_views.iter() {
-            image_view.destroy(&self.device);
-        }
-
-        for image in self.images.iter() {
-            image.destroy(&self.device);
-        }
+        self.sampler    .destroy(&self.device);
+        self.image_view .destroy(&self.device);
+        self.image      .destroy(&self.device);
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying UniformBuffer");

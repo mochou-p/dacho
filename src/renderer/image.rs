@@ -206,8 +206,7 @@ impl Texture {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        image_data:      &[u8],
-        is_spherical:     bool
+        image_data:      &[u8]
     ) -> Result<Image> {
         let data        = image_data.as_ptr() as *mut std::ffi::c_void;
         let buffer_size = std::mem::size_of_val(image_data) as u64;
@@ -222,14 +221,10 @@ impl Texture {
             vk::BufferUsageFlags::TRANSFER_SRC
         )?;
 
-        let (width, height) = if is_spherical {
+        let (width, height) = {
             let y = ((buffer_size / 4 / 2) as f32).sqrt() as u32;
 
             (y * 2, y)
-        } else {
-            let x = ((buffer_size / 4) as f32).sqrt() as u32;
-
-            (x, x)
         };
 
         let image = Image::new(
@@ -244,19 +239,13 @@ impl Texture {
         )?;
 
         image.transition_layout(
-            device,
-            command_pool,
-            vk::ImageLayout::UNDEFINED,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL
+            device, command_pool, vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL
         )?;
 
         buffer.copy_to_image(device, command_pool, &image, width, height)?;
 
         image.transition_layout(
-            device,
-            command_pool,
-            vk::ImageLayout::TRANSFER_DST_OPTIMAL,
-            vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
+            device, command_pool, vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
         )?;
 
         buffer.destroy(device);
@@ -273,10 +262,7 @@ impl TextureView {
         texture: &Image
     ) -> Result<ImageView> {
         let image_view = ImageView::new(
-            device,
-            &texture.raw,
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageAspectFlags::COLOR
+            device, &texture.raw, vk::Format::R8G8B8A8_SRGB, vk::ImageAspectFlags::COLOR
         )?;
 
         Ok(image_view)
@@ -288,12 +274,12 @@ pub struct Sampler {
 }
 
 impl Sampler {
-    pub fn new(device: &Device, address_move_v: vk::SamplerAddressMode) -> Result<Self> {
+    pub fn new(device: &Device) -> Result<Self> {
         let create_info = vk::SamplerCreateInfo::builder()
             .mag_filter(vk::Filter::LINEAR)
             .min_filter(vk::Filter::LINEAR)
             .address_mode_u(vk::SamplerAddressMode::REPEAT)
-            .address_mode_v(address_move_v)
+            .address_mode_v(vk::SamplerAddressMode::CLAMP_TO_EDGE)
             .address_mode_w(vk::SamplerAddressMode::REPEAT)
             .anisotropy_enable(true)
             .max_anisotropy(4.0)

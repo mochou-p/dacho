@@ -1,7 +1,7 @@
 // dacho/assets/shaders/vignette.wgsl
 
 struct VertexInput {
-    @location(0) pos:      vec2<f32>,
+    @location(0) pos: vec2<f32>,
 
     @location(1) instance: f32
 }

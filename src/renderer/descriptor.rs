@@ -22,7 +22,8 @@ use crate::{
 pub struct UniformBufferObject {
     _view:       glam::Mat4,
     _projection: glam::Mat4,
-    _camera_pos: glam::Vec3,
+    _camera_pos: glam::Vec4,
+    _light_pos:  glam::Vec4,
     _time:       f32
 }
 
@@ -70,10 +71,16 @@ impl UniformBufferObject {
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
         projection.y_axis.y *= -1.0;
 
+        let steps      = 10;
+        let light_dist = steps as f32 / 2.0 + steps as f32 * 0.1;
+        let position   = glam::Vec4::new(position.x, position.y, position.z, 0.0);
+        let light_pos  = glam::Vec4::new(time.sin() * light_dist, 0.0, time.cos() * light_dist, 0.0);
+
         let mut ubo = UniformBufferObject {
             _view:       view,
             _projection: projection,
             _camera_pos: position,
+            _light_pos:  light_pos,
             _time:       time
         };
 
@@ -89,10 +96,7 @@ pub struct DescriptorSetLayout {
 }
 
 impl DescriptorSetLayout {
-    pub fn new(
-        device:             &Device,
-        gltf_texture_count:  usize
-    ) -> Result<Self> {
+    pub fn new(device: &Device) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating DescriptorSetLayout");
 
@@ -113,18 +117,6 @@ impl DescriptorSetLayout {
                 vk::DescriptorSetLayoutBinding::builder()
                     .binding(2)
                     .descriptor_count(1)
-                    .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
-                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-                    .build(),
-                vk::DescriptorSetLayoutBinding::builder()
-                    .binding(3)
-                    .descriptor_count(1)
-                    .descriptor_type(vk::DescriptorType::SAMPLER)
-                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-                    .build(),
-                vk::DescriptorSetLayoutBinding::builder()
-                    .binding(4)
-                    .descriptor_count(gltf_texture_count as u32)
                     .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
                     .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
@@ -152,10 +144,7 @@ pub struct DescriptorPool {
 }
 
 impl DescriptorPool {
-    pub fn new(
-        device:             &Device,
-        gltf_texture_count:  usize
-    ) -> Result<Self> {
+    pub fn new(device: &Device) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating DescriptorPool");
 
@@ -172,14 +161,6 @@ impl DescriptorPool {
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::SAMPLED_IMAGE)
                     .descriptor_count(1)
-                    .build(),
-                vk::DescriptorPoolSize::builder()
-                    .ty(vk::DescriptorType::SAMPLER)
-                    .descriptor_count(1)
-                    .build(),
-                vk::DescriptorPoolSize::builder()
-                    .ty(vk::DescriptorType::SAMPLED_IMAGE)
-                    .descriptor_count(gltf_texture_count as u32)
                     .build()
             ];
 
@@ -212,8 +193,8 @@ impl DescriptorSet {
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer,
-        samplers:              &[Sampler],
-        image_views:           &[ImageView]
+        sampler:               &Sampler,
+        image_view:            &ImageView
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating DescriptorSet");
@@ -236,40 +217,20 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let skybox_sampler_image_infos = [
+        let sampler_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_view(vk::ImageView::null())
-                .sampler(samplers[0].raw)
+                .sampler(sampler.raw)
                 .build()
         ];
 
-        let texture_sampler_image_infos = [
-            vk::DescriptorImageInfo::builder()
-                .image_view(vk::ImageView::null())
-                .sampler(samplers[1].raw)
-                .build()
-        ];
-
-
-        let skybox_image_infos = [
+        let image_view_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(image_views[0].raw)
+                .image_view(image_view.raw)
                 .sampler(vk::Sampler::null())
                 .build()
         ];
-
-        let mut texture_image_infos = Vec::with_capacity(image_views.len() - 1);
-
-        for view in image_views[1..].iter() {
-            let image_info = vk::DescriptorImageInfo::builder()
-                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(view.raw)
-                .sampler(vk::Sampler::null())
-                .build();
-
-            texture_image_infos.push(image_info);
-        };
 
         let writes = [
             vk::WriteDescriptorSet::builder()
@@ -284,28 +245,14 @@ impl DescriptorSet {
                 .dst_binding(1)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::SAMPLER)
-                .image_info(&skybox_sampler_image_infos)
+                .image_info(&sampler_infos)
                 .build(),
             vk::WriteDescriptorSet::builder()
                 .dst_set(raw)
                 .dst_binding(2)
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
-                .image_info(&skybox_image_infos)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_set(raw)
-                .dst_binding(3)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::SAMPLER)
-                .image_info(&texture_sampler_image_infos)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_set(raw)
-                .dst_binding(4)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
-                .image_info(&texture_image_infos)
+                .image_info(&image_view_infos)
                 .build()
         ];
 

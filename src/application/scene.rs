@@ -17,26 +17,28 @@ use {
 pub struct Scene;
 
 impl Scene {
-    #[allow(clippy::type_complexity)]
-    pub async fn demo() -> Result<(Vec<GeometryData>, Vec<u8>, Vec<Vec<u8>>)> {
+    pub async fn demo() -> Result<(Vec<GeometryData>, Vec<u8>)> {
         #[cfg(debug_assertions)]
         log!(info, "Loading and generating loading Scene");
 
         let skybox   = spawn(Self::demo_skybox("spree_bank.jpg"));
-        let gltf     = spawn(Self::demo_gltf("damaged_helmet.glb"));
+        let sphere   = spawn(Self::demo_sphere());
+        let light    = spawn(Self::demo_light());
         let vignette = spawn(Self::demo_vignette());
 
         let (  skybox_g, skybox_t) = skybox   .await??;
-        let (    gltf_g,   gltf_t) = gltf     .await??;
+        let    sphere_g            = sphere   .await??;
+        let     light_g            = light    .await??;
         let  vignette_g            = vignette .await??;
 
         let scene = vec![
             skybox_g,
-            gltf_g,
+            sphere_g,
+            light_g,
             vignette_g
         ];
 
-        Ok((scene, skybox_t, gltf_t))
+        Ok((scene, skybox_t))
     }
 
     async fn demo_skybox(filename: &str) -> Result<(GeometryData, Vec<u8>)> {
@@ -101,8 +103,8 @@ impl Scene {
         Ok((geometry_data, pixels))
     }
 
-    async fn demo_gltf(filename: &str) -> Result<(GeometryData, Vec<Vec<u8>>)> {
-        let (gltf, buffers, images) = gltf::import(format!("assets/models/{filename}"))?;
+    async fn demo_sphere() -> Result<GeometryData> {
+        let (gltf, buffers, _) = gltf::import("assets/models/sphere.glb")?;
 
         let mut vertices: Vec<f32> = vec![];
         let mut indices:  Vec<u32> = vec![];
@@ -121,18 +123,11 @@ impl Scene {
                     .context("No glTF normals")?
                     .collect();
 
-                let tex_coords: Vec<[f32; 2]> = reader
-                    .read_tex_coords(0)
-                    .context("No glTF texture coordinates")?
-                    .into_f32()
-                    .collect();
-
-                vertices.reserve_exact(positions.len() * 3 + normals.len() * 3 + tex_coords.len() * 2);
+                vertices.reserve_exact(positions.len() * 3 + normals.len() * 3);
 
                 for i in 0..positions.len() {
-                    vertices.extend_from_slice( &positions[i]);
-                    vertices.extend_from_slice(   &normals[i]);
-                    vertices.extend_from_slice(&tex_coords[i]);
+                    vertices.extend_from_slice(&positions[i]);
+                    vertices.extend_from_slice(  &normals[i]);
                 }
 
                 indices = reader
@@ -143,66 +138,19 @@ impl Scene {
             }
         }
 
-        let mut textures: Vec<Vec<u8>> = Vec::with_capacity(5);
+        let steps = 10;
+        let mut instances: Vec<f32> = Vec::with_capacity(steps * steps * 2);
 
-        for material in gltf.materials() {
-            let image_indices = [
-                material
-                    .pbr_metallic_roughness()
-                    .base_color_texture()
-                    .context("No glTF base color")?
-                    .texture()
-                    .index(),
-                material
-                    .normal_texture()
-                    .context("No glTF normal map")?
-                    .texture()
-                    .index(),
-                material
-                    .pbr_metallic_roughness()
-                    .metallic_roughness_texture()
-                    .context("No glTF metallic roughness")?
-                    .texture()
-                    .index(),
-                material
-                    .emissive_texture()
-                    .context("No glTF emission")?
-                    .texture()
-                    .index(),
-                material
-                    .occlusion_texture()
-                    .context("No glTF occlusion")?
-                    .texture()
-                    .index()
-            ];
-
-            for i in image_indices {
-                if images[i].format != gltf::image::Format::R8G8B8 {
-                    log!(panic, "Only R8G8B8 gltf images are supported");
-                }
-
-                if images[i].width != images[i].height {
-                    log!(panic, "glTF image dimensions do not match");
-                }
-
-                let mut pixels: Vec<u8> = Vec::with_capacity(images[i].pixels.len() / 3 * 4);
-
-                for j in (0..(images[i].pixels.len())).step_by(3) {
-                    pixels.extend_from_slice(
-                        &[
-                            images[i].pixels[j],
-                            images[i].pixels[j + 1],
-                            images[i].pixels[j + 2],
-                            255
-                        ]
-                    );
-                }
-
-                textures.push(pixels);
+        for y in 0..steps {
+            for x in 0..steps {
+                instances.extend_from_slice(
+                    &[
+                        (y as f32/(steps-1) as f32 - 0.5)  * (steps-1) as f32,
+                        (-0.5 + x as f32/(steps-1) as f32) * (steps-1) as f32
+                    ]
+                );
             }
         }
-
-        let instances: Vec<f32> = vec![0.0];
 
         let shader       = String::from("pbr");
         let cull_mode    = vk::CullModeFlags::BACK;
@@ -217,7 +165,49 @@ impl Scene {
             indices
         )?;
 
-        Ok((geometry_data, textures))
+        Ok(geometry_data)
+    }
+
+    async fn demo_light() -> Result<GeometryData> {
+        let (gltf, buffers, _) = gltf::import("assets/models/sphere.glb")?;
+
+        let mut vertices: Vec<f32> = vec![];
+        let mut indices:  Vec<u32> = vec![];
+
+        for mesh in gltf.meshes() {
+            for primitive in mesh.primitives() {
+                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+
+                vertices = reader
+                    .read_positions()
+                    .context("No glTF positions")?
+                    .flatten()
+                    .collect();
+
+                indices = reader
+                    .read_indices()
+                    .context("No gltf indices")?
+                    .into_u32()
+                    .collect();
+            }
+        }
+
+        let instances: Vec<f32> = vec![0.0];
+
+        let shader       = String::from("light");
+        let cull_mode    = vk::CullModeFlags::BACK;
+        let polygon_mode = vk::PolygonMode::FILL;
+
+        let geometry_data = GeometryData::new(
+            shader,
+            cull_mode,
+            polygon_mode,
+            vertices,
+            instances,
+            indices
+        )?;
+
+        Ok(geometry_data)
     }
 
     async fn demo_vignette() -> Result<GeometryData> {
