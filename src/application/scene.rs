@@ -113,22 +113,11 @@ impl Scene {
             for primitive in mesh.primitives() {
                 let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
 
-                let positions: Vec<[f32; 3]> = reader
+                vertices = reader
                     .read_positions()
                     .context("No glTF positions")?
+                    .flatten()
                     .collect();
-
-                let normals: Vec<[f32; 3]> = reader
-                    .read_normals()
-                    .context("No glTF normals")?
-                    .collect();
-
-                vertices.reserve_exact(positions.len() * 3 + normals.len() * 3);
-
-                for i in 0..positions.len() {
-                    vertices.extend_from_slice(&positions[i]);
-                    vertices.extend_from_slice(  &normals[i]);
-                }
 
                 indices = reader
                     .read_indices()

@@ -12,9 +12,8 @@ struct UniformBufferObject {
 
 struct VertexInput {
     @location(0) pos:    vec3<f32>,
-    @location(1) normal: vec3<f32>,
 
-    @location(2) instance: vec2<f32>
+    @location(1) instance: vec2<f32>
 }
 
 struct VertexOutput {
@@ -38,8 +37,8 @@ fn vertex(in: VertexInput) -> VertexOutput {
     var out: VertexOutput;
 
     out.position   = ubo.proj * ubo.view * pos;
-    out.world_pos  = (ubo.view * pos).xyz;
-    out.normal     = in.normal;
+    out.world_pos  = pos.xyz;
+    out.normal     = in.pos;
     out.camera_pos = ubo.camera_pos.xyz;
     out.light_pos  = ubo.light_pos.xyz;
     out.metalness  = met * 0.92 + 0.04;
