@@ -1,5 +1,8 @@
 // dacho/assets/shaders/skybox.wgsl
 
+const far_depth = 0.99999997;
+const tau       = 6.2831853076;
+
 struct UniformBufferObject {
     view:       mat4x4<f32>,
     proj:       mat4x4<f32>,
@@ -49,7 +52,7 @@ struct FragmentOutput {
 fn fragment(in: FragmentInput) -> FragmentOutput {
     var out: FragmentOutput;
 
-    out.frag_depth = 0.99999997;
+    out.frag_depth = far_depth;
     out.color      = textureSample(tex, smp, sphere_uv(normalize(in.pos)));
 
     return out;
@@ -57,8 +60,8 @@ fn fragment(in: FragmentInput) -> FragmentOutput {
 
 fn sphere_uv(view_dir: vec3<f32>) -> vec2<f32> {
     return vec2<f32>(
-        atan2(view_dir.z, view_dir.x) / 6.2831853076 + 0.5,
-        (view_dir.y * 0.5 + 0.5)
+        atan2(view_dir.z, view_dir.x) / tau + 0.5,
+        view_dir.y * 0.5 + 0.5
     );
 }
 

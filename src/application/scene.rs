@@ -21,7 +21,7 @@ impl Scene {
         #[cfg(debug_assertions)]
         log!(info, "Loading and generating loading Scene");
 
-        let skybox   = spawn(Self::demo_skybox("spree_bank.jpg"));
+        let skybox   = spawn(Self::demo_skybox("evening.jpg"));
         let sphere   = spawn(Self::demo_sphere());
         let light    = spawn(Self::demo_light());
         let vignette = spawn(Self::demo_vignette());
