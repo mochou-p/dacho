@@ -37,10 +37,10 @@ fn fragment(in: FragmentInput) -> FragmentOutput {
     out.color = vec4<f32>(
         vec3<f32>(0),
         smoothstep(
-            0.90,
+            0.80,
             1.0,
             max(length(in.uv.x), length(in.uv.y))
-        ) * 0.4
+        ) * 0.3
     );
 
     return out;

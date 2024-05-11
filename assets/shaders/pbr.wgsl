@@ -1,5 +1,8 @@
 // dacho/assets/shaders/pbr.wgsl
 
+const pi         = 3.14159265359;
+const base_color = vec3<f32>(0.0, 0.1, 1.0);
+
 struct UniformBufferObject {
     view:       mat4x4<f32>,
     proj:       mat4x4<f32>,
@@ -11,7 +14,7 @@ struct UniformBufferObject {
 @group(0) @binding(0) var<uniform> ubo: UniformBufferObject;
 
 struct VertexInput {
-    @location(0) pos:    vec3<f32>,
+    @location(0) pos: vec3<f32>,
 
     @location(1) instance: vec2<f32>
 }
@@ -62,22 +65,20 @@ struct FragmentOutput {
 
 @fragment
 fn fragment(in: FragmentInput) -> FragmentOutput {
-    let BaseColor = vec3<f32>(0.0, 0.01, 1.0);
-
     let N = normalize(in.normal);
     let L = normalize(in.light_pos);
     let V = normalize(in.camera_pos - in.world_pos);
     let H = normalize(L + V);
 
-    let VdotH = max(0.0,  dot(V, H));
-    let Ks    = Fresnel(BaseColor, in.metalness, VdotH);
-    let Kd    = (vec3<f32>(1.0) - Ks) * vec3<f32>(1.0 - in.metalness);
+    let V_dot_H = max(0.0,  dot(V, H));
+    let Ks      = fresnel(base_color, in.metalness, V_dot_H);
+    let Kd      = (vec3<f32>(1.0) - Ks) * vec3<f32>(1.0 - in.metalness);
 
-    let Li       = vec3<f32>(7.0);
-    let cosTheta = vec3<f32>(max(dot(N, L), 0.0));
-    let diffuse  = Kd * Lambert(BaseColor);
-    let specular = clamp(CookTorrance(N, V, H, L, BaseColor, in.metalness, in.roughness), vec3<f32>(0.0), vec3<f32>(1.0));
-    let radiance = (diffuse + specular) * cosTheta * Li;
+    let Li        = vec3<f32>(7.0);
+    let cos_theta = vec3<f32>(max(dot(N, L), 0.0));
+    let diffuse   = Kd * lambert(base_color);
+    let specular  = clamp_0_1(cook_torrance(N, V, H, L, base_color, in.metalness, in.roughness));
+    let radiance  = (diffuse + specular) * cos_theta * Li;
 
     var out: FragmentOutput;
 
@@ -86,73 +87,53 @@ fn fragment(in: FragmentInput) -> FragmentOutput {
     return out;
 }
 
-fn toColor(v: vec3<f32>) -> vec3<f32> {
-    return v * vec3<f32>(0.5) + vec3<f32>(0.5);
+fn clamp_0_1(value: vec3<f32>) -> vec3<f32> {
+    return clamp(value, vec3<f32>(0.0), vec3<f32>(1.0));
 }
 
-fn Fresnel(BaseColor: vec3<f32>, Metalness: f32, b: f32) -> vec3<f32> {
-    let F0 = mix(vec3<f32>(0.04), BaseColor, Metalness);
+fn fresnel(base_color: vec3<f32>, metalness: f32, b: f32) -> vec3<f32> {
+    let F0 = mix(vec3<f32>(0.04), base_color, metalness);
+
     return F0 + (vec3<f32>(1.0) - F0) * pow(vec3<f32>(1.0) - b, vec3<f32>(5.0));
 }
 
-fn GGX(NdotH: f32, Roughness: f32) -> f32 {
-    let a  = Roughness * Roughness;
+fn ggx(N_dot_H: f32, roughness: f32) -> f32 {
+    let a  = roughness * roughness;
     let a2 = a * a;
-    let d  = NdotH * NdotH * (a2 - 1.0) + 1.0;
-    return a2 / (3.14159265359 * d * d);
+    let d  = N_dot_H * N_dot_H * (a2 - 1.0) + 1.0;
+
+    return a2 / (pi * d * d);
 }
 
-fn Beckmann(NdotH: f32, Roughness: f32) -> f32 {
-    let a  = Roughness * Roughness;
-    let a2 = a * a;
-    let r1 = 1.0 / (4.0 * a2 * pow(NdotH, 4.0));
-    let r2 = (NdotH * NdotH - 1.0) / (a2 * NdotH * NdotH);
-    return r1 * exp(r2);
-}
-
-fn Schlick(NdotL: f32, NdotV: f32, a: f32) -> f32 {
+fn schlick(N_dot_L: f32, N_dot_V: f32, a: f32) -> f32 {
     let a1 = a + 1.0;
     let k  = a1 * a1 * 0.125;
-    let G1 = NdotL / (NdotL * (1.0 - k) + k);
-    let G2 = NdotV / (NdotV * (1.0 - k) + k);
+    let G1 = N_dot_L / (N_dot_L * (1.0 - k) + k);
+    let G2 = N_dot_V / (N_dot_V * (1.0 - k) + k);
+
     return G1 * G2;
 }
 
-fn GCT(NdotL: f32, NdotV: f32, NdotH: f32, VdotH: f32) -> f32 {
-    let G1 = (2.0 * NdotH * NdotV) / VdotH;
-    let G2 = (2.0 * NdotH * NdotL) / VdotH;
-    return min(1.0, min(G1, G2));
-}
-
-fn Keleman(NdotL: f32, NdotV: f32, VdotH: f32) -> f32 {
-    return (NdotL * NdotV) / (VdotH * VdotH);
-}
-
-fn F(F0: vec3<f32>, V: vec3<f32>, H: vec3<f32>) -> vec3<f32> {
+fn f(F0: vec3<f32>, V: vec3<f32>, H: vec3<f32>) -> vec3<f32> {
     return F0 + (vec3<f32>(1.0) - F0) * pow(1 - max(dot(V, H), 0.0), 5.0);
 }
 
-fn Lambert(DiffuseReflectance: vec3<f32>) -> vec3<f32> {
-    return DiffuseReflectance / vec3<f32>(3.14159265359);
+fn lambert(diffuse_reflectance: vec3<f32>) -> vec3<f32> {
+    return diffuse_reflectance / vec3<f32>(pi);
 }
 
-fn CookTorrance(
-    N: vec3<f32>, V: vec3<f32>, H: vec3<f32>, L: vec3<f32>, BaseColor: vec3<f32>, Metalness: f32, Roughness: f32
+fn cook_torrance(
+    N: vec3<f32>, V: vec3<f32>, H: vec3<f32>, L: vec3<f32>, base_color: vec3<f32>, metalness: f32, roughness: f32
 ) -> vec3<f32> {
-    let NdotH = max(0.0,  dot(N, H));
-    let NdotV = max(1e-7, dot(N, V));
-    let NdotL = max(1e-7, dot(N, L));
-    let VdotH = max(0.0,  dot(V, H));
+    let N_dot_H = max(0.0,  dot(N, H));
+    let N_dot_V = max(1e-7, dot(N, V));
+    let N_dot_L = max(1e-7, dot(N, L));
+    let V_dot_H = max(0.0,  dot(V, H));
 
-    let D = GGX(NdotH, Roughness);
-//    let D = Beckmann(NdotH, Roughness);
+    let D = ggx(N_dot_H, roughness);
+    let G = schlick(N_dot_L, N_dot_V, roughness);
+    let F = fresnel(base_color, metalness, V_dot_H);
 
-    let G = Schlick(NdotL, NdotV, Roughness);
-//    let G = GCT(NdotL, NdotV, NdotH, VdotH);
-//    let G = Keleman(NdotL, NdotV, VdotH);
-
-    let F = Fresnel(BaseColor, Metalness, VdotH);
-
-    return (F / vec3<f32>(3.14159265359)) * vec3<f32>(D * G) / vec3<f32>(4.0 * NdotL * NdotV);
+    return (F / vec3<f32>(pi)) * vec3<f32>(D * G) / vec3<f32>(4.0 * N_dot_L * N_dot_V);
 }
 
