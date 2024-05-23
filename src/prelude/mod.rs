@@ -1,17 +1,21 @@
-// dacho/src/main.rs
+// dacho/src/prelude/mod.rs
 
 use anyhow::Result;
 
-use dacho::application::Application;
+use super::application::Application;
 
 #[cfg(debug_assertions)]
-use dacho::{
+use super::{
     application::logger::Logger,
     log, log_indent
 };
 
+pub fn run() {
+    start().expect("failed to run start");
+}
+
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn start() -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         log!(info, "Creating EventLoop");

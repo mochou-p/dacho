@@ -138,7 +138,7 @@ impl CommandBuffers {
         #[cfg(debug_assertions)]
         let mut first_command_buffer;
         #[cfg(debug_assertions)]
-        let mut just_drew = false;
+        let mut just_drew  = false;
 
         for (i, &command_buffer) in self.raw.iter().enumerate() {
             #[cfg(debug_assertions)] {

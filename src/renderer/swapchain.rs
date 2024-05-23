@@ -20,20 +20,20 @@ use crate::{
 };
 
 pub struct Swapchain {
-    pub loader:             khr::Swapchain,
-    pub raw:                vk::SwapchainKHR,
-    pub extent:             vk::Extent2D,
-    pub image_count:        usize,
-    pub current_image:      usize,
-        depth_image:        Image,
-        depth_image_view:   ImageView,
-        color_image:        Image,
-        color_image_view:   ImageView,
-        image_views:        Vec<ImageView>,
-    pub framebuffers:       Vec<vk::Framebuffer>,
-    pub images_available:   Vec<vk::Semaphore>,
-    pub images_finished:    Vec<vk::Semaphore>,
-    pub may_begin_drawing:  Vec<vk::Fence>
+    pub loader:            khr::Swapchain,
+    pub raw:               vk::SwapchainKHR,
+    pub extent:            vk::Extent2D,
+    pub image_count:       usize,
+    pub current_image:     usize,
+        depth_image:       Image,
+        depth_image_view:  ImageView,
+        color_image:       Image,
+        color_image_view:  ImageView,
+        image_views:       Vec<ImageView>,
+    pub framebuffers:      Vec<vk::Framebuffer>,
+    pub images_available:  Vec<vk::Semaphore>,
+    pub images_finished:   Vec<vk::Semaphore>,
+    pub may_begin_drawing: Vec<vk::Fence>
 }
 
 impl Swapchain {

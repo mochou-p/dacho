@@ -51,7 +51,7 @@ unsafe extern "system" fn validation_layers_callback(
     message_severity:        MessageSeverity,
     message_type:            MessageType,
     p_callback_data:  *const CallbackData,
-    _p_user_data:     *mut   std::ffi::c_void,
+    _p_user_data:     *mut   std::ffi::c_void
 ) -> vk::Bool32 {
     static mut NUMBER: usize = 0;
     NUMBER += 1;
