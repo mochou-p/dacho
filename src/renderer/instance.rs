@@ -17,9 +17,7 @@ use {
 };
 
 #[cfg(debug_assertions)]
-const VALIDATION_LAYERS: [&str; 1] = [
-    "VK_LAYER_KHRONOS_validation"
-];
+const VALIDATION_LAYERS: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];
 
 pub struct Instance {
     pub raw: ash::Instance

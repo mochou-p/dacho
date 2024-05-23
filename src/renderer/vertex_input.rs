@@ -76,9 +76,9 @@ pub fn size_of_types(info: &[Type]) -> usize {
     size
 }
 
-pub fn vertex_descriptions(
-    info: &[Type]
-) -> (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, u32) {
+pub fn vertex_descriptions(info: &[Type]) -> (
+    vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, u32
+) {
     let  mut attribute_descriptions = Vec::with_capacity(info.len());
     let (mut location, mut offset)  = (0, 0);
 
@@ -107,12 +107,11 @@ pub fn vertex_descriptions(
     (binding_description, attribute_descriptions, location)
 }
 
-pub fn instance_descriptions(
-    info:                 &[Type],
-    vertex_last_location:  u32
-) -> (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>) {
+pub fn instance_descriptions(info: &[Type], location_offset: u32) -> (
+    vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>
+) {
     let  mut attribute_descriptions = Vec::with_capacity(info.len());
-    let (mut location, mut offset)  = (vertex_last_location, 0);
+    let (mut location, mut offset)  = (location_offset, 0);
 
     for kind in info.iter() {
         let attribute_description = vk::VertexInputAttributeDescription::builder()

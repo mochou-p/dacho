@@ -47,12 +47,12 @@ impl GeometryData {
 }
 
 pub struct Geometry {
-    pub shader:            String,
-        vertex_buffer:     Buffer,
-        instance_buffer:   Buffer,
-        index_buffer:      Buffer,
-        index_count:       u32,
-        instance_count:    u32
+    pub shader:          String,
+        vertex_buffer:   Buffer,
+        instance_buffer: Buffer,
+        index_buffer:    Buffer,
+        index_count:     u32,
+        instance_count:  u32
 }
 
 impl Geometry {
@@ -64,8 +64,8 @@ impl Geometry {
         data:              &GeometryData,
         shader_info_cache: &mut HashMap<String, ShaderInfo>
     ) -> Result<Self> {
-        let shader            = data.shader.clone();
-        let index_count       = data.indices.len() as u32;
+        let shader      = data.shader.clone();
+        let index_count = data.indices.len() as u32;
 
         if shader_info_cache.get(&data.shader).is_none() {
             let name         = data.shader.clone();
