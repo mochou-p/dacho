@@ -33,6 +33,7 @@ use {
     timer::Timer,
     window::Window,
     super::{
+        prelude::Scene as Scene_,
         renderer::Renderer,
         log
     }
@@ -49,7 +50,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
+    pub fn new(event_loop: &EventLoop<()>, scene_: &Scene_) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Application");
             log_indent!(1);
@@ -59,7 +60,7 @@ impl Application {
 
         let window = Window::new("dacho", 1600, 900, event_loop)?;
 
-        let (scene, skybox_texture) = block_on(Scene::demo())?;
+        let (scene, skybox_texture) = block_on(Scene::build(scene_))?;
 
         let renderer = Renderer::new(
             event_loop, &window.window, window.width, window.height, &scene, &skybox_texture
