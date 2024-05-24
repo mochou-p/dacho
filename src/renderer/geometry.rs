@@ -15,6 +15,7 @@ use super::{
     vertex_input::{ShaderInfo, size_of_types}
 };
 
+#[derive(Clone)]
 pub struct GeometryData {
     pub shader:       String,
     pub cull_mode:    vk::CullModeFlags,

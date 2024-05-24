@@ -71,10 +71,8 @@ impl UniformBufferObject {
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
         projection.y_axis.y *= -1.0;
 
-        let steps      = 10;
-        let light_dist = steps as f32 / 2.0 + steps as f32 * 0.1;
         let position   = glam::Vec4::new(position.x, position.y, position.z, 0.0);
-        let light_pos  = glam::Vec4::new(time.sin() * light_dist, 0.0, time.cos() * light_dist, 0.0);
+        let light_pos  = glam::Vec4::new(time.sin(), time.sin() * 0.3, time.cos(), 0.0);
 
         let mut ubo = UniformBufferObject {
             _view:       view,
