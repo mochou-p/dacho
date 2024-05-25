@@ -11,10 +11,8 @@ use {
     super::logger::Logger,
     crate::{
         prelude::{
-            Cube,
-            Scene as Scene_,
-            Sphere,
-            V3
+            user_scene::UserScene,
+            Cube, Sphere, V3
         },
         renderer::geometry::GeometryData,
         log
@@ -24,13 +22,13 @@ use {
 pub struct Scene;
 
 impl Scene {
-    pub async fn build(scene_: &Scene_) -> Result<(Vec<GeometryData>, Vec<u8>)> {
+    pub async fn build(scene: &UserScene) -> Result<(Vec<GeometryData>, Vec<u8>)> {
         #[cfg(debug_assertions)]
         log!(info, "Building Scene");
 
         let mut futures = vec![];
 
-        for object in scene_.objects.iter() {
+        for object in scene.objects.iter() {
             futures.push(
                 match object {
                     Cube   (pos, size) => { spawn(Self::cube   (*pos, *size)) },
