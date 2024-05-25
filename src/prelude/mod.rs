@@ -6,7 +6,7 @@ pub mod user_scene;
 
 pub use {
     shapes::Object::*,
-    types::V3,
+    types::{V2, V3},
     user_scene::UserScene as Scene
 };
 

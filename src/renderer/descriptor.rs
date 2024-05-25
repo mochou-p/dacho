@@ -72,7 +72,7 @@ impl UniformBufferObject {
         projection.y_axis.y *= -1.0;
 
         let position   = glam::Vec4::new(position.x, position.y, position.z, 0.0);
-        let light_pos  = glam::Vec4::new(time.sin(), time.sin() * 0.3, time.cos(), 0.0);
+        let light_pos  = glam::Vec4::new(time.sin(), 1.412, time.cos(), 0.0);
 
         let mut ubo = UniformBufferObject {
             _view:       view,

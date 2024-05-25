@@ -12,7 +12,7 @@ use {
     crate::{
         prelude::{
             user_scene::UserScene,
-            Cube, Sphere, V3
+            Cube, Sphere, V2, V3
         },
         renderer::geometry::GeometryData,
         log
@@ -31,8 +31,8 @@ impl Scene {
         for object in scene.objects.iter() {
             futures.push(
                 match object {
-                    Cube   (pos, size) => { spawn(Self::cube   (*pos, *size)) },
-                    Sphere (pos, r)    => { spawn(Self::sphere (*pos, *r))    }
+                    Cube   (p, s, c, m) => { spawn(Self::cube   (*p, *s, *c, *m)) },
+                    Sphere (p, s, c, m) => { spawn(Self::sphere (*p, *s, *c, *m)) }
                 }
             );
         }
@@ -121,7 +121,7 @@ impl Scene {
         Ok((geometry_data, pixels))
     }
 
-    async fn cube(p: V3, size: V3) -> Result<GeometryData> {
+    async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData> {
         let hs = size * 0.5;
 
         let vertices: Vec<f32> = vec![
@@ -165,7 +165,7 @@ impl Scene {
             20, 21, 22,  22, 23, 20
         ];
 
-        let instances: Vec<f32> = vec![0.0];
+        let instances: Vec<f32> = vec![color.x, color.y, color.z, metrou.x, metrou.y];
 
         let shader       = String::from("pbr");
         let cull_mode    = vk::CullModeFlags::FRONT;
@@ -183,7 +183,7 @@ impl Scene {
         Ok(geometry_data)
     }
 
-    async fn sphere(position: V3, radius: f32) -> Result<GeometryData> {
+    async fn sphere(position: V3, radius: f32, color: V3, metrou: V2) -> Result<GeometryData> {
         let (gltf, buffers, _) = gltf::import("assets/models/sphere.glb")?;
 
         let mut vertices: Vec<f32> = vec![];
@@ -212,7 +212,7 @@ impl Scene {
             }
         }
 
-        let instances: Vec<f32> = vec![0.0];
+        let instances: Vec<f32> = vec![color.x, color.y, color.z, metrou.x, metrou.y];
 
         let shader       = String::from("pbr");
         let cull_mode    = vk::CullModeFlags::FRONT;
