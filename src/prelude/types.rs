@@ -1,6 +1,18 @@
 // dacho/src/prelude/types.rs
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
+pub struct V2 {
+    pub x: f32,
+    pub y: f32
+}
+
+impl V2 {
+    pub fn new(x: f32, y: f32) -> Self {
+        Self { x, y }
+    }
+}
+
+#[derive(Copy, Clone)]
 pub struct V3 {
     pub x: f32,
     pub y: f32,

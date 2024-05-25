@@ -1,7 +1,6 @@
 // dacho/assets/shaders/pbr.wgsl
 
-const pi         = 3.14159265359;
-const base_color = vec3<f32>(1.0);
+const pi = 3.14159265359;
 
 struct UniformBufferObject {
     view:       mat4x4<f32>,
@@ -17,7 +16,8 @@ struct VertexInput {
     @location(0) pos:    vec3<f32>,
     @location(1) normal: vec3<f32>,
 
-    @location(2) instance: f32
+    @location(2) color:  vec3<f32>,
+    @location(3) metrou: vec2<f32>
 }
 
 struct VertexOutput {
@@ -27,8 +27,9 @@ struct VertexOutput {
     @location(1) normal:     vec3<f32>,
     @location(2) camera_pos: vec3<f32>,
     @location(3) light_pos:  vec3<f32>,
-    @location(4) metalness:  f32,
-    @location(5) roughness:  f32
+    @location(4) base_color: vec3<f32>,
+    @location(5) metalness:  f32,
+    @location(6) roughness:  f32
 }
 
 @vertex
@@ -42,8 +43,9 @@ fn vertex(in: VertexInput) -> VertexOutput {
     out.normal     = in.normal;
     out.camera_pos = ubo.camera_pos.xyz;
     out.light_pos  = ubo.light_pos.xyz;
-    out.metalness  = 0.0;
-    out.roughness  = 0.7;
+    out.base_color = in.color;
+    out.metalness  = in.metrou.x;
+    out.roughness  = in.metrou.y;
 
     return out;
 }
@@ -53,8 +55,9 @@ struct FragmentInput {
     @location(1) normal:     vec3<f32>,
     @location(2) camera_pos: vec3<f32>,
     @location(3) light_pos:  vec3<f32>,
-    @location(4) metalness:  f32,
-    @location(5) roughness:  f32
+    @location(4) base_color: vec3<f32>,
+    @location(5) metalness:  f32,
+    @location(6) roughness:  f32
 }
 
 struct FragmentOutput {
@@ -63,19 +66,22 @@ struct FragmentOutput {
 
 @fragment
 fn fragment(in: FragmentInput) -> FragmentOutput {
+    var L = normalize(in.light_pos);
+    L.y   = -L.y;
+
     let N = normalize(in.normal);
-    let L = normalize(in.light_pos);
     let V = normalize(in.camera_pos - in.world_pos);
     let H = normalize(L + V);
 
     let V_dot_H = max(0.0,  dot(V, H));
-    let Ks      = fresnel(base_color, in.metalness, V_dot_H);
+    let Ks      = fresnel(in.base_color, in.metalness, V_dot_H);
     let Kd      = (vec3<f32>(1.0) - Ks) * vec3<f32>(1.0 - in.metalness);
 
     let Li        = vec3<f32>(7.0);
-    let cos_theta = vec3<f32>(max(dot(N, L), 0.0));
-    let diffuse   = Kd * lambert(base_color);
-    let specular  = clamp_0_1(cook_torrance(N, V, H, L, base_color, in.metalness, in.roughness));
+    let ambient   = 0.0123456789;
+    let cos_theta = vec3<f32>(max(dot(N, L), ambient));
+    let diffuse   = Kd * lambert(in.base_color);
+    let specular  = clamp_0_1(cook_torrance(N, V, H, L, in.base_color, in.metalness, in.roughness));
     let radiance  = (diffuse + specular) * cos_theta * Li;
 
     var out: FragmentOutput;
