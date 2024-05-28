@@ -6,6 +6,11 @@ use super::{
     types::{V2, V3}
 };
 
+pub enum Anchor {
+    Top,
+    Bottom
+}
+
 #[derive(Clone)]
 pub enum Object {
     Cube   (V3, V3,  V3, V2),
@@ -45,6 +50,15 @@ impl Cube {
 
     pub fn material(&mut self, rhs: V2) -> &mut Self {
         self.material = rhs;
+
+        self
+    }
+
+    pub fn anchor(&mut self, anchor: Anchor) -> &mut Self {
+        self.position.y -= self.size.y * 0.5 * match anchor {
+            Anchor::Top    =>  1.0,
+            Anchor::Bottom => -1.0
+        };
 
         self
     }
@@ -94,6 +108,15 @@ impl Sphere {
 
     pub fn material(&mut self, rhs: V2) -> &mut Self {
         self.material = rhs;
+
+        self
+    }
+
+    pub fn anchor(&mut self, anchor: Anchor) -> &mut Self {
+        self.position.y -= self.size * match anchor {
+            Anchor::Top    =>  1.0,
+            Anchor::Bottom => -1.0
+        };
 
         self
     }
