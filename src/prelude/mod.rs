@@ -10,7 +10,7 @@ pub mod world;
 pub use {
     colors::{Color, Color as Colour},
     materials::Material,
-    shapes::{Cube, Sphere},
+    shapes::{Anchor, Cube, Sphere},
     types::{V2, V3},
     world::World
 };

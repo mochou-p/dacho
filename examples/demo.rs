@@ -6,13 +6,13 @@ fn main() {
     World::new()
         .add(&[
             Cube::default()
-                .position(V3::Y * -0.2)
                 .size(V3::new(5.0, 0.4, 5.0))
+                .anchor(Anchor::Top)
                 .build(),
             Sphere::default()
-                .position(V3::Y * 0.5)
                 .color(Color::BLUE)
                 .material(Material::METAL)
+                .anchor(Anchor::Bottom)
                 .build()
         ])
         .run();
