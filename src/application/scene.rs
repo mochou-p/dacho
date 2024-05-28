@@ -11,7 +11,7 @@ use {
     super::logger::Logger,
     crate::{
         prelude::{
-            user_scene::UserScene,
+            world::World,
             Cube, Sphere, V2, V3
         },
         renderer::geometry::GeometryData,
@@ -22,13 +22,13 @@ use {
 pub struct Scene;
 
 impl Scene {
-    pub async fn build(scene: &UserScene) -> Result<(Vec<GeometryData>, Vec<u8>)> {
+    pub async fn build(world: &World) -> Result<(Vec<GeometryData>, Vec<u8>)> {
         #[cfg(debug_assertions)]
         log!(info, "Building Scene");
 
         let mut futures = vec![];
 
-        for object in scene.objects.iter() {
+        for object in world.objects.iter() {
             futures.push(
                 match object {
                     Cube   (p, s, c, m) => { spawn(Self::cube   (*p, *s, *c, *m)) },
