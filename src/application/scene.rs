@@ -125,6 +125,7 @@ impl Scene {
         let hs = size * 0.5;
 
         let vertices: Vec<f32> = vec![
+            // position                           normal
             p.x - hs.x, -p.y + hs.y, p.z - hs.z,  0.0,  1.0,  0.0,
             p.x + hs.x, -p.y + hs.y, p.z - hs.z,  0.0,  1.0,  0.0,
             p.x + hs.x, -p.y + hs.y, p.z + hs.z,  0.0,  1.0,  0.0,
@@ -184,31 +185,63 @@ impl Scene {
     }
 
     async fn sphere(position: V3, radius: f32, color: V3, metrou: V2) -> Result<GeometryData> {
-        let (gltf, buffers, _) = gltf::import("assets/models/sphere.glb")?;
+        const SECTORS: usize = 32;
+        const STACKS:  usize = 18;
+        const QUADS:   usize = SECTORS * STACKS;
 
-        let mut vertices: Vec<f32> = vec![];
-        let mut indices:  Vec<u32> = vec![];
+        // * 3 -> xyz
+        // * 2 -> position, normal
+        let mut vertices: Vec<f32> = Vec::with_capacity(QUADS * 3 * 2);
+        let mut indices:  Vec<u32> = Vec::with_capacity(QUADS * 2 * 3);
 
-        for mesh in gltf.meshes() {
-            for primitive in mesh.primitives() {
-                let reader = primitive.reader(|buffer| Some(&buffers[buffer.index()]));
+        let sector_step = 2.0 * std::f32::consts::PI / SECTORS as f32;
+        let stack_step  = std::f32::consts::PI / STACKS as f32;
 
-                vertices = reader
-                    .read_positions()
-                    .context("No glTF positions")?
-                    .flat_map(|p| {
-                        let temp = [-p[0], -p[1], -p[2]];
+        for i in 0..STACKS + 1 {
+            let a  = std::f32::consts::PI / 2.0 - (i as f32) * stack_step;
+            let xy = a.cos();
+            let z  = a.sin();
 
-                        [(V3::from(temp) * radius - position).to_array(), temp]
-                    })
-                    .flatten()
-                    .collect();
+            for j in 0..SECTORS + 1 {
+                let a = (j as f32) * sector_step;
+                let x = xy * a.cos();
+                let y = xy * a.sin();
 
-                indices = reader
-                    .read_indices()
-                    .context("No gltf indices")?
-                    .into_u32()
-                    .collect();
+                vertices.extend_from_slice(
+                    &[
+                        // position
+                        x * radius + position.x,
+                        y * radius - position.y,
+                        z * radius + position.z,
+
+                        // normal
+                        x,
+                        y,
+                        z
+                    ]
+                );
+            }
+        }
+
+        for i in 0..STACKS {
+            let mut k1 = i * (SECTORS + 1);
+            let mut k2 = k1 + SECTORS + 1;
+
+            for _j in 0..SECTORS {
+                if i != 0 {
+                    indices.push((k1 + 1) as u32);
+                    indices.push(k2 as u32);
+                    indices.push(k1 as u32);
+                }
+
+                if i != STACKS - 1 {
+                    indices.push((k2 + 1) as u32);
+                    indices.push(k2 as u32);
+                    indices.push((k1 + 1) as u32);
+                }
+
+                k1 += 1;
+                k2 += 1;
             }
         }
 

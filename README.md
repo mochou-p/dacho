@@ -15,7 +15,7 @@ fn main() {
 }
 ```
 
-Check the [demo example](examples/demo.rs) for more possibilities
+See [examples/demo.rs](examples/demo.rs) for more
 
 ## Notes
 
