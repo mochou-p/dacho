@@ -1,11 +1,13 @@
 // dacho/src/prelude/mod.rs
 
+    mod colors;
 pub mod primitives;
     mod shapes;
     mod types;
 pub mod world;
 
 pub use {
+    colors::{Color, Color as Colour},
     shapes::Object::*,
     types::{V2, V3},
     world::World
