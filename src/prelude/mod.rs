@@ -3,14 +3,14 @@
     mod colors;
     mod materials;
 pub mod primitives;
-    mod shapes;
+pub mod shapes;
     mod types;
 pub mod world;
 
 pub use {
     colors::{Color, Color as Colour},
     materials::Material,
-    shapes::Object::*,
+    shapes::{Cube, Sphere},
     types::{V2, V3},
     world::World
 };
@@ -25,14 +25,8 @@ use super::{
     log, log_indent
 };
 
-#[inline]
-pub fn run(world: &World) {
-    dacho_main(world)
-        .expect("failed to run dacho_main");
-}
-
 #[tokio::main]
-async fn dacho_main(world: &World) -> Result<()> {
+pub async fn dacho_main(world: &World) -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         log!(info, "Creating EventLoop");

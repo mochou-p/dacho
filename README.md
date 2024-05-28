@@ -9,11 +9,7 @@ use dacho::prelude::*;
 
 // minimal example
 fn main() {
-    let world = World::new();
-
-    // ...
-
-    run(&world);
+    World::new().run();
 }
 ```
 

@@ -7,6 +7,12 @@ pub struct V2 {
 }
 
 impl V2 {
+    pub const ZERO: Self = Self::new(0.0, 0.0);
+    pub const ONE:  Self = Self::new(1.0, 1.0);
+
+    pub const X:    Self = Self::new(1.0, 0.0);
+    pub const Y:    Self = Self::new(0.0, 1.0);
+
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
@@ -20,6 +26,17 @@ pub struct V3 {
 }
 
 impl V3 {
+    pub const ZERO:  Self = Self::new( 0.0,  0.0,  0.0);
+    pub const ONE:   Self = Self::new( 1.0,  1.0,  1.0);
+
+    pub const X:    Self = Self::new(1.0, 0.0, 0.0);
+    pub const Y:    Self = Self::new(0.0, 1.0, 0.0);
+    pub const Z:    Self = Self::new(0.0, 0.0, 1.0);
+
+    pub const XY:   Self = Self::new(1.0, 1.0, 0.0);
+    pub const XZ:   Self = Self::new(1.0, 0.0, 1.0);
+    pub const YZ:   Self = Self::new(0.0, 1.0, 1.0);
+
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
@@ -48,6 +65,14 @@ impl std::ops::Mul<f32> for V3 {
 
     fn mul(self, rhs: f32) -> Self::Output {
         Self { x: self.x * rhs, y: self.y * rhs, z: self.z * rhs }
+    }
+}
+
+impl std::ops::Mul<isize> for V3 {
+    type Output = Self;
+
+    fn mul(self, rhs: isize) -> Self::Output {
+        Self { x: self.x * rhs as f32, y: self.y * rhs as f32, z: self.z * rhs as f32 }
     }
 }
 
