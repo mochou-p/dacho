@@ -2,20 +2,17 @@
 
     mod shapes;
     mod types;
-pub mod user_scene;
+pub mod world;
 
 pub use {
     shapes::Object::*,
     types::{V2, V3},
-    user_scene::UserScene as Scene
+    world::World
 };
 
 use anyhow::Result;
 
-use {
-    user_scene::UserScene,
-    super::application::Application
-};
+use super::application::Application;
 
 #[cfg(debug_assertions)]
 use super::{
@@ -24,20 +21,20 @@ use super::{
 };
 
 #[inline]
-pub fn run(scene: &UserScene) {
-    dacho_main(scene)
+pub fn run(world: &World) {
+    dacho_main(world)
         .expect("failed to run dacho_main");
 }
 
 #[tokio::main]
-async fn dacho_main(scene: &UserScene) -> Result<()> {
+async fn dacho_main(world: &World) -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         log!(info, "Creating EventLoop");
     }
 
     let     event_loop  = winit::event_loop::EventLoop::new()?;
-    let mut application = Application::new(&event_loop, scene)?;
+    let mut application = Application::new(&event_loop, world)?;
 
     #[cfg(debug_assertions)] {
         println!();

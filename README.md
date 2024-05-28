@@ -9,9 +9,9 @@ use dacho::prelude::*;
 
 // minimal example
 fn main() {
-    let scene = Scene::new();
+    let world = World::new();
 
-    run(&scene);
+    run(&world);
 }
 ```
 

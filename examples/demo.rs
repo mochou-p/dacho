@@ -3,9 +3,9 @@
 use dacho::prelude::*;
 
 fn main() {
-    let mut scene = Scene::new();
+    let mut world = World::new();
 
-    scene
+    world
         .add(Cube(
             V3::new( 0.0, -0.2,  0.0), // position
             V3::new(10.0,  0.4, 10.0), // size
@@ -19,6 +19,6 @@ fn main() {
             V2::new( 0.8,  0.6)        // metallic roughness
         ));
 
-    run(&scene);
+    run(&world);
 }
 

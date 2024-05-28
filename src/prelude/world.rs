@@ -1,12 +1,12 @@
-// dacho/src/prelude/user_scene.rs
+// dacho/src/prelude/world.rs
 
 use super::shapes::Object;
 
-pub struct UserScene {
+pub struct World {
     pub objects: Vec<Object>
 }
 
-impl UserScene {
+impl World {
     pub fn new() -> Self {
         Self { objects: vec![] }
     }
@@ -18,7 +18,7 @@ impl UserScene {
     }
 }
 
-impl Default for UserScene {
+impl Default for World {
     fn default() -> Self {
         Self::new()
     }
