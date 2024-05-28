@@ -11,11 +11,13 @@ use dacho::prelude::*;
 fn main() {
     let world = World::new();
 
+    // ...
+
     run(&world);
 }
 ```
 
-See [examples/demo.rs](examples/demo.rs) for more
+See [examples](examples/) for more
 
 ## Notes
 
