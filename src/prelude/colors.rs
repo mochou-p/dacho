@@ -4,7 +4,6 @@ use super::types::V3;
 
 pub struct Color;
 
-#[allow(dead_code)]
 impl Color {
     pub const BLACK:         V3 = V3::new(0.00, 0.00, 0.00);
     pub const DARK:          V3 = V3::new(0.15, 0.15, 0.15);

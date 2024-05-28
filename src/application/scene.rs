@@ -12,8 +12,8 @@ use {
     crate::{
         prelude::{
             primitives::{cube, sphere},
-            world::World,
-            Cube, Sphere
+            shapes::Object::{Cube, Sphere},
+            world::World
         },
         renderer::geometry::GeometryData,
         log
