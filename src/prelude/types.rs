@@ -20,7 +20,7 @@ pub struct V3 {
 }
 
 impl V3 {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
