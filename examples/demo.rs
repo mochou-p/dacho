@@ -1,6 +1,6 @@
 // dacho/examples/demo.rs
 
-use dacho::prelude::*; 
+use dacho::prelude::*;
 
 fn main() {
     let mut scene = Scene::new();

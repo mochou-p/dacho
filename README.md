@@ -2,6 +2,23 @@
 
 # dacho
 
+## Usage
+
+```rust
+use dacho::prelude::*;
+
+// minimal example
+fn main() {
+    let scene = Scene::new();
+
+    run(&scene);
+}
+```
+
+Check the [demo example](examples/demo.rs) for more possibilities
+
+## Notes
+
 Run with `--release` if your system is missing [Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
 
 ## License
