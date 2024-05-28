@@ -1,5 +1,6 @@
 // dacho/src/prelude/mod.rs
 
+pub mod primitives;
     mod shapes;
     mod types;
 pub mod world;
