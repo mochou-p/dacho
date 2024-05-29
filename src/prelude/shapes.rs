@@ -71,7 +71,7 @@ impl Cube {
 #[allow(dead_code)]
 impl Default for Cube {
     fn default() -> Self {
-        Self::new(V3::ZERO, V3::ONE, Color::WHITE, Material::ROUGH)
+        Self::new(V3::ZERO, V3::ONE, Color::default(), Material::default())
     }
 }
 
@@ -126,10 +126,9 @@ impl Sphere {
     }
 }
 
-#[allow(dead_code)]
 impl Default for Sphere {
     fn default() -> Self {
-        Self::new(V3::ZERO, 0.5, Color::WHITE, Material::ROUGH)
+        Self::new(V3::ZERO, 0.5, Color::default(), Material::default())
     }
 }
 
