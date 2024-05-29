@@ -1,10 +1,10 @@
 // dacho/src/prelude/mod.rs
 
-    mod colors;
-    mod materials;
+pub mod colors;
+pub mod materials;
 pub mod primitives;
 pub mod shapes;
-    mod types;
+pub mod types;
 pub mod world;
 
 pub use {

@@ -10,5 +10,5 @@ cargo run --example
 ```
 
 ## [demo.rs](demo.rs)
-[![demo](https://i.imgur.com/CsihTRo.png "demo.rs")](demo.rs)
+[![demo](https://i.imgur.com/SK5jyXu.png "demo.rs")](demo.rs)
 
