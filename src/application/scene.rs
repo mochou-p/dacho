@@ -11,8 +11,11 @@ use {
     super::logger::Logger,
     crate::{
         prelude::{
+            colors::Color,
+            materials::Material,
             primitives::{cube, sphere},
             shapes::Object::{Cube, Sphere},
+            types::V3,
             world::World
         },
         renderer::geometry::GeometryData,
@@ -32,8 +35,8 @@ impl Scene {
         for object in world.objects.iter() {
             futures.push(
                 match object {
-                    Cube   (p, s, c, m) => { spawn(cube   (*p, *s, *c, *m)) },
-                    Sphere (p, s, c, m) => { spawn(sphere (*p, *s, *c, *m)) }
+                    Cube   (p, s, c, m) => { spawn(cube   (*p, *s, *c, *m))                },
+                    Sphere (p, s, c, m) => { spawn(sphere (*p, *s, *c, *m, 32, 18, "pbr")) }
                 }
             );
         }
@@ -52,10 +55,14 @@ impl Scene {
             }
         }
 
-        let  skybox              = spawn(Self::skybox("evening.jpg"));
+        let skybox = spawn(Self::skybox("evening.jpg"));
+        let light  = spawn(sphere(V3::ZERO, 0.03, Color::BLACK, Material::ROUGH, 16, 9, "light"));
+
         let (skybox_g, skybox_t) = skybox.await??;
+        let   light_g            = light.await??;
 
         scene.push(skybox_g);
+        scene.push( light_g);
 
         Ok((scene, skybox_t))
     }
