@@ -16,6 +16,17 @@ impl V2 {
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
+
+    pub fn normalize(&self) -> Self {
+        let n = glam::Vec2::from_array(self.to_array()).normalize();
+
+        Self::new(n.x, n.y)
+    }
+
+    #[inline]
+    pub fn to_array(self) -> [f32; 2] {
+        [self.x, self.y]
+    }
 }
 
 #[derive(Copy, Clone)]
@@ -26,8 +37,8 @@ pub struct V3 {
 }
 
 impl V3 {
-    pub const ZERO:  Self = Self::new( 0.0,  0.0,  0.0);
-    pub const ONE:   Self = Self::new( 1.0,  1.0,  1.0);
+    pub const ZERO: Self = Self::new( 0.0,  0.0,  0.0);
+    pub const ONE:  Self = Self::new( 1.0,  1.0,  1.0);
 
     pub const X:    Self = Self::new(1.0, 0.0, 0.0);
     pub const Y:    Self = Self::new(0.0, 1.0, 0.0);
@@ -41,6 +52,13 @@ impl V3 {
         Self { x, y, z }
     }
 
+    pub fn normalize(&self) -> Self {
+        let n = glam::Vec3::from_array(self.to_array()).normalize();
+
+        Self::new(n.x, n.y, n.z)
+    }
+
+    #[inline]
     pub fn to_array(self) -> [f32; 3] {
         [self.x, self.y, self.z]
     }

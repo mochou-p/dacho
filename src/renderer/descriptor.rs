@@ -73,7 +73,7 @@ impl UniformBufferObject {
 
         let position   = glam::Vec4::new(position.x, position.y, position.z, 0.0);
         let fast_time  = time * 2.0;
-        let light_pos  = glam::Vec4::new(fast_time.sin(), -0.2, fast_time.cos(), 0.0).normalize();
+        let light_pos  = glam::Vec4::new(fast_time.sin(), -0.35, fast_time.cos(), 0.0).normalize();
 
         let mut ubo = UniformBufferObject {
             _view:       view,

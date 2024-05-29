@@ -5,7 +5,7 @@ use super::types::V3;
 pub struct Color;
 
 impl Color {
-    pub const BLACK:         V3 = V3::new(0.00, 0.00, 0.00);
+    pub const BLACK:         V3 = V3::new(0.01, 0.01, 0.01);
     pub const DARK:          V3 = V3::new(0.15, 0.15, 0.15);
     pub const GRAY:          V3 = V3::new(0.50, 0.50, 0.50);
     pub const LIGHT:         V3 = V3::new(0.85, 0.85, 0.85);
@@ -37,7 +37,6 @@ impl Color {
     pub const DARK_MAGENTA:  V3 = V3::new(0.30, 0.00, 0.30);
     pub const DARK_CANDY:    V3 = V3::new(0.30, 0.00, 0.15);
 
-    // broken pbr, diffuse is inverted
     pub const LIGHT_RED:     V3 = V3::new(1.00, 0.70, 0.70);
     pub const LIGHT_ORANGE:  V3 = V3::new(1.00, 0.85, 0.70);
     pub const LIGHT_YELLOW:  V3 = V3::new(1.00, 1.00, 0.70);
@@ -52,5 +51,10 @@ impl Color {
     pub const LIGHT_CANDY:   V3 = V3::new(1.00, 0.70, 0.85);
 
     pub const GREY:          V3 = Self::GRAY;
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn default() -> V3 {
+        Self::WHITE
+    }
 }
 
