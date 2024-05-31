@@ -68,7 +68,7 @@ impl UniformBufferObject {
     ) {
         let view = glam::Mat4::look_at_rh(position, position + direction, glam::Vec3::Y);
 
-        let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.1, 10000.0);
+        let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.001, 10000.0);
         projection.y_axis.y *= -1.0;
 
         let position   = glam::Vec4::new(position.x, position.y, position.z, 0.0);

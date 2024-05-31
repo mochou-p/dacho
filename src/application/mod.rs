@@ -2,7 +2,7 @@
 
     mod camera;
 pub mod logger;
-    mod scene;
+pub mod scene;
     mod timer;
     mod window;
 
@@ -29,11 +29,10 @@ use {
 use {
     camera::Camera,
     logger::Logger,
-    scene::Scene,
+    scene::Data,
     timer::Timer,
     window::Window,
     super::{
-        prelude::world::World,
         renderer::Renderer,
         log
     }
@@ -50,7 +49,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub fn new(event_loop: &EventLoop<()>, world: &World) -> Result<Self> {
+    pub fn new(event_loop: &EventLoop<()>, data: &Data) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Application");
             log_indent!(1);
@@ -60,10 +59,8 @@ impl Application {
 
         let window = Window::new("dacho", 1600, 900, event_loop)?;
 
-        let (scene, skybox_texture) = block_on(Scene::build(world))?;
-
         let renderer = Renderer::new(
-            event_loop, &window.window, window.width, window.height, &scene, &skybox_texture
+            event_loop, &window.window, window.width, window.height, data
         )?;
 
         let camera = Camera::new(glam::Vec3::new(0.0, 0.0, 13.0));

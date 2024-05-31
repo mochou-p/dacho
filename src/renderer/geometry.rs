@@ -3,7 +3,8 @@
 use {
     std::collections::HashMap,
     anyhow::{Context, Result},
-    ash::vk
+    ash::vk,
+    serde::{Serialize, Deserialize}
 };
 
 use super::{
@@ -15,11 +16,11 @@ use super::{
     vertex_input::{ShaderInfo, size_of_types}
 };
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct GeometryData {
     pub shader:       String,
-    pub cull_mode:    vk::CullModeFlags,
-    pub polygon_mode: vk::PolygonMode,
+    pub cull_mode:    u32,
+    pub polygon_mode: i32,
     pub vertices:     Vec<f32>,
     pub instances:    Vec<f32>,
         indices:      Vec<u32>
@@ -37,8 +38,8 @@ impl GeometryData {
         Ok(
             Self {
                 shader,
-                cull_mode,
-                polygon_mode,
+                cull_mode:    cull_mode.as_raw(),
+                polygon_mode: polygon_mode.as_raw(),
                 vertices,
                 instances,
                 indices,
@@ -80,8 +81,8 @@ impl Geometry {
                 data.shader.clone(),
                 ShaderInfo {
                     name,
-                    cull_mode,
-                    polygon_mode,
+                    cull_mode:    vk::CullModeFlags::from_raw(cull_mode),
+                    polygon_mode: vk::PolygonMode::from_raw(polygon_mode),
                     vertex_info,
                     instance_info,
                     instance_size

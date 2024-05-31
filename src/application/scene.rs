@@ -4,6 +4,7 @@ use {
     anyhow::{Context, Result},
     ash::vk,
     futures::future::join_all,
+    serde::{Serialize, Deserialize},
     tokio::spawn
 };
 
@@ -23,10 +24,23 @@ use {
     }
 };
 
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Data {
+    pub geometry: Vec<GeometryData>,
+    pub texture:  Vec<u8>
+}
+
+impl Data {
+    #[allow(clippy::new_without_default)]
+    pub fn new() -> Self {
+        Self { geometry: vec![], texture: vec![] }
+    }
+}
+
 pub struct Scene;
 
 impl Scene {
-    pub async fn build(world: &World) -> Result<(Vec<GeometryData>, Vec<u8>)> {
+    pub async fn build(world: &World) -> Result<Data> {
         #[cfg(debug_assertions)]
         log!(info, "Building Scene");
 
@@ -43,12 +57,12 @@ impl Scene {
 
         let results = join_all(futures).await;
 
-        let mut scene = vec![];
+        let mut geometry = vec![];
 
         for object in results.iter() {
             match object {
                 Ok(result) => match result {
-                    Ok(result) => { scene.push(result.clone()); },
+                    Ok(result) => { geometry.push(result.clone()); },
                     Err(err)   => { log!(panic, "{err}"); panic!(); }
                 },
                 Err(err) => { log!(panic, "{err}"); panic!(); }
@@ -58,13 +72,13 @@ impl Scene {
         let skybox = spawn(Self::skybox("evening.jpg"));
         let light  = spawn(sphere(V3::ZERO, 0.03, Color::BLACK, Material::ROUGH, 16, 9, "light"));
 
-        let (skybox_g, skybox_t) = skybox.await??;
-        let   light_g            = light.await??;
+        let (skybox_g, texture) = skybox.await??;
+        let   light_g           = light.await??;
 
-        scene.push(skybox_g);
-        scene.push( light_g);
+        geometry.push(skybox_g);
+        geometry.push( light_g);
 
-        Ok((scene, skybox_t))
+        Ok(Data { geometry, texture })
     }
 
     async fn skybox(filename: &str) -> Result<(GeometryData, Vec<u8>)> {

@@ -30,7 +30,7 @@ use {
     command::{Command, CommandBuffers, CommandPool},
     descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
     device::{Device, PhysicalDevice},
-    geometry::{Geometry, GeometryData},
+    geometry::Geometry,
     image::{Image, ImageView, Sampler, Texture, TextureView},
     instance::Instance,
     pipeline::Pipeline,
@@ -43,7 +43,10 @@ use {
 use {
     debug::Debug,
     super::{
-        application::logger::Logger,
+        application::{
+            logger::Logger,
+            scene::Data
+        },
         log, log_indent
     }
 };
@@ -76,8 +79,7 @@ impl Renderer {
         window:         &Window,
         window_width:    u32,
         window_height:   u32,
-        scene:          &[GeometryData],
-        skybox_texture: &[u8]
+        data:           &Data
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
@@ -111,19 +113,19 @@ impl Renderer {
         let command_pool          = CommandPool::new(&device)?;
 
         let sampler    = Sampler::new(&device)?;
-        let image      = Texture::new_image(&instance, &physical_device, &device, &command_pool, skybox_texture)?;
+        let image      = Texture::new_image(&instance, &physical_device, &device, &command_pool, &data.texture)?;
         let image_view = TextureView::new_image_view(&device, &image)?;
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
-        let mut geometries        = Vec::with_capacity(scene.len());
+        let mut geometries        = Vec::with_capacity(data.geometry.len());
 
         #[cfg(debug_assertions)] {
             log!(info, "Processing GeometryData");
             log_indent!(1);
         }
 
-        for geometry_data in scene.iter() {
+        for geometry_data in data.geometry.iter() {
             let geometry = Geometry::new(
                 &instance,
                 &physical_device,
@@ -362,10 +364,8 @@ impl Drop for Renderer {
         self.debug    .destroy();
         self.instance .destroy();
 
-        #[cfg(debug_assertions)] {
-            log_indent!(-1);
-            println!();
-        }
+        #[cfg(debug_assertions)]
+        log_indent!(-1);
     }
 }
 
