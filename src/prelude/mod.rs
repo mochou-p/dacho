@@ -17,7 +17,10 @@ pub use {
 
 use anyhow::Result;
 
-use super::application::Application;
+use super::application::{
+    scene::Data,
+    Application
+};
 
 #[cfg(debug_assertions)]
 use super::{
@@ -25,15 +28,14 @@ use super::{
     log, log_indent
 };
 
-#[tokio::main]
-pub async fn dacho_main(world: &World) -> Result<()> {
+pub async fn dacho_main(data: &Data) -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         log!(info, "Creating EventLoop");
     }
 
     let     event_loop  = winit::event_loop::EventLoop::new()?;
-    let mut application = Application::new(&event_loop, world)?;
+    let mut application = Application::new(&event_loop, data)?;
 
     #[cfg(debug_assertions)] {
         println!();

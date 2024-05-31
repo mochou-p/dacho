@@ -4,16 +4,17 @@
 
 ## Usage
 
+In dacho, you can make/load a `World`, and run/save it.
+This is the minimal [hello_world example](examples/hello_world.rs):
 ```rust
 use dacho::prelude::*;
 
-// minimal example
 fn main() {
-    World::new().run();
+    World::new()
+        .run();
 }
 ```
-
-See [examples](examples/) for more
+See other [examples](examples/) for more
 
 ## Notes
 

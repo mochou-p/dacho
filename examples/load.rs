@@ -1,9 +1,9 @@
-// dacho/examples/demo.rs
+// dacho/examples/load.rs
 
 use dacho::prelude::*;
 
 fn main() {
-    World::demo()
+    World::load("saved_demo")
         .run();
 }
 

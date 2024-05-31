@@ -1,9 +1,9 @@
-// dacho/examples/demo.rs
+// dacho/examples/hello_world.rs
 
 use dacho::prelude::*;
 
 fn main() {
-    World::demo()
+    World::new()
         .run();
 }
 
