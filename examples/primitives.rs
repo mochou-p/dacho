@@ -53,10 +53,14 @@ fn main() {
 
                 .build(),
 
+
+
             // ::new() takes in all properties as arguments,
             // if you prefer a more compact and specific declaration
             Cube::new(V3::X * -0.420, V3::ONE * 0.1337, Anchor::Bottom, Color::RED, Material::default())
                 .build(),
+
+
 
             // you can also define these as basic structs,
             // (except for anchor due to current implementation)
