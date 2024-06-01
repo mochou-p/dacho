@@ -24,6 +24,11 @@ impl V2 {
     }
 
     #[inline]
+    pub fn normalise(&self) -> Self {
+        self.normalize()
+    }
+
+    #[inline]
     pub fn to_array(self) -> [f32; 2] {
         [self.x, self.y]
     }
@@ -56,6 +61,11 @@ impl V3 {
         let n = glam::Vec3::from_array(self.to_array()).normalize();
 
         Self::new(n.x, n.y, n.z)
+    }
+
+    #[inline]
+    pub fn normalise(&self) -> Self {
+        self.normalize()
     }
 
     #[inline]

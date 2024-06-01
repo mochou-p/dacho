@@ -63,7 +63,7 @@ impl Application {
             event_loop, &window.window, window.width, window.height, data
         )?;
 
-        let camera = Camera::new(glam::Vec3::new(0.0, 0.0, 13.0));
+        let camera = Camera::new(glam::Vec3::new(0.0, -1.0, 13.0));
         let timer  = Timer::new(
             #[cfg(debug_assertions)]
             50
