@@ -6,9 +6,12 @@ use super::{
     types::{V2, V3}
 };
 
+#[derive(Default)]
 pub enum Anchor {
-    Top,
-    Bottom
+    Bottom = -1,
+    #[default]
+    Center,
+    Top
 }
 
 #[derive(Clone)]
@@ -26,8 +29,17 @@ pub struct Cube {
 
 #[allow(dead_code)]
 impl Cube {
-    pub fn new(position: V3, size: V3, color: V3, material: V2) -> Self {
-        Self { position, size, color, material }
+    pub fn new(position: V3, size: V3, anchor: Anchor, color: V3, material: V2) -> Self {
+        Self {
+            position: V3::new(
+                position.x,
+                position.y - size.y * 0.5 * anchor as i32 as f32,
+                position.z
+            ),
+            size,
+            color,
+            material
+        }
     }
 
     pub fn position(&mut self, rhs: V3) -> &mut Self {
@@ -55,10 +67,7 @@ impl Cube {
     }
 
     pub fn anchor(&mut self, anchor: Anchor) -> &mut Self {
-        self.position.y -= self.size.y * 0.5 * match anchor {
-            Anchor::Top    =>  1.0,
-            Anchor::Bottom => -1.0
-        };
+        self.position.y -= self.size.y * 0.5 * anchor as i32 as f32;
 
         self
     }
@@ -71,12 +80,13 @@ impl Cube {
 #[allow(dead_code)]
 impl Default for Cube {
     fn default() -> Self {
-        Self::new(V3::ZERO, V3::ONE, Color::default(), Material::default())
+        Self::new(V3::ZERO, V3::ONE, Anchor::default(), Color::default(), Material::default())
     }
 }
 
 pub struct Sphere {
     pub position: V3,
+    // refers to radius
     pub size:     f32,
     pub color:    V3,
     pub material: V2
@@ -84,8 +94,17 @@ pub struct Sphere {
 
 #[allow(dead_code)]
 impl Sphere {
-    pub fn new(position: V3, size: f32, color: V3, material: V2) -> Self {
-        Self { position, size, color, material }
+    pub fn new(position: V3, size: f32, anchor: Anchor, color: V3, material: V2) -> Self {
+        Self {
+            position: V3::new(
+                position.x,
+                position.y - size * 0.5 * anchor as i32 as f32,
+                position.z
+            ),
+            size,
+            color,
+            material
+        }
     }
 
     pub fn position(&mut self, rhs: V3) -> &mut Self {
@@ -113,10 +132,7 @@ impl Sphere {
     }
 
     pub fn anchor(&mut self, anchor: Anchor) -> &mut Self {
-        self.position.y -= self.size * match anchor {
-            Anchor::Top    =>  1.0,
-            Anchor::Bottom => -1.0
-        };
+        self.position.y -= self.size * anchor as i32 as f32;
 
         self
     }
@@ -128,7 +144,7 @@ impl Sphere {
 
 impl Default for Sphere {
     fn default() -> Self {
-        Self::new(V3::ZERO, 0.5, Color::default(), Material::default())
+        Self::new(V3::ZERO, 0.5, Anchor::default(), Color::default(), Material::default())
     }
 }
 
