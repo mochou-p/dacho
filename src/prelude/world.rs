@@ -33,33 +33,33 @@ impl World {
         let mut world = World::new();
 
         world.add(&[
-                Cube::default()
-                    .size(V3::new(5.0, 0.4, 5.0))
-                    .anchor(Anchor::Top)
-                    .build(),
-                Cube::default()
-                    .position(V3::X)
-                    .size(V3::ONE * 0.2)
-                    .color(Color::BLUE)
-                    .anchor(Anchor::Bottom)
-                    .build(),
-                Cube::default()
-                    .position(V3::Z)
-                    .size(V3::ONE * 0.2)
-                    .color(Color::CYAN)
-                    .anchor(Anchor::Bottom)
-                    .build(),
-                Cube::default()
-                    .position(V3::XZ.normalize())
-                    .size(V3::ONE * 0.2)
-                    .color(Color::SKY)
-                    .anchor(Anchor::Bottom)
-                    .build(),
-                Sphere::default()
-                    .color(Color::PURPLE)
-                    .material(Material::METAL)
-                    .anchor(Anchor::Bottom)
-                    .build()
+            Cube::default()
+                .size(V3::new(5.0, 0.4, 5.0))
+                .anchor(Anchor::Top)
+                .build(),
+            Cube::default()
+                .position(V3::X)
+                .size(V3::ONE * 0.2)
+                .color(Color::BLUE)
+                .anchor(Anchor::Bottom)
+                .build(),
+            Cube::default()
+                .position(V3::Z)
+                .size(V3::ONE * 0.2)
+                .color(Color::CYAN)
+                .anchor(Anchor::Bottom)
+                .build(),
+            Cube::default()
+                .position(V3::XZ.normalize())
+                .size(V3::ONE * 0.2)
+                .color(Color::SKY)
+                .anchor(Anchor::Bottom)
+                .build(),
+            Sphere::default()
+                .color(Color::PURPLE)
+                .material(Material::METAL)
+                .anchor(Anchor::Bottom)
+                .build()
         ]);
 
         world
@@ -114,13 +114,15 @@ impl World {
         #[cfg(debug_assertions)]
         log!(info, "Loading World `{filename}`");
 
-        let data = bincode::deserialize(
-            &std::fs::read(
-                format!("assets/.cache/worlds.{filename}.dacho")
-            ).expect("failed to read World from file")
-        ).expect("failed to deserialize World");
+        match std::fs::read(format!("assets/.cache/worlds.{filename}.dacho")) {
+            Ok(file) => {
+                let data = bincode::deserialize(&file)
+                    .expect("failed to deserialize World");
 
-        Self { objects: vec![], data }
+                Self { objects: vec![], data }
+            },
+            Err(_) => { log!(panic, "World `{filename}` does not exist"); panic!(); }
+        }
     }
 }
 
