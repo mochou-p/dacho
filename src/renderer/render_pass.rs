@@ -5,16 +5,19 @@ use {
     ash::vk
 };
 
-use super::device::Device;
-
-#[cfg(debug_assertions)]
-use crate::{
-    application::logger::Logger,
-    log
+use {
+    super::{
+        device::Device,
+        VulkanObject
+    },
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 pub struct RenderPass {
-    pub raw: vk::RenderPass
+    raw: vk::RenderPass
 }
 
 impl RenderPass {
@@ -110,17 +113,29 @@ impl RenderPass {
                     .subpasses(&subpasses)
                     .dependencies(&subpass_dependencies);
 
-            unsafe { device.raw.create_render_pass(&create_info, None) }?
+            unsafe { device.raw().create_render_pass(&create_info, None) }?
         };
 
         Ok(Self { raw })
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
+impl VulkanObject for RenderPass {
+    type RawType = vk::RenderPass;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying RenderPass");
 
-        unsafe { device.raw.destroy_render_pass(self.raw, None); }
+        if let Some(device) = device {
+            unsafe { device.raw().destroy_render_pass(self.raw, None); }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
+        }
     }
 }
 

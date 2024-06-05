@@ -7,13 +7,13 @@ use {
         shapes::Object,
         dacho_main
     },
-    crate::application::scene::{Data, Scene}
-};
-
-#[cfg(debug_assertions)]
-use crate::{
-    application::logger::Logger,
-    log
+    crate::{
+        application::{
+            logger::Logger,
+            scene::{Data, Scene}
+        },
+        log
+    }
 };
 
 pub struct World {

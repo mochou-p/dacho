@@ -5,23 +5,24 @@ use {
     ash::{extensions::khr, vk}
 };
 
-use super::{
-    device::{Device, PhysicalDevice},
-    image::{Image, ImageView},
-    instance::Instance,
-    render_pass::RenderPass,
-    surface::Surface
-};
-
-#[cfg(debug_assertions)]
-use crate::{
-    application::logger::Logger,
-    log
+use {
+    super::{
+        device::{Device, PhysicalDevice},
+        image::{Image, ImageView},
+        instance::Instance,
+        render_pass::RenderPass,
+        surface::Surface,
+        VulkanObject
+    },
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 pub struct Swapchain {
     pub loader:            khr::Swapchain,
-    pub raw:               vk::SwapchainKHR,
+        raw:               vk::SwapchainKHR,
     pub extent:            vk::Extent2D,
     pub image_count:       usize,
     pub current_image:     usize,
@@ -49,12 +50,12 @@ impl Swapchain {
         #[cfg(debug_assertions)]
         log!(info, "Creating Swapchain");
 
-        let loader = khr::Swapchain::new(&instance.raw, &device.raw);
+        let loader = khr::Swapchain::new(instance.raw(), device.raw());
 
         let (raw, extent) = {
             let surface_capabilities = unsafe {
                 surface.loader.get_physical_device_surface_capabilities(
-                    physical_device.raw, surface.raw
+                    *physical_device.raw(), *surface.raw()
                 )
             }?;
 
@@ -64,7 +65,7 @@ impl Swapchain {
                 .build();
 
             let create_info = vk::SwapchainCreateInfoKHR::builder()
-                .surface(surface.raw)
+                .surface(*surface.raw())
                 .min_image_count(surface_capabilities.min_image_count + 1)
                 .image_format(vk::Format::B8G8R8A8_SRGB)
                 .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
@@ -113,7 +114,7 @@ impl Swapchain {
 
         let depth_image_view = ImageView::new(
             device,
-            &depth_image.raw,
+            depth_image.raw(),
             vk::Format::D32_SFLOAT_S8_UINT,
             vk::ImageAspectFlags::DEPTH
         )?;
@@ -131,7 +132,7 @@ impl Swapchain {
 
         let color_image_view = ImageView::new(
             device,
-            &color_image.raw,
+            color_image.raw(),
             vk::Format::B8G8R8A8_SRGB,
             vk::ImageAspectFlags::COLOR
         )?;
@@ -139,16 +140,16 @@ impl Swapchain {
         let mut framebuffers = Vec::with_capacity(image_count);
 
         for image_view in image_views.iter() {
-            let attachments = [color_image_view.raw, depth_image_view.raw, image_view.raw];
+            let attachments = [*color_image_view.raw(), *depth_image_view.raw(), *image_view.raw()];
 
             let create_info = vk::FramebufferCreateInfo::builder()
-                .render_pass(render_pass.raw)
+                .render_pass(*render_pass.raw())
                 .attachments(&attachments)
                 .width(extent.width)
                 .height(extent.height)
                 .layers(1);
 
-            let framebuffer = unsafe { device.raw.create_framebuffer(&create_info, None) }?;
+            let framebuffer = unsafe { device.raw().create_framebuffer(&create_info, None) }?;
 
             framebuffers.push(framebuffer);
         }
@@ -160,8 +161,8 @@ impl Swapchain {
             let create_info = vk::SemaphoreCreateInfo::builder();
 
             for _ in 0..image_count {
-                let semaphore_available = unsafe { device.raw.create_semaphore(&create_info, None) }?;
-                let semaphore_finished  = unsafe { device.raw.create_semaphore(&create_info, None) }?;
+                let semaphore_available = unsafe { device.raw().create_semaphore(&create_info, None) }?;
+                let semaphore_finished  = unsafe { device.raw().create_semaphore(&create_info, None) }?;
 
                 images_available.push(semaphore_available);
                 images_finished.push(semaphore_finished);
@@ -175,7 +176,7 @@ impl Swapchain {
                 .flags(vk::FenceCreateFlags::SIGNALED);
 
             for _ in 0..image_count {
-                let fence = unsafe { device.raw.create_fence(&create_info, None) }?;
+                let fence = unsafe { device.raw().create_fence(&create_info, None) }?;
 
                 may_begin_drawing.push(fence);
             }
@@ -200,34 +201,46 @@ impl Swapchain {
             }
         )
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
+impl VulkanObject for Swapchain {
+    type RawType = vk::SwapchainKHR;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Swapchain");
 
-        for fence in self.may_begin_drawing.iter() {
-            unsafe { device.raw.destroy_fence(*fence, None); }
-        }
+        if let Some(device) = device {
+            for fence in self.may_begin_drawing.iter() {
+                unsafe { device.raw().destroy_fence(*fence, None); }
+            }
 
-        for semaphore in self.images_available.iter() {
-            unsafe { device.raw.destroy_semaphore(*semaphore, None); }
-        }
+            for semaphore in self.images_available.iter() {
+                unsafe { device.raw().destroy_semaphore(*semaphore, None); }
+            }
 
-        for semaphore in self.images_finished.iter() {
-            unsafe { device.raw.destroy_semaphore(*semaphore, None); }
-        }
+            for semaphore in self.images_finished.iter() {
+                unsafe { device.raw().destroy_semaphore(*semaphore, None); }
+            }
 
-        self.depth_image_view .destroy(device);
-        self.depth_image      .destroy(device);
-        self.color_image_view .destroy(device);
-        self.color_image      .destroy(device);
+            self.depth_image_view .destroy(Some(device));
+            self.depth_image      .destroy(Some(device));
+            self.color_image_view .destroy(Some(device));
+            self.color_image      .destroy(Some(device));
 
-        for framebuffer in self.framebuffers.iter() {
-            unsafe { device.raw.destroy_framebuffer(*framebuffer, None); }
-        }
+            for framebuffer in self.framebuffers.iter() {
+                unsafe { device.raw().destroy_framebuffer(*framebuffer, None); }
+            }
 
-        for image_view in self.image_views.iter() {
-            image_view.destroy(device);
+            for image_view in self.image_views.iter() {
+                image_view.destroy(Some(device));
+            }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
         }
 
         unsafe { self.loader.destroy_swapchain(self.raw, None); }

@@ -12,7 +12,8 @@ use {
         device::Device,
         render_pass::RenderPass,
         swapchain::Swapchain,
-        vertex_input::{ShaderInfo, Type, instance_descriptions, wgsl_field_to_type, vertex_descriptions}
+        vertex_input::{ShaderInfo, Type, instance_descriptions, wgsl_field_to_type, vertex_descriptions},
+        VulkanObject
     },
     crate::{
         application::{
@@ -27,9 +28,9 @@ use {
 use crate::log_indent;
 
 pub struct Pipeline {
+        raw:    vk::Pipeline,
     pub name:   String,
-    pub layout: vk::PipelineLayout,
-    pub raw:    vk::Pipeline
+    pub layout: vk::PipelineLayout
 }
 
 impl Pipeline {
@@ -46,14 +47,14 @@ impl Pipeline {
         }
 
         let layout = {
-            let set_layouts = [descriptor_set_layout.raw];
+            let set_layouts = [*descriptor_set_layout.raw()];
 
             let create_info = {
                 vk::PipelineLayoutCreateInfo::builder()
                     .set_layouts(&set_layouts)
             };
 
-            unsafe { device.raw.create_pipeline_layout(&create_info, None) }?
+            unsafe { device.raw().create_pipeline_layout(&create_info, None) }?
         };
 
         let module = {
@@ -62,7 +63,7 @@ impl Pipeline {
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
 
-            unsafe { device.raw.create_shader_module(&create_info, None) }?
+            unsafe { device.raw().create_shader_module(&create_info, None) }?
         };
 
         let raw = {
@@ -179,11 +180,11 @@ impl Pipeline {
                 .color_blend_state(&color_blend_state)
                 .depth_stencil_state(&depth_stencil_state)
                 .layout(layout)
-                .render_pass(render_pass.raw)
+                .render_pass(*render_pass.raw())
                 .subpass(0);
 
             unsafe {
-                device.raw.create_graphics_pipelines(
+                device.raw().create_graphics_pipelines(
                     vk::PipelineCache::null(),
                     &[*pipeline_info],
                     None
@@ -192,7 +193,7 @@ impl Pipeline {
                 .expect("Error creating pipelines")[0]
         };
 
-        unsafe { device.raw.destroy_shader_module(module, None); }
+        unsafe { device.raw().destroy_shader_module(module, None); }
 
         #[cfg(debug_assertions)]
         log_indent!(-1);
@@ -201,11 +202,23 @@ impl Pipeline {
 
         Ok(Self { name, layout, raw })
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
-        unsafe {
-            device.raw.destroy_pipeline(self.raw, None);
-            device.raw.destroy_pipeline_layout(self.layout, None);
+impl VulkanObject for Pipeline {
+    type RawType = vk::Pipeline;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
+        if let Some(device) = device {
+            unsafe {
+                device.raw().destroy_pipeline(self.raw, None);
+                device.raw().destroy_pipeline_layout(self.layout, None);
+            }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
         }
     }
 }

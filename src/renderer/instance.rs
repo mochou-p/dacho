@@ -7,6 +7,11 @@ use {
     winit::event_loop::EventLoop
 };
 
+use super::{
+    device::Device,
+    VulkanObject
+};
+
 #[cfg(debug_assertions)]
 use {
     super::debug::messenger_create_info,
@@ -20,7 +25,7 @@ use {
 const VALIDATION_LAYERS: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];
 
 pub struct Instance {
-    pub raw: ash::Instance
+    raw: ash::Instance
 }
 
 impl Instance {
@@ -90,8 +95,16 @@ impl Instance {
 
         Ok(Self { raw })
     }
+}
 
-    pub fn destroy(&self) {
+impl VulkanObject for Instance {
+    type RawType = ash::Instance;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, _: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Instance");
 

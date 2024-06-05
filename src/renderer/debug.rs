@@ -6,7 +6,10 @@ use {
 };
 
 use {
-    super::instance::Instance,
+    super::{
+        instance::Instance,
+        VulkanObject
+    },
     crate::{
         application::logger::Logger,
         log
@@ -29,7 +32,7 @@ impl Debug {
     ) -> Result<Self> {
         log!(info, "Creating Debug messenger for Validation Layers");
 
-        let loader = ext::DebugUtils::new(entry, &instance.raw);
+        let loader = ext::DebugUtils::new(entry, instance.raw());
 
         let messenger = {
             let create_info = messenger_create_info();

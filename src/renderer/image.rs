@@ -10,7 +10,8 @@ use {
         buffer::StagingBuffer,
         command::CommandPool,
         device::{Device, PhysicalDevice},
-        instance::Instance
+        instance::Instance,
+        VulkanObject
     },
     crate::{
         application::logger::Logger,
@@ -19,8 +20,8 @@ use {
 };
 
 pub struct Image {
-    pub raw:    vk::Image,
-        memory: vk::DeviceMemory
+    raw:    vk::Image,
+    memory: vk::DeviceMemory
 }
 
 impl Image {
@@ -53,10 +54,10 @@ impl Image {
             .samples(samples)
             .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
-        let raw = unsafe { device.raw.create_image(&create_info, None) }?;
+        let raw = unsafe { device.raw().create_image(&create_info, None) }?;
 
-        let memory_requirements = unsafe { device.raw.get_image_memory_requirements(raw) };
-        let memory_properties   = unsafe { instance.raw.get_physical_device_memory_properties(physical_device.raw) };
+        let memory_requirements = unsafe { device.raw().get_image_memory_requirements(raw) };
+        let memory_properties   = unsafe { instance.raw().get_physical_device_memory_properties(*physical_device.raw()) };
 
         let memory_type_index = {
             let mut found  = false;
@@ -84,9 +85,9 @@ impl Image {
             .allocation_size(memory_requirements.size)
             .memory_type_index(memory_type_index);
 
-        let memory = unsafe { device.raw.allocate_memory(&allocate_info, None) }?;
+        let memory = unsafe { device.raw().allocate_memory(&allocate_info, None) }?;
 
-        unsafe { device.raw.bind_image_memory(raw, memory, 0) }?;
+        unsafe { device.raw().bind_image_memory(raw, memory, 0) }?;
 
         Ok(Self { raw, memory })
     }
@@ -139,7 +140,7 @@ impl Image {
             .dst_access_mask(dst_am);
 
         unsafe {
-            device.raw.cmd_pipeline_barrier(
+            device.raw().cmd_pipeline_barrier(
                 command_buffer,
                 src_stage,
                 dst_stage,
@@ -154,17 +155,29 @@ impl Image {
 
         Ok(())
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
-        unsafe {
-            device.raw.destroy_image(self.raw, None);
-            device.raw.free_memory(self.memory, None);
+impl VulkanObject for Image {
+    type RawType = vk::Image;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
+        if let Some(device) = device {
+            unsafe {
+                device.raw().destroy_image(self.raw, None);
+                device.raw().free_memory(self.memory, None);
+            }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
         }
     }
 }
 
 pub struct ImageView {
-    pub raw: vk::ImageView
+    raw: vk::ImageView
 }
 
 impl ImageView {
@@ -188,13 +201,25 @@ impl ImageView {
             .format(format)
             .subresource_range(subresource_range);
 
-        let raw = unsafe { device.raw.create_image_view(&create_info, None) }?;
+        let raw = unsafe { device.raw().create_image_view(&create_info, None) }?;
 
         Ok(Self { raw })
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
-        unsafe { device.raw.destroy_image_view(self.raw, None); }
+impl VulkanObject for ImageView {
+    type RawType = vk::ImageView;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
+        if let Some(device) = device {
+            unsafe { device.raw().destroy_image_view(self.raw, None); }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
+        }
     }
 }
 
@@ -248,7 +273,7 @@ impl Texture {
             device, command_pool, vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
         )?;
 
-        buffer.destroy(device);
+        buffer.destroy(Some(device));
 
         Ok(image)
     }
@@ -270,7 +295,7 @@ impl TextureView {
 }
 
 pub struct Sampler {
-    pub raw: vk::Sampler
+    raw: vk::Sampler
 }
 
 impl Sampler {
@@ -292,13 +317,25 @@ impl Sampler {
             .min_lod(0.0)
             .max_lod(0.0);
 
-        let raw = unsafe { device.raw.create_sampler(&create_info, None) }?;
+        let raw = unsafe { device.raw().create_sampler(&create_info, None) }?;
 
         Ok(Self { raw })
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
-        unsafe { device.raw.destroy_sampler(self.raw, None); }
+impl VulkanObject for Sampler {
+    type RawType = vk::Sampler;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
+        if let Some(device) = device {
+            unsafe { device.raw().destroy_sampler(self.raw, None); }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
+        }
     }
 }
 
