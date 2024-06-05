@@ -5,7 +5,10 @@ use {
     ash::{extensions::khr, vk}
 };
 
-use super::instance::Instance;
+use super::{
+    instance::Instance,
+    VulkanObject
+};
 
 #[cfg(debug_assertions)]
 use crate::{
@@ -14,7 +17,7 @@ use crate::{
 };
 
 pub struct PhysicalDevice {
-    pub raw: vk::PhysicalDevice
+    raw: vk::PhysicalDevice
 }
 
 impl PhysicalDevice {
@@ -22,7 +25,7 @@ impl PhysicalDevice {
         #[cfg(debug_assertions)]
         log!(info, "Choosing PhysicalDevice");
 
-        let raw = unsafe { instance.raw.enumerate_physical_devices() }?
+        let raw = unsafe { instance.raw().enumerate_physical_devices() }?
             .into_iter()
             .next()
             .context("No physical devices")?;
@@ -31,8 +34,16 @@ impl PhysicalDevice {
     }
 }
 
+impl VulkanObject for PhysicalDevice {
+    type RawType = vk::PhysicalDevice;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+}
+
 pub struct Device {
-    pub raw:   ash::Device,
+        raw:   ash::Device,
     pub queue: vk::Queue
 }
 
@@ -67,7 +78,7 @@ impl Device {
                 .enabled_extension_names(&extension_names)
                 .enabled_features(&features);
 
-            unsafe { instance.raw.create_device(physical_device.raw, &create_info, None) }?
+            unsafe { instance.raw().create_device(physical_device.raw, &create_info, None) }?
         };
 
         let queue = unsafe { raw.get_device_queue(0, 0) };
@@ -79,8 +90,16 @@ impl Device {
         unsafe { self.raw.device_wait_idle() }
             .expect("Device wait idle failed");
     }
+}
 
-    pub fn destroy(&self) {
+impl VulkanObject for Device {
+    type RawType = ash::Device;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, _: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Device");
 

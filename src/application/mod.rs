@@ -8,10 +8,7 @@ pub mod scene;
 
 use {
     anyhow::{Context, Result, bail},
-    futures::{
-        executor::block_on,
-        future::join_all
-    },
+    futures::future::join_all,
     glam::f32 as glam,
     naga::{
         back::spv::{Options as SpvOptions, write_vec},
@@ -39,7 +36,10 @@ use {
 };
 
 #[cfg(debug_assertions)]
-use super::log_indent;
+use {
+    futures::executor::block_on,
+    super::log_indent
+};
 
 pub struct Application {
     window:   Window,

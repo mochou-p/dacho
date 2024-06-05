@@ -37,19 +37,33 @@ use {
     render_pass::RenderPass,
     surface::Surface,
     swapchain::Swapchain,
+    super::application::scene::Data
 };
 
 #[cfg(debug_assertions)]
 use {
     debug::Debug,
     super::{
-        application::{
-            logger::Logger,
-            scene::Data
-        },
+        application::logger::Logger,
         log, log_indent
     }
 };
+
+pub trait VulkanObject {
+    type RawType;
+
+    fn raw(&self) -> &Self::RawType;
+
+    // &Device for objects made by device
+    //  None   for objects made by entry/khr loader
+    fn destroy(&self, _device: Option<&Device>) {
+        // empty implementation for structs that do not
+        // call any .create_*()
+        //
+        // close vulkan wrappers implement this function,
+        // while abstract dacho structs do not
+    }
+}
 
 pub struct Renderer {
     _entry:                 ash::Entry,
@@ -238,7 +252,7 @@ impl Renderer {
         let (image_index, _) = unsafe {
             self.swapchain.loader
                 .acquire_next_image(
-                    self.swapchain.raw,
+                    *self.swapchain.raw(),
                     std::u64::MAX,
                     self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
@@ -257,7 +271,7 @@ impl Renderer {
         );
 
         unsafe {
-            self.device.raw.wait_for_fences(
+            self.device.raw().wait_for_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
                 std::u64::MAX
@@ -266,7 +280,7 @@ impl Renderer {
             .expect("Waiting for fences failed");
 
         unsafe {
-            self.device.raw.reset_fences(
+            self.device.raw().reset_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]]
             )
         }
@@ -274,7 +288,7 @@ impl Renderer {
 
         let semaphores_available = [self.swapchain.images_available[self.swapchain.current_image]];
         let waiting_stages       = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT              ];
-        let command_buffers      = [self.command_buffers.raw[image_index as usize]               ];
+        let command_buffers      = [self.command_buffers.raw()[image_index as usize]             ];
         let semaphores_finished  = [self.swapchain.images_finished[self.swapchain.current_image] ];
 
         let submit_info = vk::SubmitInfo::builder()
@@ -284,7 +298,7 @@ impl Renderer {
             .signal_semaphores(&semaphores_finished);
 
         unsafe {
-            self.device.raw.queue_submit(
+            self.device.raw().queue_submit(
                 self.device.queue,
                 &[*submit_info],
                 self.swapchain.may_begin_drawing[self.swapchain.current_image]
@@ -292,7 +306,7 @@ impl Renderer {
         }
             .expect("Submitting queue failed");
 
-        let swapchains    = [self.swapchain.raw];
+        let swapchains    = [*self.swapchain.raw()];
         let image_indices = [image_index];
 
         let present_info = vk::PresentInfoKHR::builder()
@@ -325,31 +339,31 @@ impl Drop for Renderer {
 
         self.device.wait();
 
-        self.command_pool.destroy(&self.device);
+        self.command_pool.destroy(Some(&self.device));
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying Pipelines");
 
         for (_, pipeline) in self.pipelines.iter() {
-            pipeline.destroy(&self.device);
+            pipeline.destroy(Some(&self.device));
         }
 
-        self.render_pass .destroy(&self.device);
-        self.swapchain   .destroy(&self.device);
+        self.render_pass .destroy(Some(&self.device));
+        self.swapchain   .destroy(Some(&self.device));
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying Textures and Samplers");
 
-        self.sampler    .destroy(&self.device);
-        self.image_view .destroy(&self.device);
-        self.image      .destroy(&self.device);
+        self.sampler    .destroy(Some(&self.device));
+        self.image_view .destroy(Some(&self.device));
+        self.image      .destroy(Some(&self.device));
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying UniformBuffer");
 
-        self.ubo                   .destroy(&self.device);
-        self.descriptor_pool       .destroy(&self.device);
-        self.descriptor_set_layout .destroy(&self.device);
+        self.ubo                   .destroy(Some(&self.device));
+        self.descriptor_pool       .destroy(Some(&self.device));
+        self.descriptor_set_layout .destroy(Some(&self.device));
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying VertexBuffers and IndexBuffers");
@@ -358,11 +372,11 @@ impl Drop for Renderer {
             geometry.destroy(&self.device);
         }
 
-        self.device   .destroy();
-        self.surface  .destroy();
+        self.device   .destroy(None);
+        self.surface  .destroy(None);
         #[cfg(debug_assertions)]
         self.debug    .destroy();
-        self.instance .destroy();
+        self.instance .destroy(None);
 
         #[cfg(debug_assertions)]
         log_indent!(-1);

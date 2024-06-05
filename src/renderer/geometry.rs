@@ -13,7 +13,8 @@ use super::{
     device::{Device, PhysicalDevice},
     instance::Instance,
     pipeline::shader_input_types,
-    vertex_input::{ShaderInfo, size_of_types}
+    vertex_input::{ShaderInfo, size_of_types},
+    VulkanObject
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -142,9 +143,9 @@ impl Geometry {
     }
 
     pub fn destroy(&self, device: &Device) {
-        self.vertex_buffer.destroy(device);
-        self.instance_buffer.destroy(device);
-        self.index_buffer.destroy(device);
+        self.vertex_buffer.destroy(Some(device));
+        self.instance_buffer.destroy(Some(device));
+        self.index_buffer.destroy(Some(device));
     }
 }
 

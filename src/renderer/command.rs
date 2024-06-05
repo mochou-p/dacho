@@ -5,20 +5,24 @@ use {
     ash::vk
 };
 
-use super::{
-    device::Device,
-    descriptor::DescriptorSet,
-    render_pass::RenderPass,
-    swapchain::Swapchain,
-    pipeline::Pipeline,
-    buffer::Buffer
+use {
+    super::{
+        device::Device,
+        descriptor::DescriptorSet,
+        render_pass::RenderPass,
+        swapchain::Swapchain,
+        pipeline::Pipeline,
+        buffer::Buffer,
+        VulkanObject
+    },
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 #[cfg(debug_assertions)]
-use crate::{
-    application::logger::Logger,
-    log, log_indent
-};
+use crate::log_indent;
 
 pub enum Command<'a> {
     BeginRenderPass(&'a RenderPass, &'a Swapchain),
@@ -30,7 +34,7 @@ pub enum Command<'a> {
 }
 
 pub struct CommandPool {
-    pub raw: vk::CommandPool
+    raw: vk::CommandPool
 }
 
 impl CommandPool {
@@ -43,7 +47,7 @@ impl CommandPool {
                 .queue_family_index(0)
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 
-            unsafe { device.raw.create_command_pool(&create_info, None) }?
+            unsafe { device.raw().create_command_pool(&create_info, None) }?
         };
 
         Ok(Self { raw })
@@ -56,14 +60,14 @@ impl CommandPool {
                 .command_pool(self.raw)
                 .command_buffer_count(1);
 
-            unsafe { device.raw.allocate_command_buffers(&allocate_info) }?[0]
+            unsafe { device.raw().allocate_command_buffers(&allocate_info) }?[0]
         };
 
         {
             let begin_info = vk::CommandBufferBeginInfo::builder()
                 .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
-            unsafe { device.raw.begin_command_buffer(command_buffer, &begin_info) }?;
+            unsafe { device.raw().begin_command_buffer(command_buffer, &begin_info) }?;
         }
 
         Ok(command_buffer)
@@ -74,31 +78,43 @@ impl CommandPool {
         device:         &Device,
         command_buffer: &vk::CommandBuffer
     ) -> Result<()> {
-        unsafe { device.raw.end_command_buffer(*command_buffer) }?;
+        unsafe { device.raw().end_command_buffer(*command_buffer) }?;
 
         let command_buffers = [*command_buffer];
 
         let submit_info = vk::SubmitInfo::builder()
             .command_buffers(&command_buffers);
 
-        unsafe { device.raw.queue_submit(device.queue, &[*submit_info], vk::Fence::null()) }?;
+        unsafe { device.raw().queue_submit(device.queue, &[*submit_info], vk::Fence::null()) }?;
 
-        unsafe { device.raw.queue_wait_idle(device.queue) }?;
-        unsafe { device.raw.free_command_buffers(self.raw, &command_buffers); }
+        unsafe { device.raw().queue_wait_idle(device.queue) }?;
+        unsafe { device.raw().free_command_buffers(self.raw, &command_buffers); }
 
         Ok(())
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
+impl VulkanObject for CommandPool {
+    type RawType = vk::CommandPool;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying CommandPool");
 
-        unsafe { device.raw.destroy_command_pool(self.raw, None); }
+        if let Some(device) = device {
+            unsafe { device.raw().destroy_command_pool(self.raw, None); }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
+        }
     }
 }
 
 pub struct CommandBuffers {
-    pub raw: Vec<vk::CommandBuffer>
+    raw: Vec<vk::CommandBuffer>
 }
 
 impl CommandBuffers {
@@ -115,7 +131,7 @@ impl CommandBuffers {
                 .command_pool(command_pool.raw)
                 .command_buffer_count(swapchain.image_count as u32);
 
-            unsafe { device.raw.allocate_command_buffers(&allocate_info) }?
+            unsafe { device.raw().allocate_command_buffers(&allocate_info) }?
         };
 
         Ok(Self { raw })
@@ -148,7 +164,7 @@ impl CommandBuffers {
             {
                 let begin_info = vk::CommandBufferBeginInfo::builder();
 
-                unsafe { device.raw.begin_command_buffer(command_buffer, &begin_info) }?;
+                unsafe { device.raw().begin_command_buffer(command_buffer, &begin_info) }?;
             }
 
             let mut last_pipeline: Option<&Pipeline> = None;
@@ -177,7 +193,7 @@ impl CommandBuffers {
                         ];
 
                         let begin_info = vk::RenderPassBeginInfo::builder()
-                            .render_pass(render_pass.raw)
+                            .render_pass(*render_pass.raw())
                             .framebuffer(swapchain.framebuffers[i])
                             .render_area(
                                 vk::Rect2D::builder()
@@ -193,7 +209,7 @@ impl CommandBuffers {
                             .clear_values(&clear_values);
 
                         unsafe {
-                            device.raw.cmd_begin_render_pass(
+                            device.raw().cmd_begin_render_pass(
                                 command_buffer,
                                 &begin_info,
                                 vk::SubpassContents::INLINE
@@ -213,10 +229,10 @@ impl CommandBuffers {
                         last_pipeline = Some(pipeline);
 
                         unsafe {
-                            device.raw.cmd_bind_pipeline(
+                            device.raw().cmd_bind_pipeline(
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
-                                pipeline.raw
+                                *pipeline.raw()
                             );
                         }
                     },
@@ -233,10 +249,10 @@ impl CommandBuffers {
                         }
 
                         unsafe {
-                            device.raw.cmd_bind_vertex_buffers(
+                            device.raw().cmd_bind_vertex_buffers(
                                 command_buffer,
                                 0,
-                                &[vertex_buffer.raw, instance_buffer.raw],
+                                &[*vertex_buffer.raw(), *instance_buffer.raw()],
                                 &[0, 0]
                             );
                         }
@@ -250,9 +266,9 @@ impl CommandBuffers {
                         }
 
                         unsafe {
-                            device.raw.cmd_bind_index_buffer(
+                            device.raw().cmd_bind_index_buffer(
                                 command_buffer,
-                                index_buffer.raw,
+                                *index_buffer.raw(),
                                 0,
                                 vk::IndexType::UINT32
                             );
@@ -267,12 +283,12 @@ impl CommandBuffers {
                         }
 
                         unsafe {
-                            device.raw.cmd_bind_descriptor_sets(
+                            device.raw().cmd_bind_descriptor_sets(
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
                                 last_pipeline.context("No last pipeline")?.layout,
                                 0,
-                                &[descriptor_set.raw],
+                                &[*descriptor_set.raw()],
                                 &[]
                             );
                         }
@@ -288,7 +304,7 @@ impl CommandBuffers {
                         }
 
                         unsafe {
-                            device.raw.cmd_draw_indexed(
+                            device.raw().cmd_draw_indexed(
                                 command_buffer,
                                 *index_count,
                                 *instance_count,
@@ -308,8 +324,8 @@ impl CommandBuffers {
             }
 
             unsafe {
-                device.raw.cmd_end_render_pass(command_buffer);
-                device.raw.end_command_buffer(command_buffer)?;
+                device.raw().cmd_end_render_pass(command_buffer);
+                device.raw().end_command_buffer(command_buffer)?;
             }
         }
 
@@ -319,6 +335,14 @@ impl CommandBuffers {
         }
 
         Ok(())
+    }
+}
+
+impl VulkanObject for CommandBuffers {
+    type RawType = Vec<vk::CommandBuffer>;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
     }
 }
 

@@ -10,7 +10,8 @@ use {
         command::CommandPool,
         device::{Device, PhysicalDevice},
         image::Image,
-        instance::Instance
+        instance::Instance,
+        VulkanObject
     },
     crate::{
         application::logger::Logger,
@@ -19,7 +20,7 @@ use {
 };
 
 pub struct Buffer {
-    pub raw:    vk::Buffer,
+        raw:    vk::Buffer,
     pub memory: vk::DeviceMemory
 }
 
@@ -38,12 +39,12 @@ impl Buffer {
                 .usage(usage)
                 .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
-            unsafe { device.raw.create_buffer(&create_info, None) }?
+            unsafe { device.raw().create_buffer(&create_info, None) }?
         };
 
         let memory = {
-            let memory_requirements = unsafe { device.raw.get_buffer_memory_requirements(raw) };
-            let memory_properties   = unsafe { instance.raw.get_physical_device_memory_properties(physical_device.raw) };
+            let memory_requirements = unsafe { device.raw().get_buffer_memory_requirements(raw) };
+            let memory_properties   = unsafe { instance.raw().get_physical_device_memory_properties(*physical_device.raw()) };
 
             let memory_type_index = {
                 let mut found  = false;
@@ -71,10 +72,10 @@ impl Buffer {
                 .allocation_size(memory_requirements.size)
                 .memory_type_index(memory_type_index);
 
-            unsafe { device.raw.allocate_memory(&allocate_info, None) }?
+            unsafe { device.raw().allocate_memory(&allocate_info, None) }?
         };
 
-        unsafe { device.raw.bind_buffer_memory(raw, memory, 0) }?;
+        unsafe { device.raw().bind_buffer_memory(raw, memory, 0) }?;
 
         Ok(Self { raw, memory })
     }
@@ -91,7 +92,7 @@ impl Buffer {
         {
             let copy_region = vk::BufferCopy::builder().size(size);
 
-            unsafe { device.raw.cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &[*copy_region]); }
+            unsafe { device.raw().cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &[*copy_region]); }
         }
 
         command_pool.end_single_time_commands(device, &command_buffer)?;
@@ -125,10 +126,10 @@ impl Buffer {
             .image_extent(vk::Extent3D { width, height, depth: 1 });
 
         unsafe {
-            device.raw.cmd_copy_buffer_to_image(
+            device.raw().cmd_copy_buffer_to_image(
                 command_buffer,
                 self.raw,
-                image.raw,
+                *image.raw(),
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 &[*region]
             );
@@ -138,11 +139,23 @@ impl Buffer {
 
         Ok(())
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
-        unsafe {
-            device.raw.destroy_buffer(self.raw, None);
-            device.raw.free_memory(self.memory, None);
+impl VulkanObject for Buffer {
+    type RawType = vk::Buffer;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
+        if let Some(device) = device {
+            unsafe {
+                device.raw().destroy_buffer(self.raw, None);
+                device.raw().free_memory(self.memory, None);
+            }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
         }
     }
 }
@@ -174,7 +187,7 @@ impl StagingBuffer {
         };
 
         let memory = unsafe {
-            device.raw.map_memory(
+            device.raw().map_memory(
                 staging_buffer.memory,
                 0,
                 buffer_size,
@@ -184,7 +197,7 @@ impl StagingBuffer {
 
         unsafe {
             std::ptr::copy_nonoverlapping(data, memory, buffer_size as usize);
-            device.raw.unmap_memory(staging_buffer.memory);
+            device.raw().unmap_memory(staging_buffer.memory);
         }
 
         let buffer = {
@@ -209,7 +222,7 @@ impl StagingBuffer {
             buffer_size
         )?;
 
-        staging_buffer.destroy(device);
+        staging_buffer.destroy(Some(device));
 
         Ok(buffer)
     }

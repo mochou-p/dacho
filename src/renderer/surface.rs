@@ -7,7 +7,11 @@ use {
     winit::window::Window
 };
 
-use super::instance::Instance;
+use super::{
+    device::Device,
+    instance::Instance,
+    VulkanObject
+};
 
 #[cfg(debug_assertions)]
 use crate::{
@@ -17,7 +21,7 @@ use crate::{
 
 pub struct Surface {
     pub loader: khr::Surface,
-    pub raw:    vk::SurfaceKHR
+        raw:    vk::SurfaceKHR
 }
 
 impl Surface {
@@ -29,12 +33,12 @@ impl Surface {
         #[cfg(debug_assertions)]
         log!(info, "Creating Surface");
 
-        let loader = khr::Surface::new(entry, &instance.raw);
+        let loader = khr::Surface::new(entry, instance.raw());
 
         let raw = unsafe {
             ash_window::create_surface(
                 entry,
-                &instance.raw,
+                instance.raw(),
                 window.raw_display_handle(),
                 window.raw_window_handle(),
                 None
@@ -43,8 +47,16 @@ impl Surface {
 
         Ok(Self { loader, raw })
     }
+}
 
-    pub fn destroy(&self) {
+impl VulkanObject for Surface {
+    type RawType = vk::SurfaceKHR;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, _: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Surface");
 

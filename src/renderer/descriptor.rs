@@ -6,17 +6,18 @@ use {
     glam::f32 as glam
 };
 
-use super::{
-    buffer::Buffer,
-    device::{Device, PhysicalDevice},
-    image::{ImageView, Sampler},
-    instance::Instance
-};
-
-#[cfg(debug_assertions)]
-use crate::{
-    application::logger::Logger,
-    log
+use {
+    super::{
+        buffer::Buffer,
+        device::{Device, PhysicalDevice},
+        image::{ImageView, Sampler},
+        instance::Instance,
+        VulkanObject
+    },
+    crate::{
+        application::logger::Logger,
+        log
+    }
 };
 
 pub struct UniformBufferObject {
@@ -53,7 +54,7 @@ impl UniformBufferObject {
         };
 
         let uniform_buffer_mapped = unsafe {
-            device.raw.map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
+            device.raw().map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
         }?;
 
         Ok((uniform_buffer, uniform_buffer_mapped))
@@ -91,7 +92,7 @@ impl UniformBufferObject {
 }
 
 pub struct DescriptorSetLayout {
-    pub raw: vk::DescriptorSetLayout
+    raw: vk::DescriptorSetLayout
 }
 
 impl DescriptorSetLayout {
@@ -124,17 +125,29 @@ impl DescriptorSetLayout {
             let create_info = vk::DescriptorSetLayoutCreateInfo::builder()
                 .bindings(&ubo_bindings);
 
-            unsafe { device.raw.create_descriptor_set_layout(&create_info, None) }?
+            unsafe { device.raw().create_descriptor_set_layout(&create_info, None) }?
         };
 
         Ok(Self { raw })
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
+impl VulkanObject for DescriptorSetLayout {
+    type RawType = vk::DescriptorSetLayout;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying DescriptorSetLayout");
 
-        unsafe { device.raw.destroy_descriptor_set_layout(self.raw, None); }
+        if let Some(device) = device {
+            unsafe { device.raw().destroy_descriptor_set_layout(self.raw, None); }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
+        }
     }
 }
 
@@ -167,22 +180,34 @@ impl DescriptorPool {
                 .pool_sizes(&pool_sizes)
                 .max_sets(1);
 
-            unsafe { device.raw.create_descriptor_pool(&create_info, None) }?
+            unsafe { device.raw().create_descriptor_pool(&create_info, None) }?
         };
 
         Ok(Self { raw })
     }
+}
 
-    pub fn destroy(&self, device: &Device) {
+impl VulkanObject for DescriptorPool {
+    type RawType = vk::DescriptorPool;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
+    }
+
+    fn destroy(&self, device: Option<&Device>) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying DescriptorPool");
 
-        unsafe { device.raw.destroy_descriptor_pool(self.raw, None); }
+        if let Some(device) = device {
+            unsafe { device.raw().destroy_descriptor_pool(self.raw, None); }
+        } else {
+            log!(panic, "Expected Option<&Device>, got None");
+        }
     }
 }
 
 pub struct DescriptorSet {
-    pub raw: vk::DescriptorSet
+    raw: vk::DescriptorSet
 }
 
 impl DescriptorSet {
@@ -205,12 +230,12 @@ impl DescriptorSet {
                 .descriptor_pool(descriptor_pool.raw)
                 .set_layouts(&set_layouts);
 
-            unsafe { device.raw.allocate_descriptor_sets(&allocate_info) }?[0]
+            unsafe { device.raw().allocate_descriptor_sets(&allocate_info) }?[0]
         };
 
         let buffer_infos = [
             vk::DescriptorBufferInfo::builder()
-                .buffer(ubo.raw)
+                .buffer(*ubo.raw())
                 .offset(0)
                 .range(std::mem::size_of::<UniformBufferObject>() as u64)
                 .build()
@@ -219,14 +244,14 @@ impl DescriptorSet {
         let sampler_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_view(vk::ImageView::null())
-                .sampler(sampler.raw)
+                .sampler(*sampler.raw())
                 .build()
         ];
 
         let image_view_infos = [
             vk::DescriptorImageInfo::builder()
                 .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(image_view.raw)
+                .image_view(*image_view.raw())
                 .sampler(vk::Sampler::null())
                 .build()
         ];
@@ -255,9 +280,17 @@ impl DescriptorSet {
                 .build()
         ];
 
-        unsafe { device.raw.update_descriptor_sets(&writes, &[]); }
+        unsafe { device.raw().update_descriptor_sets(&writes, &[]); }
 
         Ok(Self { raw })
+    }
+}
+
+impl VulkanObject for DescriptorSet {
+    type RawType = vk::DescriptorSet;
+
+    fn raw(&self) -> &Self::RawType {
+        &self.raw
     }
 }
 
