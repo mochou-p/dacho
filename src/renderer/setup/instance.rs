@@ -7,9 +7,12 @@ use {
     winit::event_loop::EventLoop
 };
 
-use super::{
-    device::Device,
-    VulkanObject
+use {
+    super::entry::*,
+    crate::renderer::{
+        devices::logical::*,
+        VulkanObject
+    }
 };
 
 #[cfg(debug_assertions)]
@@ -31,7 +34,7 @@ pub struct Instance {
 impl Instance {
     pub fn new(
         event_loop: &EventLoop<()>,
-        entry:      &ash::Entry
+        entry:      &Entry
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Instance");
@@ -78,7 +81,7 @@ impl Instance {
                     as *const vk::DebugUtilsMessengerCreateInfoEXT
                     as *const std::ffi::c_void;
 
-                unsafe { entry.create_instance(&create_info, None) }?
+                unsafe { entry.raw().create_instance(&create_info, None) }?
             }
 
             #[cfg(not(debug_assertions))] {
@@ -86,7 +89,7 @@ impl Instance {
                     .application_info(&application_info)
                     .enabled_extension_names(required_extensions);
 
-                unsafe { entry.create_instance(&create_info, None) }?
+                unsafe { entry.raw().create_instance(&create_info, None) }?
             }
         };
 

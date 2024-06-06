@@ -7,9 +7,9 @@ use {
     winit::window::Window
 };
 
-use super::{
-    device::Device,
-    instance::Instance,
+use crate::renderer::{
+    devices::logical::*,
+    setup::{entry::*, instance::*},
     VulkanObject
 };
 
@@ -26,18 +26,18 @@ pub struct Surface {
 
 impl Surface {
     pub fn new(
-        entry:    &ash::Entry,
+        entry:    &Entry,
         instance: &Instance,
         window:   &Window
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating Surface");
 
-        let loader = khr::Surface::new(entry, instance.raw());
+        let loader = khr::Surface::new(entry.raw(), instance.raw());
 
         let raw = unsafe {
             ash_window::create_surface(
-                entry,
+                entry.raw(),
                 instance.raw(),
                 window.raw_display_handle(),
                 window.raw_window_handle(),

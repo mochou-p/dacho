@@ -1,4 +1,4 @@
-// dacho/src/renderer/vertex_input/mod.rs
+// dacho/src/shader/input.rs
 
 use {
     anyhow::{Context, Result},

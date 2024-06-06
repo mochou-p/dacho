@@ -1,4 +1,8 @@
-// dacho/src/renderer/buffer.rs
+// dacho/src/renderer/buffers/mod.rs
+
+pub mod index;
+pub mod staging;
+pub mod vertex;
 
 use {
     anyhow::Result,
@@ -7,10 +11,10 @@ use {
 
 use {
     super::{
-        command::CommandPool,
-        device::{Device, PhysicalDevice},
-        image::Image,
-        instance::Instance,
+        commands::pool::*,
+        devices::{logical::*, physical::*},
+        images::image::*,
+        setup::instance::*,
         VulkanObject
     },
     crate::{
@@ -157,134 +161,6 @@ impl VulkanObject for Buffer {
         } else {
             log!(panic, "Expected Option<&Device>, got None");
         }
-    }
-}
-
-pub struct StagingBuffer;
-
-impl StagingBuffer {
-    pub fn new_buffer(
-        instance:        &Instance,
-        physical_device: &PhysicalDevice,
-        device:          &Device,
-        command_pool:    &CommandPool,
-        data:            *mut std::ffi::c_void,
-        buffer_size:      u64,
-        buffer_type:      vk::BufferUsageFlags
-    ) -> Result<Buffer> {
-        let staging_buffer = {
-            let usage      = vk::BufferUsageFlags::TRANSFER_SRC;
-            let properties = vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT;
-
-            Buffer::new(
-                instance,
-                physical_device,
-                device,
-                buffer_size,
-                usage,
-                properties
-            )?
-        };
-
-        let memory = unsafe {
-            device.raw().map_memory(
-                staging_buffer.memory,
-                0,
-                buffer_size,
-                vk::MemoryMapFlags::empty()
-            )
-        }?;
-
-        unsafe {
-            std::ptr::copy_nonoverlapping(data, memory, buffer_size as usize);
-            device.raw().unmap_memory(staging_buffer.memory);
-        }
-
-        let buffer = {
-            let usage      = vk::BufferUsageFlags::TRANSFER_DST | buffer_type;
-            let properties = vk::MemoryPropertyFlags::DEVICE_LOCAL;
-
-            Buffer::new(
-                instance,
-                physical_device,
-                device,
-                buffer_size,
-                usage,
-                properties
-            )?
-        };
-
-        Buffer::copy(
-            device,
-            command_pool,
-            &staging_buffer,
-            &buffer,
-            buffer_size
-        )?;
-
-        staging_buffer.destroy(Some(device));
-
-        Ok(buffer)
-    }
-}
-
-pub struct VertexBuffer;
-
-impl VertexBuffer {
-    pub fn new_buffer(
-        instance:        &Instance,
-        physical_device: &PhysicalDevice,
-        device:          &Device,
-        command_pool:    &CommandPool,
-        vertices:        &[f32],
-    ) -> Result<Buffer> {
-        let vertex_buffer = {
-            let data        = vertices.as_ptr() as *mut std::ffi::c_void;
-            let buffer_size = std::mem::size_of_val(vertices) as u64;
-            let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
-
-            StagingBuffer::new_buffer(
-                instance,
-                physical_device,
-                device,
-                command_pool,
-                data,
-                buffer_size,
-                buffer_type
-            )?
-        };
-
-        Ok(vertex_buffer)
-    }
-}
-
-pub struct IndexBuffer;
-
-impl IndexBuffer {
-    pub fn new_buffer(
-        instance:        &Instance,
-        physical_device: &PhysicalDevice,
-        device:          &Device,
-        command_pool:    &CommandPool,
-        indices:         &[u32]
-    ) -> Result<Buffer> {
-        let index_buffer = {
-            let data        = indices.as_ptr() as *mut std::ffi::c_void;
-            let buffer_size = std::mem::size_of_val(indices) as u64;
-            let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
-
-            StagingBuffer::new_buffer(
-                instance,
-                physical_device,
-                device,
-                command_pool,
-                data,
-                buffer_size,
-                buffer_type
-            )?
-        };
-
-        Ok(index_buffer)
     }
 }
 

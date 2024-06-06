@@ -6,16 +6,16 @@ use {
 };
 
 use {
-    super::{
-        device::{Device, PhysicalDevice},
-        image::{Image, ImageView},
-        instance::Instance,
-        render_pass::RenderPass,
-        surface::Surface,
-        VulkanObject
-    },
+    super::surface::*,
     crate::{
         application::logger::Logger,
+        renderer::{
+            devices::{logical::*, physical::*},
+            images::{image::*, image_view::*},
+            setup::instance::*,
+            rendering::render_pass::*,
+            VulkanObject
+        },
         log
     }
 };

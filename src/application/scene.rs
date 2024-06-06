@@ -19,7 +19,7 @@ use {
             types::V3,
             world::World
         },
-        renderer::geometry::GeometryData,
+        renderer::rendering::geometry::*,
         log
     }
 };
