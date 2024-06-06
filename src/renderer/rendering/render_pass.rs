@@ -5,15 +5,13 @@ use {
     ash::vk
 };
 
-use {
-    super::{
-        device::Device,
+use crate::{
+    application::logger::Logger,
+    renderer::{
+        devices::logical::*,
         VulkanObject
     },
-    crate::{
-        application::logger::Logger,
-        log
-    }
+    log
 };
 
 pub struct RenderPass {

@@ -7,19 +7,16 @@ use {
 };
 
 use {
-    super::{
-        descriptor::DescriptorSetLayout,
-        device::Device,
-        render_pass::RenderPass,
-        swapchain::Swapchain,
-        vertex_input::{ShaderInfo, Type, instance_descriptions, wgsl_field_to_type, vertex_descriptions},
-        VulkanObject
-    },
+    super::render_pass::*,
     crate::{
-        application::{
-            logger::Logger,
-            compile_shaders
+        application::logger::Logger,
+        renderer::{
+            descriptors::set_layout::*,
+            devices::logical::*,
+            presentation::swapchain::*,
+            VulkanObject
         },
+        shader::{compilation::*, input::*},
         log
     }
 };

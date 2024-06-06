@@ -1,13 +1,16 @@
-// dacho/src/renderer/device.rs
+// dacho/src/renderer/devices/logical.rs
 
 use {
-    anyhow::{Context, Result},
+    anyhow::Result,
     ash::{extensions::khr, vk}
 };
 
-use super::{
-    instance::Instance,
-    VulkanObject
+use {
+    super::physical::*,
+    crate::renderer::{
+        setup::instance::*,
+        VulkanObject
+    }
 };
 
 #[cfg(debug_assertions)]
@@ -16,31 +19,6 @@ use crate::{
     log
 };
 
-pub struct PhysicalDevice {
-    raw: vk::PhysicalDevice
-}
-
-impl PhysicalDevice {
-    pub fn new(instance: &Instance) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Choosing PhysicalDevice");
-
-        let raw = unsafe { instance.raw().enumerate_physical_devices() }?
-            .into_iter()
-            .next()
-            .context("No physical devices")?;
-
-        Ok(Self { raw })
-    }
-}
-
-impl VulkanObject for PhysicalDevice {
-    type RawType = vk::PhysicalDevice;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-}
 
 pub struct Device {
         raw:   ash::Device,
@@ -78,7 +56,7 @@ impl Device {
                 .enabled_extension_names(&extension_names)
                 .enabled_features(&features);
 
-            unsafe { instance.raw().create_device(physical_device.raw, &create_info, None) }?
+            unsafe { instance.raw().create_device(*physical_device.raw(), &create_info, None) }?
         };
 
         let queue = unsafe { raw.get_device_queue(0, 0) };

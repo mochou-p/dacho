@@ -1,22 +1,19 @@
-// dacho/src/renderer/image.rs
+// dacho/src/renderer/images/image.rs
 
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::{
-        buffer::StagingBuffer,
-        command::CommandPool,
-        device::{Device, PhysicalDevice},
-        instance::Instance,
+use crate::{
+    application::logger::Logger,
+    renderer::{
+        commands::pool::*,
+        devices::{logical::*, physical::*},
+        setup::instance::*,
         VulkanObject
     },
-    crate::{
-        application::logger::Logger,
-        log
-    }
+    log
 };
 
 pub struct Image {
@@ -92,7 +89,7 @@ impl Image {
         Ok(Self { raw, memory })
     }
 
-    fn transition_layout(
+    pub fn transition_layout(
         &self,
         device:       &Device,
         command_pool: &CommandPool,
@@ -170,169 +167,6 @@ impl VulkanObject for Image {
                 device.raw().destroy_image(self.raw, None);
                 device.raw().free_memory(self.memory, None);
             }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
-        }
-    }
-}
-
-pub struct ImageView {
-    raw: vk::ImageView
-}
-
-impl ImageView {
-    pub fn new(
-        device:      &Device,
-        image:       &vk::Image,
-        format:       vk::Format,
-        aspect_mask:  vk::ImageAspectFlags
-    ) -> Result<Self> {
-        let subresource_range = vk::ImageSubresourceRange::builder()
-            .aspect_mask(aspect_mask)
-            .base_mip_level(0)
-            .level_count(1)
-            .base_array_layer(0)
-            .layer_count(1)
-            .build();
-
-        let create_info = vk::ImageViewCreateInfo::builder()
-            .image(*image)
-            .view_type(vk::ImageViewType::TYPE_2D)
-            .format(format)
-            .subresource_range(subresource_range);
-
-        let raw = unsafe { device.raw().create_image_view(&create_info, None) }?;
-
-        Ok(Self { raw })
-    }
-}
-
-impl VulkanObject for ImageView {
-    type RawType = vk::ImageView;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn destroy(&self, device: Option<&Device>) {
-        if let Some(device) = device {
-            unsafe { device.raw().destroy_image_view(self.raw, None); }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
-        }
-    }
-}
-
-pub struct Texture;
-
-impl Texture {
-    pub fn new_image(
-        instance:        &Instance,
-        physical_device: &PhysicalDevice,
-        device:          &Device,
-        command_pool:    &CommandPool,
-        image_data:      &[u8]
-    ) -> Result<Image> {
-        let data        = image_data.as_ptr() as *mut std::ffi::c_void;
-        let buffer_size = std::mem::size_of_val(image_data) as u64;
-
-        let buffer = StagingBuffer::new_buffer(
-            instance,
-            physical_device,
-            device,
-            command_pool,
-            data,
-            buffer_size,
-            vk::BufferUsageFlags::TRANSFER_SRC
-        )?;
-
-        let (width, height) = {
-            let y = ((buffer_size / 4 / 2) as f32).sqrt() as u32;
-
-            (y * 2, y)
-        };
-
-        let image = Image::new(
-            device,
-            instance,
-            physical_device,
-            &vk::Extent2D { width, height },
-            vk::Format::R8G8B8A8_SRGB,
-            vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
-            vk::MemoryPropertyFlags::DEVICE_LOCAL,
-            vk::SampleCountFlags::TYPE_1
-        )?;
-
-        image.transition_layout(
-            device, command_pool, vk::ImageLayout::UNDEFINED, vk::ImageLayout::TRANSFER_DST_OPTIMAL
-        )?;
-
-        buffer.copy_to_image(device, command_pool, &image, width, height)?;
-
-        image.transition_layout(
-            device, command_pool, vk::ImageLayout::TRANSFER_DST_OPTIMAL, vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL
-        )?;
-
-        buffer.destroy(Some(device));
-
-        Ok(image)
-    }
-}
-
-pub struct TextureView;
-
-impl TextureView {
-    pub fn new_image_view(
-        device:  &Device,
-        texture: &Image
-    ) -> Result<ImageView> {
-        let image_view = ImageView::new(
-            device, &texture.raw, vk::Format::R8G8B8A8_SRGB, vk::ImageAspectFlags::COLOR
-        )?;
-
-        Ok(image_view)
-    }
-}
-
-pub struct Sampler {
-    raw: vk::Sampler
-}
-
-impl Sampler {
-    pub fn new(device: &Device) -> Result<Self> {
-        let create_info = vk::SamplerCreateInfo::builder()
-            .mag_filter(vk::Filter::LINEAR)
-            .min_filter(vk::Filter::LINEAR)
-            .address_mode_u(vk::SamplerAddressMode::REPEAT)
-            .address_mode_v(vk::SamplerAddressMode::CLAMP_TO_EDGE)
-            .address_mode_w(vk::SamplerAddressMode::REPEAT)
-            .anisotropy_enable(true)
-            .max_anisotropy(4.0)
-            .border_color(vk::BorderColor::INT_OPAQUE_BLACK)
-            .unnormalized_coordinates(false)
-            .compare_enable(false)
-            .compare_op(vk::CompareOp::ALWAYS)
-            .mipmap_mode(vk::SamplerMipmapMode::LINEAR)
-            .mip_lod_bias(0.0)
-            .min_lod(0.0)
-            .max_lod(0.0);
-
-        let raw = unsafe { device.raw().create_sampler(&create_info, None) }?;
-
-        Ok(Self { raw })
-    }
-}
-
-impl VulkanObject for Sampler {
-    type RawType = vk::Sampler;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn destroy(&self, device: Option<&Device>) {
-        if let Some(device) = device {
-            unsafe { device.raw().destroy_sampler(self.raw, None); }
         } else {
             log!(panic, "Expected Option<&Device>, got None");
         }

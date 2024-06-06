@@ -7,14 +7,18 @@ use {
     serde::{Serialize, Deserialize}
 };
 
-use super::{
-    buffer::{Buffer, IndexBuffer, VertexBuffer},
-    command::{Command, CommandPool},
-    device::{Device, PhysicalDevice},
-    instance::Instance,
-    pipeline::shader_input_types,
-    vertex_input::{ShaderInfo, size_of_types},
-    VulkanObject
+use {
+    super::pipeline::*,
+    crate::{
+        renderer::{
+            buffers::{index::*, vertex::*, *},
+            commands::{pool::*, *},
+            devices::{logical::*, physical::*},
+            setup::instance::*,
+            VulkanObject
+        },
+        shader::input::*
+    }
 };
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -142,10 +146,10 @@ impl Geometry {
         ]
     }
 
-    pub fn destroy(&self, device: &Device) {
-        self.vertex_buffer.destroy(Some(device));
-        self.instance_buffer.destroy(Some(device));
-        self.index_buffer.destroy(Some(device));
+    pub fn destroy(&self, device: Option<&Device>) {
+        self.vertex_buffer.destroy(device);
+        self.instance_buffer.destroy(device);
+        self.index_buffer.destroy(device);
     }
 }
 

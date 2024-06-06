@@ -1,4 +1,4 @@
-// dacho/src/renderer/debug.rs
+// dacho/src/renderer/setup/debug.rs
 
 use {
     anyhow::Result,
@@ -6,12 +6,10 @@ use {
 };
 
 use {
-    super::{
-        instance::Instance,
-        VulkanObject
-    },
+    super::{entry::*, instance::*},
     crate::{
         application::logger::Logger,
+        renderer::VulkanObject,
         log
     }
 };
@@ -27,12 +25,12 @@ pub struct Debug {
 
 impl Debug {
     pub fn new(
-        entry:    &ash::Entry,
+        entry:    &Entry,
         instance: &Instance
     ) -> Result<Self> {
         log!(info, "Creating Debug messenger for Validation Layers");
 
-        let loader = ext::DebugUtils::new(entry, instance.raw());
+        let loader = ext::DebugUtils::new(entry.raw(), instance.raw());
 
         let messenger = {
             let create_info = messenger_create_info();

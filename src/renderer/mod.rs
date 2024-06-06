@@ -1,48 +1,36 @@
 // dacho/src/renderer/mod.rs 
 
-    mod buffer;
-    mod command;
-#[cfg(debug_assertions)]
-    mod debug;
-    mod descriptor;
-    mod device;
-pub mod geometry;
-    mod image;
-    mod instance;
-    mod pipeline;
-    mod render_pass;
-    mod surface;
-    mod swapchain;
-    mod vertex_input;
+pub mod buffers;
+pub mod commands;
+pub mod descriptors;
+pub mod devices;
+pub mod images;
+pub mod presentation;
+pub mod rendering;
+pub mod setup;
 
 use {
     std::collections::HashMap,
     anyhow::{Context, Result},
     ash::vk,
-    winit::{
-        event_loop::EventLoop,
-        window::Window
-    }
+    winit::{event_loop::EventLoop, window::Window}
 };
 
 use {
-    buffer::Buffer,
-    command::{Command, CommandBuffers, CommandPool},
-    descriptor::{UniformBufferObject, DescriptorPool, DescriptorSet, DescriptorSetLayout},
-    device::{Device, PhysicalDevice},
-    geometry::Geometry,
-    image::{Image, ImageView, Sampler, Texture, TextureView},
-    instance::Instance,
-    pipeline::Pipeline,
-    render_pass::RenderPass,
-    surface::Surface,
-    swapchain::Swapchain,
+    buffers::*,
+    commands::{buffers::*, pool::*, *},
+    descriptors::{pool::*, set::*, set_layout::*, uniform::*},
+    devices::{logical::*, physical::*},
+    images::{image::*, image_view::*, sampler::*, texture::*, texture_view::*},
+    presentation::{surface::*, swapchain::*},
+    rendering::{geometry::*, pipeline::*, render_pass::*},
+    setup::{entry::*, instance::*},
     super::application::scene::Data
 };
 
 #[cfg(debug_assertions)]
 use {
-    debug::Debug,
+    setup::debug::*,
     super::{
         application::logger::Logger,
         log, log_indent
@@ -66,7 +54,7 @@ pub trait VulkanObject {
 }
 
 pub struct Renderer {
-    _entry:                 ash::Entry,
+    _entry:                 Entry,
     instance:               Instance,
     #[cfg(debug_assertions)]
     debug:                  Debug,
@@ -89,22 +77,18 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        event_loop:     &EventLoop<()>,
-        window:         &Window,
-        window_width:    u32,
-        window_height:   u32,
-        data:           &Data
+        event_loop:    &EventLoop<()>,
+        window:        &Window,
+        window_width:   u32,
+        window_height:  u32,
+        data:          &Data
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
             log_indent!(1);
         }
 
-        #[cfg(debug_assertions)]
-        log!(info, "Creating Entry");
-
-        let entry = unsafe { ash::Entry::load() }?;
-
+        let entry           = Entry::new()?;
         let instance        = Instance::new(event_loop, &entry)?;
         #[cfg(debug_assertions)]
         let debug           = Debug::new(&entry, &instance)?;
@@ -240,6 +224,7 @@ impl Renderer {
         )
     }
 
+    #[inline]
     pub fn wait_for_device(&self) {
         self.device.wait();
     }
@@ -369,7 +354,7 @@ impl Drop for Renderer {
         log!(info, "Destroying VertexBuffers and IndexBuffers");
 
         for geometry in self.geometries.iter() {
-            geometry.destroy(&self.device);
+            geometry.destroy(Some(&self.device));
         }
 
         self.device   .destroy(None);

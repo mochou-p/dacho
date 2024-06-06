@@ -7,7 +7,7 @@ use {
 
 use {
     super::types::{V2, V3},
-    crate::renderer::geometry::GeometryData
+    crate::renderer::rendering::geometry::GeometryData
 };
 
 pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData> {
