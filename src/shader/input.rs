@@ -33,17 +33,17 @@ struct TypeInfo {
 }
 
 impl TypeInfo {
+    const FORMAT_SIZE_PAIRS: [TypeInfo; 4] = [
+        TypeInfo::new(vk::Format::R32_SFLOAT,              std::mem::size_of::<f32>() as u32),
+        TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * std::mem::size_of::<f32>() as u32),
+        TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * std::mem::size_of::<f32>() as u32),
+        TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * std::mem::size_of::<f32>() as u32)
+    ];
+
     const fn new(format: vk::Format, size: u32) -> Self {
         Self { format, size }
     }
 }
-
-const TYPE_INFOS: [TypeInfo; 4] = [
-    TypeInfo::new(vk::Format::R32_SFLOAT,              std::mem::size_of::<f32>() as u32),
-    TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * std::mem::size_of::<f32>() as u32),
-    TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * std::mem::size_of::<f32>() as u32),
-    TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * std::mem::size_of::<f32>() as u32)
-];
 
 pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
     let wgsl_type = &field[
@@ -70,7 +70,7 @@ pub fn size_of_types(info: &[Type]) -> usize {
     let mut size = 0;
 
     for kind in info.iter() {
-        size += TYPE_INFOS[*kind as usize].size as usize;
+        size += TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].size as usize;
     }
 
     size
@@ -86,12 +86,12 @@ pub fn vertex_descriptions(info: &[Type]) -> (
         let attribute_description = vk::VertexInputAttributeDescription::builder()
             .binding(0)
             .location(location)
-            .format(TYPE_INFOS[*kind as usize].format)
+            .format(TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].format)
             .offset(offset)
             .build();
 
         location += 1;
-        offset   += TYPE_INFOS[*kind as usize].size;
+        offset   += TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].size;
 
         attribute_descriptions.push(attribute_description);
     }
@@ -117,12 +117,12 @@ pub fn instance_descriptions(info: &[Type], location_offset: u32) -> (
         let attribute_description = vk::VertexInputAttributeDescription::builder()
             .binding(1)
             .location(location)
-            .format(TYPE_INFOS[*kind as usize].format)
+            .format(TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].format)
             .offset(offset)
             .build();
 
         location += 1;
-        offset   += TYPE_INFOS[*kind as usize].size;
+        offset   += TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].size;
 
         attribute_descriptions.push(attribute_description);
     }
