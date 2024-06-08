@@ -1,5 +1,8 @@
 // dacho/src/shader/input.rs
 
+// core
+use core::mem::size_of;
+
 // crates
 use {
     anyhow::{Context, Result},
@@ -36,10 +39,10 @@ struct TypeInfo {
 
 impl TypeInfo {
     const FORMAT_SIZE_PAIRS: [TypeInfo; 4] = [
-        TypeInfo::new(vk::Format::R32_SFLOAT,              std::mem::size_of::<f32>() as u32),
-        TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * std::mem::size_of::<f32>() as u32),
-        TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * std::mem::size_of::<f32>() as u32),
-        TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * std::mem::size_of::<f32>() as u32)
+        TypeInfo::new(vk::Format::R32_SFLOAT,              size_of::<f32>() as u32),
+        TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * size_of::<f32>() as u32),
+        TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * size_of::<f32>() as u32),
+        TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * size_of::<f32>() as u32)
     ];
 
     const fn new(format: vk::Format, size: u32) -> Self {

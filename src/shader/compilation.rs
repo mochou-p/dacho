@@ -33,7 +33,7 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
     };
 
     let bytes_in = &std::fs::read(wgsl_in)?;
-    let code     = std::str::from_utf8(bytes_in)?;
+    let code     = core::str::from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
     if module.clone().map_err(|error| log!(error, "`{wgsl_in}`: {error}")).is_err() {

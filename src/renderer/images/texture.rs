@@ -30,8 +30,8 @@ impl Texture {
         command_pool:    &CommandPool,
         image_data:      &[u8]
     ) -> Result<Image> {
-        let data        = image_data.as_ptr() as *mut std::ffi::c_void;
-        let buffer_size = std::mem::size_of_val(image_data) as u64;
+        let data        = image_data.as_ptr() as *mut core::ffi::c_void;
+        let buffer_size = core::mem::size_of_val(image_data) as u64;
 
         let buffer = StagingBuffer::new_buffer(
             instance,

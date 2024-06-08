@@ -25,7 +25,7 @@ impl StagingBuffer {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        data:            *mut std::ffi::c_void,
+        data:            *mut core::ffi::c_void,
         buffer_size:      u64,
         buffer_type:      vk::BufferUsageFlags
     ) -> Result<Buffer> {
@@ -54,7 +54,7 @@ impl StagingBuffer {
 
         unsafe {
             #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
-            std::ptr::copy_nonoverlapping(unsafe { data }, memory, buffer_size as usize);
+            core::ptr::copy_nonoverlapping(unsafe { data }, memory, buffer_size as usize);
             device.raw().unmap_memory(staging_buffer.memory);
         }
 

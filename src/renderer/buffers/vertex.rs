@@ -27,8 +27,8 @@ impl VertexBuffer {
         vertices:        &[f32]
     ) -> Result<Buffer> {
         let vertex_buffer = {
-            let data        = vertices.as_ptr() as *mut std::ffi::c_void;
-            let buffer_size = std::mem::size_of_val(vertices) as u64;
+            let data        = vertices.as_ptr() as *mut core::ffi::c_void;
+            let buffer_size = core::mem::size_of_val(vertices) as u64;
             let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
             StagingBuffer::new_buffer(

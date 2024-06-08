@@ -27,8 +27,8 @@ impl IndexBuffer {
         indices:         &[u32]
     ) -> Result<Buffer> {
         let index_buffer = {
-            let data        = indices.as_ptr() as *mut std::ffi::c_void;
-            let buffer_size = std::mem::size_of_val(indices) as u64;
+            let data        = indices.as_ptr() as *mut core::ffi::c_void;
+            let buffer_size = core::mem::size_of_val(indices) as u64;
             let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 
             StagingBuffer::new_buffer(

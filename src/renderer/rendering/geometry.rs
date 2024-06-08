@@ -84,7 +84,7 @@ impl Geometry {
             let polygon_mode = data.polygon_mode;
 
             let (vertex_info, instance_info) = shader_input_types(&data.shader)?;
-            let instance_size = size_of_types(&instance_info) / std::mem::size_of::<f32>();
+            let instance_size = size_of_types(&instance_info) / core::mem::size_of::<f32>();
 
             shader_info_cache.insert(
                 data.shader.clone(),

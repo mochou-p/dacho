@@ -80,7 +80,7 @@ impl From<[f32; 3]> for V3 {
     }
 }
 
-impl std::ops::Sub for V3 {
+impl core::ops::Sub for V3 {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
@@ -88,7 +88,7 @@ impl std::ops::Sub for V3 {
     }
 }
 
-impl std::ops::Mul<f32> for V3 {
+impl core::ops::Mul<f32> for V3 {
     type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
@@ -96,7 +96,7 @@ impl std::ops::Mul<f32> for V3 {
     }
 }
 
-impl std::ops::Mul<isize> for V3 {
+impl core::ops::Mul<isize> for V3 {
     type Output = Self;
 
     fn mul(self, rhs: isize) -> Self::Output {

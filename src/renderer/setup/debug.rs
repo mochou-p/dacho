@@ -54,7 +54,7 @@ unsafe extern "system" fn validation_layers_callback(
     message_severity:        MessageSeverity,
     message_type:            MessageType,
     p_callback_data:  *const CallbackData,
-    _p_user_data:     *mut   std::ffi::c_void
+    _p_user_data:     *mut   core::ffi::c_void
 ) -> vk::Bool32 {
     static mut NUMBER: usize = 0;
     NUMBER += 1;
@@ -74,7 +74,7 @@ unsafe extern "system" fn validation_layers_callback(
         _                        => "\x1b[35;1m[Unknown]"
     };
 
-    let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
+    let message = core::ffi::CStr::from_ptr((*p_callback_data).p_message);
 
     let mut msg = format!(
         "\n\x1b[33m({NUMBER}) \x1b[1m{kind} \x1b[1m{severity}\x1b[0m\n{:?}\n",
@@ -93,7 +93,7 @@ unsafe extern "system" fn validation_layers_callback(
 pub fn messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
     vk::DebugUtilsMessengerCreateInfoEXT {
         s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        p_next: std::ptr::null(),
+        p_next: core::ptr::null(),
         flags:  vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
         message_severity:
             MessageSeverity::WARNING |
@@ -103,7 +103,7 @@ pub fn messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
             MessageType::PERFORMANCE |
             MessageType::VALIDATION,
         pfn_user_callback: Some(validation_layers_callback),
-        p_user_data:       std::ptr::null_mut()
+        p_user_data:       core::ptr::null_mut()
     }
 }
 
