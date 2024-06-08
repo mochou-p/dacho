@@ -1,7 +1,7 @@
 // dacho/src/lib.rs
 
-pub mod application;
+    mod application;
 pub mod prelude;
-pub mod renderer;
-pub mod shader;
+    mod renderer;
+    mod shader;
 

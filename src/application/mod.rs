@@ -1,10 +1,10 @@
 // dacho/src/application/mod.rs
 
-pub mod camera;
-pub mod logger;
-pub mod scene;
-pub mod timer;
-pub mod window;
+           mod camera;
+pub(super) mod logger;
+pub(super) mod scene;
+           mod timer;
+           mod window;
 
 use {
     anyhow::Result,

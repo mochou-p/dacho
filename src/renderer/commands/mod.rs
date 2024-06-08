@@ -1,7 +1,7 @@
 // dacho/src/renderer/commands/mod.rs
 
-pub mod buffers;
-pub mod pool;
+pub(super) mod buffers;
+pub(super) mod pool;
 
 use super::{
     buffers::*,

@@ -1,8 +1,8 @@
 // dacho/src/renderer/buffers/mod.rs
 
-pub mod index;
-pub mod staging;
-pub mod vertex;
+pub(super) mod index;
+pub(super) mod staging;
+pub(super) mod vertex;
 
 use {
     anyhow::Result,

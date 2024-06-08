@@ -1,18 +1,18 @@
 // dacho/src/prelude/mod.rs
 
-pub mod colors;
-pub mod materials;
-pub mod primitives;
-pub mod shapes;
-pub mod types;
-pub mod world;
+pub(super) mod colors;
+pub(super) mod materials;
+pub(super) mod primitives;
+pub(super) mod shapes;
+pub(super) mod types;
+pub(super) mod world;
 
 pub use {
-    colors::{Color, Color as Colour},
-    materials::Material,
-    shapes::{Anchor, Cube, Sphere},
-    types::{V2, V3},
-    world::World
+    colors::{Color as Colour, *},
+    materials::*,
+    shapes::*,
+    types::*,
+    world::*
 };
 
 use anyhow::Result;

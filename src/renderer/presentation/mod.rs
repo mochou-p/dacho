@@ -1,5 +1,5 @@
 // dacho/src/renderer/presentation/mod.rs
 
-pub mod surface;
-pub mod swapchain;
+pub(super) mod surface;
+pub(super) mod swapchain;
 

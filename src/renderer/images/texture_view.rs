@@ -1,5 +1,7 @@
 // dacho/src/renderer/images/texture_view.rs
 
+#![allow(dead_code)]
+
 use {
     anyhow::Result,
     ash::vk

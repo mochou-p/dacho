@@ -1,4 +1,4 @@
-// dacho/src/renderer/instance.rs
+// dacho/src/renderer/setup/instance.rs
 
 use {
     anyhow::Result,

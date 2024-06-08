@@ -1,6 +1,6 @@
 // dacho/src/renderer/rendering/mod.rs
 
-pub mod geometry;
-pub mod pipeline;
-pub mod render_pass;
+pub(crate) mod geometry;
+pub(super) mod pipeline;
+pub(super) mod render_pass;
 

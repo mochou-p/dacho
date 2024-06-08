@@ -1,4 +1,4 @@
-// dacho/src/renderer/pipeline.rs
+// dacho/src/renderer/rendering/pipeline.rs
 
 use {
     anyhow::Result,

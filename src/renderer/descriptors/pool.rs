@@ -1,4 +1,4 @@
-// dacho/renderer/src/descriptors/pool.rs
+// dacho/src/renderer/descriptors/pool.rs
 
 use {
     anyhow::Result,

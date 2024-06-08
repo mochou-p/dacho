@@ -1,5 +1,5 @@
 // dacho/src/renderer/devices/mod.rs
 
-pub mod logical;
-pub mod physical;
+pub(super) mod logical;
+pub(super) mod physical;
 
