@@ -1,5 +1,6 @@
 // dacho/src/renderer/setup/instance.rs
 
+// crates
 use {
     anyhow::Result,
     ash::vk,
@@ -7,14 +8,16 @@ use {
     winit::event_loop::EventLoop
 };
 
-use {
-    super::entry::*,
-    crate::renderer::{
-        devices::logical::*,
-        VulkanObject
-    }
+// super
+use super::entry::*;
+
+// crate
+use crate::renderer::{
+    devices::logical::*,
+    VulkanObject
 };
 
+// debug
 #[cfg(debug_assertions)]
 use {
     super::debug::messenger_create_info,

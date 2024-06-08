@@ -1,5 +1,9 @@
 // dacho/src/application/camera.rs
 
+// std
+use std::f32::consts::{FRAC_PI_2, PI};
+
+// crates
 use {
     glam::f32 as glam,
     winit::{
@@ -52,7 +56,7 @@ pub struct Camera {
 impl Camera {
     pub const fn new(translation: glam::Vec3) -> Self {
         let rotation = CameraRotation {
-            angle: glam::Vec2::new(0.0, std::f32::consts::PI)
+            angle: glam::Vec2::new(0.0, PI)
         };
 
         let movement = CameraMovement {
@@ -69,7 +73,7 @@ impl Camera {
             rotation_x: Bound {
                 #[allow(clippy::approx_constant)]
                 min: -1.570_796_3,
-                max:  std::f32::consts::FRAC_PI_2
+                max:  FRAC_PI_2
             }
         };
 

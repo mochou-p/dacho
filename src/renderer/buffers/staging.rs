@@ -1,18 +1,20 @@
 // dacho/src/renderer/buffers/staging.rs
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::*,
-    crate::renderer::{
-        commands::pool::*,
-        devices::{logical::*, physical::*},
-        setup::instance::*,
-        VulkanObject
-    }
+// super
+use super::*;
+
+// crate
+use crate::renderer::{
+    commands::pool::*,
+    devices::{logical::*, physical::*},
+    setup::instance::*,
+    VulkanObject
 };
 
 pub struct StagingBuffer;

@@ -1,5 +1,6 @@
 // dacho/src/prelude/mod.rs
 
+// modules
 pub(super) mod colors;
 pub(super) mod materials;
 pub(super) mod primitives;
@@ -7,6 +8,7 @@ pub(super) mod shapes;
 pub(super) mod types;
 pub(super) mod world;
 
+// pub mod
 pub use {
     colors::{Color as Colour, *},
     materials::*,
@@ -15,13 +17,16 @@ pub use {
     world::*
 };
 
+// crates
 use anyhow::Result;
 
+// super
 use super::application::{
     scene::Data,
     Application
 };
 
+// debug
 #[cfg(debug_assertions)]
 use super::{
     application::logger::Logger,

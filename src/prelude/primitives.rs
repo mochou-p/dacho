@@ -1,14 +1,16 @@
 // dacho/src/prelude/primitives.rs
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::types::{V2, V3},
-    crate::renderer::rendering::geometry::GeometryData
-};
+// super
+use super::types::{V2, V3};
+
+// crate
+use crate::renderer::rendering::geometry::GeometryData;
 
 pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData> {
     let hs = size * 0.5;

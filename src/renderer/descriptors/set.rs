@@ -1,19 +1,22 @@
 // dacho/src/renderer/descriptors/set.rs
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::{pool::*, set_layout::*, uniform::*},
-    crate::renderer::{
-        buffers::*,
-        devices::logical::*,
-        VulkanObject
-    }
+// super
+use super::{pool::*, set_layout::*, uniform::*};
+
+// crate
+use crate::renderer::{
+    buffers::*,
+    devices::logical::*,
+    VulkanObject
 };
 
+// debug
 #[cfg(debug_assertions)]
 use crate::{
     application::logger::Logger,

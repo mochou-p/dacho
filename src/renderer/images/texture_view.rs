@@ -2,17 +2,19 @@
 
 #![allow(dead_code)]
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::{image::*, image_view::*},
-    crate::renderer::{
-        devices::logical::*,
-        VulkanObject
-    }
+// super
+use super::{image::*, image_view::*};
+
+// crate
+use crate::renderer::{
+    devices::logical::*,
+    VulkanObject
 };
 
 pub struct TextureView;

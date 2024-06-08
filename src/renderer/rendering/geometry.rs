@@ -1,24 +1,28 @@
 // dacho/src/renderer/rendering/geometry.rs
 
+// std
+use std::collections::HashMap;
+
+// crates
 use {
-    std::collections::HashMap,
     anyhow::{Context, Result},
     ash::vk,
     serde::{Serialize, Deserialize}
 };
 
-use {
-    super::pipeline::*,
-    crate::{
-        renderer::{
-            buffers::{index::*, vertex::*, *},
-            commands::{pool::*, *},
-            devices::{logical::*, physical::*},
-            setup::instance::*,
-            VulkanObject
-        },
-        shader::input::*
-    }
+// super
+use super::pipeline::*;
+
+// crate
+use crate::{
+    renderer::{
+        buffers::{index::*, vertex::*, *},
+        commands::{pool::*, *},
+        devices::{logical::*, physical::*},
+        setup::instance::*,
+        VulkanObject
+    },
+    shader::input::*
 };
 
 #[derive(Clone, Serialize, Deserialize)]

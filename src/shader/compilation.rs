@@ -1,5 +1,6 @@
 // dacho/src/shader/compilation.rs
 
+// crates
 use {
     anyhow::{Context, Result, bail},
     futures::future::join_all,
@@ -11,11 +12,13 @@ use {
     tokio::spawn
 };
 
+// crate
 use crate::{
     application::logger::Logger,
     log
 };
 
+// debug
 #[cfg(debug_assertions)]
 use crate::log_indent;
 

@@ -1,5 +1,6 @@
 // dacho/src/renderer/mod.rs
 
+// modules
            mod buffers;
            mod commands;
            mod descriptors;
@@ -9,13 +10,17 @@
 pub(super) mod rendering;
            mod setup;
 
+// std
+use std::collections::HashMap;
+
+// crates
 use {
-    std::collections::HashMap,
     anyhow::{Context, Result},
     ash::vk,
     winit::{event_loop::EventLoop, window::Window}
 };
 
+// mod
 use {
     buffers::*,
     commands::{buffers::*, pool::*, *},
@@ -23,10 +28,13 @@ use {
     devices::{logical::*, physical::*},
     presentation::{surface::*, swapchain::*},
     rendering::{geometry::*, pipeline::*, render_pass::*},
-    setup::{entry::*, instance::*},
-    super::application::scene::Data
+    setup::{entry::*, instance::*}
 };
 
+// super
+use super::application::scene::Data;
+
+// debug
 #[cfg(debug_assertions)]
 use {
     setup::debug::*,

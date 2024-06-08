@@ -1,17 +1,19 @@
 // dacho/src/renderer/setup/debug.rs
 
+// crates
 use {
     anyhow::Result,
     ash::{extensions::ext, vk}
 };
 
-use {
-    super::{entry::*, instance::*},
-    crate::{
-        application::logger::Logger,
-        renderer::VulkanObject,
-        log
-    }
+// super
+use super::{entry::*, instance::*};
+
+// crate
+use crate::{
+    application::logger::Logger,
+    renderer::VulkanObject,
+    log
 };
 
 type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
