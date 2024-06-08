@@ -30,18 +30,6 @@ impl DescriptorSetLayout {
                     .descriptor_count(1)
                     .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                     .stage_flags(vk::ShaderStageFlags::VERTEX)
-                    .build(),
-                vk::DescriptorSetLayoutBinding::builder()
-                    .binding(1)
-                    .descriptor_count(1)
-                    .descriptor_type(vk::DescriptorType::SAMPLER)
-                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
-                    .build(),
-                vk::DescriptorSetLayoutBinding::builder()
-                    .binding(2)
-                    .descriptor_count(1)
-                    .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
-                    .stage_flags(vk::ShaderStageFlags::FRAGMENT)
                     .build()
             ];
 

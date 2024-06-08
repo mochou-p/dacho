@@ -80,7 +80,7 @@ impl World {
     #[inline]
     #[tokio::main]
     async fn run_(&self) -> Result<()> {
-        match self.data.geometry.len() + self.data.texture.len() {
+        match self.data.geometry.len() {
             0 => { dacho_main(&Scene::build(self).await?).await?; },
             _ => { dacho_main(&self.data).await?; }
         }
