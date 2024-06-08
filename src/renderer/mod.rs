@@ -73,7 +73,7 @@ pub struct Renderer {
     pipelines:              HashMap<String, Pipeline>,
     geometries:             Vec<Geometry>,
     ubo:                    Buffer,
-    ubo_mapped:            *mut std::ffi::c_void,
+    ubo_mapped:            *mut core::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers
@@ -230,7 +230,7 @@ impl Renderer {
             self.swapchain.loader
                 .acquire_next_image(
                     *self.swapchain.raw(),
-                    std::u64::MAX,
+                    core::u64::MAX,
                     self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
                 )
@@ -251,7 +251,7 @@ impl Renderer {
             self.device.raw().wait_for_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
-                std::u64::MAX
+                core::u64::MAX
             )
         }
             .expect("Waiting for fences failed");

@@ -20,6 +20,7 @@ use crate::renderer::{
 // debug
 #[cfg(debug_assertions)]
 use {
+    std::ffi::CString,
     super::debug::messenger_create_info,
     crate::{
         application::logger::Logger,
@@ -57,16 +58,16 @@ impl Instance {
 
                 let mut extension_names = required_extensions.to_vec();
 
-                let debug     = std::ffi::CString::new("VK_EXT_debug_utils")?;
+                let debug     = CString::new("VK_EXT_debug_utils")?;
                 let debug_ptr = debug.as_ptr();
 
                 extension_names.push(debug_ptr);
 
                 let debug_utils_create_info = messenger_create_info();
 
-                let layers_raw: Vec<std::ffi::CString> = VALIDATION_LAYERS
+                let layers_raw: Vec<CString> = VALIDATION_LAYERS
                     .iter()
-                    .map(|layer| std::ffi::CString::new(*layer).expect("CString error"))
+                    .map(|layer| CString::new(*layer).expect("CString error"))
                     .collect();
 
                 let layer_names: Vec<*const i8> = layers_raw
@@ -82,7 +83,7 @@ impl Instance {
 
                 create_info.p_next = &debug_utils_create_info
                     as *const vk::DebugUtilsMessengerCreateInfoEXT
-                    as *const std::ffi::c_void;
+                    as *const core::ffi::c_void;
 
                 unsafe { entry.raw().create_instance(&create_info, None) }?
             }

@@ -34,11 +34,11 @@ impl UniformBufferObject {
         instance:        &Instance,
         physical_device: &PhysicalDevice,
         device:          &Device
-    ) -> Result<(Buffer, *mut std::ffi::c_void)> {
+    ) -> Result<(Buffer, *mut core::ffi::c_void)> {
         #[cfg(debug_assertions)]
         log!(info, "Creating UniformBuffer");
 
-        let buffer_size = std::mem::size_of::<UniformBufferObject>() as u64;
+        let buffer_size = core::mem::size_of::<UniformBufferObject>() as u64;
 
         let uniform_buffer = {
             let usage      = vk::BufferUsageFlags::UNIFORM_BUFFER;
@@ -62,7 +62,7 @@ impl UniformBufferObject {
     }
 
     pub fn update(
-        ubo_mapped:   *mut std::ffi::c_void,
+        ubo_mapped:   *mut core::ffi::c_void,
         position:      glam::Vec3,
         direction:     glam::Vec3,
         time:          f32,
@@ -82,12 +82,12 @@ impl UniformBufferObject {
             _time:       time
         };
 
-        let src  = &mut ubo as *mut UniformBufferObject as *mut std::ffi::c_void;
-        let size = std::mem::size_of::<UniformBufferObject>();
+        let src  = &mut ubo as *mut UniformBufferObject as *mut core::ffi::c_void;
+        let size = core::mem::size_of::<UniformBufferObject>();
 
         unsafe {
             #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
-            std::ptr::copy_nonoverlapping(src, unsafe { ubo_mapped }, size);
+            core::ptr::copy_nonoverlapping(src, unsafe { ubo_mapped }, size);
         }
     }
 }

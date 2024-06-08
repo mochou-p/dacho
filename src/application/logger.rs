@@ -2,6 +2,9 @@
 
 #![allow(dead_code)]
 
+// core
+use core::fmt::Display;
+
 // std
 use std::io::Write;
 
@@ -34,7 +37,7 @@ impl Color {
 pub struct Logger;
 
 impl Logger {
-    fn info_str<T: Into<String> + std::fmt::Display>(s: T) -> String {
+    fn info_str<T: Into<String> + Display>(s: T) -> String {
         format!(
             "{}{}Info{} {}",
             " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
@@ -44,7 +47,7 @@ impl Logger {
         )
     }
 
-    fn warning_str<T: Into<String> + std::fmt::Display>(s: T) -> String {
+    fn warning_str<T: Into<String> + Display>(s: T) -> String {
         format!(
             "{}{}Warning{} {}",
             " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
@@ -54,7 +57,7 @@ impl Logger {
         )
     }
 
-    fn error_str<T: Into<String> + std::fmt::Display>(s: T) -> String {
+    fn error_str<T: Into<String> + Display>(s: T) -> String {
         format!(
             "{}{}Error{} {}",
             " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
@@ -70,11 +73,11 @@ impl Logger {
         }
     }
 
-    pub fn info<T: Into<String> + std::fmt::Display>(message: T) {
+    pub fn info<T: Into<String> + Display>(message: T) {
         println!("{}", Self::info_str(message));
     }
 
-    pub fn info_r<T: Into<String> + std::fmt::Display>(message: T) {
+    pub fn info_r<T: Into<String> + Display>(message: T) {
         print!("{}\r", Self::info_str(message));
 
         std::io::stdout()
@@ -82,15 +85,15 @@ impl Logger {
             .expect("Failed to flush stdout");
     }
 
-    pub fn warning<T: Into<String> + std::fmt::Display>(message: T) {
+    pub fn warning<T: Into<String> + Display>(message: T) {
         println!("{}", Self::warning_str(message));
     }
 
-    pub fn error<T: Into<String> + std::fmt::Display>(message: T) {
+    pub fn error<T: Into<String> + Display>(message: T) {
         println!("{}", Self::error_str(message));
     }
 
-    pub fn panic<T: Into<String> + std::fmt::Display>(message: T) {
+    pub fn panic<T: Into<String> + Display>(message: T) {
         panic!("{}", Self::error_str(message));
     }
 }

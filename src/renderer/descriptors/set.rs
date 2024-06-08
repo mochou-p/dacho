@@ -52,7 +52,7 @@ impl DescriptorSet {
             vk::DescriptorBufferInfo::builder()
                 .buffer(*ubo.raw())
                 .offset(0)
-                .range(std::mem::size_of::<UniformBufferObject>() as u64)
+                .range(core::mem::size_of::<UniformBufferObject>() as u64)
                 .build()
         ];
 

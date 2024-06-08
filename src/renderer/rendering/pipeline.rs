@@ -1,5 +1,8 @@
 // dacho/src/renderer/rendering/pipeline.rs
 
+// std
+use std::ffi::CString;
+
 // crates
 use {
     anyhow::Result,
@@ -67,8 +70,8 @@ impl Pipeline {
         };
 
         let raw = {
-            let vert_entry = std::ffi::CString::new("vertex")?;
-            let frag_entry = std::ffi::CString::new("fragment")?;
+            let vert_entry = CString::new("vertex")?;
+            let frag_entry = CString::new("fragment")?;
 
             let stages = [
                 vk::PipelineShaderStageCreateInfo::builder()
@@ -244,7 +247,7 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
         }
     };
 
-    let words = unsafe { std::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
+    let words = unsafe { core::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
 
     Ok(words.to_vec())
 }
@@ -265,7 +268,7 @@ pub fn shader_input_types(
     log!(info, "Parsing `{filename}` for input types");
 
     let bytes = &std::fs::read(format!("assets/shaders/{filename}.wgsl"))?;
-    let code  = std::str::from_utf8(bytes)?;
+    let code  = core::str::from_utf8(bytes)?;
 
     let (mut vertex_types, mut instance_types) = (vec![], vec![]);
 

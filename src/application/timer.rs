@@ -1,5 +1,8 @@
 // dacho/src/application/timer.rs
 
+// std
+use std::time::Instant;
+
 // debug
 #[cfg(debug_assertions)]
 use {
@@ -8,9 +11,9 @@ use {
 };
 
 pub struct Timer {
-    start_time:  std::time::Instant,
+    start_time:  Instant,
     #[cfg(debug_assertions)]
-    last_time:   std::time::Instant,
+    last_time:   Instant,
     #[cfg(debug_assertions)]
     last_fps:    usize,
     #[cfg(debug_assertions)]
@@ -29,7 +32,7 @@ impl Timer {
         #[cfg(debug_assertions)]
         log!(info, "Creating Timer");
 
-        let start_time = std::time::Instant::now();
+        let start_time = Instant::now();
 
         #[cfg(debug_assertions)] {
             let last_time   = start_time;
@@ -52,7 +55,7 @@ impl Timer {
     pub fn fps(&mut self) {
         match self {
             Self { frames, rate, .. } if frames == rate => {
-                let now        = std::time::Instant::now();
+                let now        = Instant::now();
                 let elapsed    = now.duration_since(self.last_time).as_secs_f32();
                 self.last_time = now;
                 self.frames    = 1;

@@ -1,5 +1,8 @@
 // dacho/src/prelude/primitives.rs
 
+// core
+use core::f32::consts::{FRAC_PI_2, PI};
+
 // crates
 use {
     anyhow::Result,
@@ -91,11 +94,11 @@ pub async fn sphere(
     // * 6 -> indices per quad
     let mut indices:  Vec<u32> = Vec::with_capacity(sectors * (stacks - 1) * 6);
 
-    let sector_step = 2.0 * std::f32::consts::PI / sectors as f32;
-    let stack_step  = std::f32::consts::PI / stacks as f32;
+    let sector_step = 2.0 * PI / sectors as f32;
+    let stack_step  = PI / stacks as f32;
 
     for i in 0..stacks + 1 {
-        let a  = std::f32::consts::FRAC_PI_2 - (i as f32) * stack_step;
+        let a  = FRAC_PI_2 - (i as f32) * stack_step;
         let xy = a.cos();
         let z  = a.sin();
 
