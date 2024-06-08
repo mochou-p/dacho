@@ -1,5 +1,6 @@
 // dacho/src/application/window.rs
 
+// crates
 use {
     anyhow::Result,
     winit::{
@@ -12,10 +13,11 @@ use {
     }
 };
 
-use {
-    super::logger::Logger,
-    crate::log
-};
+// super
+use super::logger::Logger;
+
+// crate
+use crate::log;
 
 pub struct Window {
     pub window: winit_Window,

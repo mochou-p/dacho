@@ -1,19 +1,21 @@
 // dacho/src/prelude/world.rs
 
+// crates
 use anyhow::Result;
 
-use {
-    super::{
-        shapes::Object,
-        dacho_main
+// super
+use super::{
+    shapes::Object,
+    dacho_main
+};
+
+// crate
+use crate::{
+    application::{
+        logger::Logger,
+        scene::{Data, Scene}
     },
-    crate::{
-        application::{
-            logger::Logger,
-            scene::{Data, Scene}
-        },
-        log
-    }
+    log
 };
 
 pub struct World {
@@ -28,6 +30,7 @@ impl World {
     }
 
     pub fn demo() -> Self {
+        // super
         use super::*;
 
         let mut world = World::new();

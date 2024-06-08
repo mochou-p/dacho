@@ -1,5 +1,6 @@
 // dacho/src/application/scene.rs
 
+// crates
 use {
     anyhow::Result,
     futures::future::join_all,
@@ -7,17 +8,18 @@ use {
     tokio::spawn
 };
 
-use {
-    super::logger::Logger,
-    crate::{
-        prelude::{
-            primitives::{cube, sphere},
-            shapes::Object::{Cube, Sphere},
-            world::World
-        },
-        renderer::rendering::geometry::*,
-        log
-    }
+// super
+use super::logger::Logger;
+
+// crate
+use crate::{
+    prelude::{
+        primitives::{cube, sphere},
+        shapes::Object::{Cube, Sphere},
+        world::World
+    },
+    renderer::rendering::geometry::*,
+    log
 };
 
 #[derive(Clone, Serialize, Deserialize)]

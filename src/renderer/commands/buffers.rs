@@ -1,20 +1,23 @@
 // dacho/src/renderer/commands/buffers.rs
 
+// crates
 use {
     anyhow::{Context, Result},
     ash::vk
 };
 
-use {
-    super::{pool::*, *},
-    crate::renderer::{
-        devices::logical::*,
-        presentation::swapchain::*,
-        rendering::pipeline::*,
-        VulkanObject
-    }
+// super
+use super::{pool::*, *};
+
+// crate
+use crate::renderer::{
+    devices::logical::*,
+    presentation::swapchain::*,
+    rendering::pipeline::*,
+    VulkanObject
 };
 
+// debug
 #[cfg(debug_assertions)]
 use crate::{
     application::logger::Logger,

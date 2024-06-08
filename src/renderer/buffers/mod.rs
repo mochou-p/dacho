@@ -1,26 +1,29 @@
 // dacho/src/renderer/buffers/mod.rs
 
+// modules
 pub(super) mod index;
 pub(super) mod staging;
 pub(super) mod vertex;
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::{
-        commands::pool::*,
-        devices::{logical::*, physical::*},
-        images::image::*,
-        setup::instance::*,
-        VulkanObject
-    },
-    crate::{
-        application::logger::Logger,
-        log
-    }
+// super
+use super::{
+    commands::pool::*,
+    devices::{logical::*, physical::*},
+    images::image::*,
+    setup::instance::*,
+    VulkanObject
+};
+
+// crate
+use crate::{
+    application::logger::Logger,
+    log
 };
 
 pub struct Buffer {

@@ -2,6 +2,7 @@
 
 #![allow(dead_code)]
 
+// std
 use std::io::Write;
 
 struct Color;

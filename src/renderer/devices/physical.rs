@@ -1,21 +1,23 @@
 // dacho/src/renderer/devices/physical.rs
 
+// crates
 use {
     anyhow::{Context, Result},
     ash::vk
 };
 
+// crate
 use crate::renderer::{
     setup::instance::*,
     VulkanObject
 };
 
+// debug
 #[cfg(debug_assertions)]
 use crate::{
     application::logger::Logger,
     log
 };
-
 
 pub struct PhysicalDevice {
     raw: vk::PhysicalDevice

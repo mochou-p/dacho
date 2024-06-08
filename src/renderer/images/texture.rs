@@ -2,20 +2,22 @@
 
 #![allow(dead_code)]
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::image::*,
-    crate::renderer::{
-        buffers::staging::*,
-        commands::pool::*,
-        devices::{logical::*, physical::*},
-        setup::instance::*,
-        VulkanObject
-    }
+// super
+use super::image::*;
+
+// crate
+use crate::renderer::{
+    buffers::staging::*,
+    commands::pool::*,
+    devices::{logical::*, physical::*},
+    setup::instance::*,
+    VulkanObject
 };
 
 pub struct Texture;

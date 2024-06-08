@@ -1,24 +1,26 @@
 // dacho/src/renderer/devices/logical.rs
 
+// crates
 use {
     anyhow::Result,
     ash::{extensions::khr, vk}
 };
 
-use {
-    super::physical::*,
-    crate::renderer::{
-        setup::instance::*,
-        VulkanObject
-    }
+// super
+use super::physical::*;
+
+// crate
+use crate::renderer::{
+    setup::instance::*,
+    VulkanObject
 };
 
+// debug
 #[cfg(debug_assertions)]
 use crate::{
     application::logger::Logger,
     log
 };
-
 
 pub struct Device {
         raw:   ash::Device,

@@ -1,11 +1,13 @@
 // dacho/src/application/mod.rs
 
+// modules
            mod camera;
 pub(super) mod logger;
 pub(super) mod scene;
            mod timer;
            mod window;
 
+// crates
 use {
     anyhow::Result,
     glam::f32 as glam,
@@ -16,14 +18,18 @@ use {
     }
 };
 
+// mod
 use {
     camera::Camera,
     scene::Data,
     timer::Timer,
-    window::Window,
-    super::renderer::Renderer
+    window::Window
 };
 
+// super
+use super::renderer::Renderer;
+
+// debug
 #[cfg(debug_assertions)]
 use {
     futures::executor::block_on,

@@ -1,26 +1,29 @@
 // dacho/src/renderer/rendering/pipeline.rs
 
+// crates
 use {
     anyhow::Result,
     ash::vk,
     futures::executor::block_on
 };
 
-use {
-    super::render_pass::*,
-    crate::{
-        application::logger::Logger,
-        renderer::{
-            descriptors::set_layout::*,
-            devices::logical::*,
-            presentation::swapchain::*,
-            VulkanObject
-        },
-        shader::{compilation::*, input::*},
-        log
-    }
+// super
+use super::render_pass::*;
+
+// crate
+use crate::{
+    application::logger::Logger,
+    renderer::{
+        descriptors::set_layout::*,
+        devices::logical::*,
+        presentation::swapchain::*,
+        VulkanObject
+    },
+    shader::{compilation::*, input::*},
+    log
 };
 
+// debug
 #[cfg(debug_assertions)]
 use crate::log_indent;
 

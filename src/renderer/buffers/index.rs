@@ -1,17 +1,19 @@
 // dacho/src/renderer/buffers/index.rs
 
+// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-use {
-    super::{staging::*, *},
-    crate::renderer::{
-        commands::pool::*,
-        devices::{logical::*, physical::*},
-        setup::instance::*
-    }
+// super
+use super::{staging::*, *};
+
+// crate
+use crate::renderer::{
+    commands::pool::*,
+    devices::{logical::*, physical::*},
+    setup::instance::*
 };
 
 pub struct IndexBuffer;
