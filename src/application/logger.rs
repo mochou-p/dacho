@@ -1,5 +1,7 @@
 // dacho/src/application/logger.rs
 
+#![allow(dead_code)]
+
 use std::io::Write;
 
 struct Color;

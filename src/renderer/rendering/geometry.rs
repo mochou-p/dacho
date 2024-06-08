@@ -1,4 +1,4 @@
-// dacho/src/renderer/geometry.rs
+// dacho/src/renderer/rendering/geometry.rs
 
 use {
     std::collections::HashMap,

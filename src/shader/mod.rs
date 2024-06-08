@@ -1,5 +1,5 @@
 // dacho/src/shader/mod.rs
 
-pub mod compilation;
-pub mod input;
+pub(super) mod compilation;
+pub(super) mod input;
 

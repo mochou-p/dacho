@@ -1,6 +1,7 @@
-// dacho/src/renderer/setup.rs
+// dacho/src/renderer/setup/mod.rs
 
-pub mod debug;
-pub mod entry;
-pub mod instance;
+#[cfg(debug_assertions)]
+pub(super) mod debug;
+pub(super) mod entry;
+pub(super) mod instance;
 

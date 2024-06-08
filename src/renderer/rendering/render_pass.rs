@@ -1,4 +1,4 @@
-// dacho/src/renderer/render_pass.rs
+// dacho/src/renderer/rendering/render_pass.rs
 
 use {
     anyhow::Result,

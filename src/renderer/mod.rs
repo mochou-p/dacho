@@ -1,13 +1,13 @@
-// dacho/src/renderer/mod.rs 
+// dacho/src/renderer/mod.rs
 
-pub mod buffers;
-pub mod commands;
-pub mod descriptors;
-pub mod devices;
-pub mod images;
-pub mod presentation;
-pub mod rendering;
-pub mod setup;
+           mod buffers;
+           mod commands;
+           mod descriptors;
+           mod devices;
+           mod images;
+           mod presentation;
+pub(super) mod rendering;
+           mod setup;
 
 use {
     std::collections::HashMap,
