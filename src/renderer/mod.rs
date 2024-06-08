@@ -21,7 +21,6 @@ use {
     commands::{buffers::*, pool::*, *},
     descriptors::{pool::*, set::*, set_layout::*, uniform::*},
     devices::{logical::*, physical::*},
-    images::{image::*, image_view::*, sampler::*, texture::*, texture_view::*},
     presentation::{surface::*, swapchain::*},
     rendering::{geometry::*, pipeline::*, render_pass::*},
     setup::{entry::*, instance::*},
@@ -69,10 +68,7 @@ pub struct Renderer {
     ubo_mapped:            *mut std::ffi::c_void,
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
-    command_buffers:        CommandBuffers,
-    image:                  Image,
-    image_view:             ImageView,
-    sampler:                Sampler
+    command_buffers:        CommandBuffers
 }
 
 impl Renderer {
@@ -109,10 +105,6 @@ impl Renderer {
 
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
-
-        let sampler    = Sampler::new(&device)?;
-        let image      = Texture::new_image(&instance, &physical_device, &device, &command_pool, &data.texture)?;
-        let image_view = TextureView::new_image_view(&device, &image)?;
 
         let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
@@ -156,15 +148,10 @@ impl Renderer {
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
         let descriptor_pool   = DescriptorPool::new(&device)?;
+        let descriptor_set    = DescriptorSet::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
+        let command_buffers   = CommandBuffers::new(&command_pool, &swapchain, &device)?;
 
-        let descriptor_set = DescriptorSet::new(
-            &device, &descriptor_pool, &descriptor_set_layout, &ubo, &sampler, &image_view
-        )?;
-
-        let command_buffers = CommandBuffers::new(&command_pool, &swapchain, &device)?;
-
-        let mut commands = vec![Command::BeginRenderPass(&render_pass, &swapchain)];
-
+        let mut commands      = vec![Command::BeginRenderPass(&render_pass, &swapchain)];
         let mut last_pipeline = "".to_string();
         let mut first_iter    = true;
 
@@ -216,10 +203,7 @@ impl Renderer {
                 ubo_mapped,
                 descriptor_pool,
                 command_pool,
-                command_buffers,
-                image,
-                image_view,
-                sampler
+                command_buffers
             }
         )
     }
@@ -338,10 +322,6 @@ impl Drop for Renderer {
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying Textures and Samplers");
-
-        self.sampler    .destroy(Some(&self.device));
-        self.image_view .destroy(Some(&self.device));
-        self.image      .destroy(Some(&self.device));
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying UniformBuffer");

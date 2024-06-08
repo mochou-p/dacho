@@ -10,7 +10,6 @@ use {
     crate::renderer::{
         buffers::*,
         devices::logical::*,
-        images::{image_view::*, sampler::*},
         VulkanObject
     }
 };
@@ -31,9 +30,7 @@ impl DescriptorSet {
         device:                &Device,
         descriptor_pool:       &DescriptorPool,
         descriptor_set_layout: &DescriptorSetLayout,
-        ubo:                   &Buffer,
-        sampler:               &Sampler,
-        image_view:            &ImageView
+        ubo:                   &Buffer
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating DescriptorSet");
@@ -56,21 +53,6 @@ impl DescriptorSet {
                 .build()
         ];
 
-        let sampler_infos = [
-            vk::DescriptorImageInfo::builder()
-                .image_view(vk::ImageView::null())
-                .sampler(*sampler.raw())
-                .build()
-        ];
-
-        let image_view_infos = [
-            vk::DescriptorImageInfo::builder()
-                .image_layout(vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL)
-                .image_view(*image_view.raw())
-                .sampler(vk::Sampler::null())
-                .build()
-        ];
-
         let writes = [
             vk::WriteDescriptorSet::builder()
                 .dst_set(raw)
@@ -78,20 +60,6 @@ impl DescriptorSet {
                 .dst_array_element(0)
                 .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
                 .buffer_info(&buffer_infos)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_set(raw)
-                .dst_binding(1)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::SAMPLER)
-                .image_info(&sampler_infos)
-                .build(),
-            vk::WriteDescriptorSet::builder()
-                .dst_set(raw)
-                .dst_binding(2)
-                .dst_array_element(0)
-                .descriptor_type(vk::DescriptorType::SAMPLED_IMAGE)
-                .image_info(&image_view_infos)
                 .build()
         ];
 

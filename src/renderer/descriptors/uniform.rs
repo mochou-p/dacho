@@ -23,7 +23,6 @@ pub struct UniformBufferObject {
     _view:       glam::Mat4,
     _projection: glam::Mat4,
     _camera_pos: glam::Vec4,
-    _light_pos:  glam::Vec4,
     _time:       f32
 }
 
@@ -71,15 +70,12 @@ impl UniformBufferObject {
         let mut projection   = glam::Mat4::perspective_rh(45.0_f32.to_radians(), aspect_ratio, 0.001, 10000.0);
         projection.y_axis.y *= -1.0;
 
-        let position   = glam::Vec4::new(position.x, position.y, position.z, 0.0);
-        let fast_time  = time * 2.0;
-        let light_pos  = glam::Vec4::new(fast_time.sin(), -0.35, fast_time.cos(), 0.0).normalize();
+        let position = glam::Vec4::new(position.x, position.y, position.z, 0.0);
 
         let mut ubo = UniformBufferObject {
             _view:       view,
             _projection: projection,
             _camera_pos: position,
-            _light_pos:  light_pos,
             _time:       time
         };
 

@@ -7,7 +7,6 @@ struct UniformBufferObject {
     view:       mat4x4<f32>,
     proj:       mat4x4<f32>,
     camera_pos: vec4<f32>,
-    light_pos:  vec4<f32>,
     time:       f32
 }
 
@@ -27,10 +26,9 @@ struct VertexOutput {
     @location(0) world_pos:  vec3<f32>,
     @location(1) normal:     vec3<f32>,
     @location(2) camera_pos: vec3<f32>,
-    @location(3) light_pos:  vec3<f32>,
-    @location(4) base_color: vec3<f32>,
-    @location(5) metalness:  f32,
-    @location(6) roughness:  f32
+    @location(3) base_color: vec3<f32>,
+    @location(4) metalness:  f32,
+    @location(5) roughness:  f32
 }
 
 @vertex
@@ -43,7 +41,6 @@ fn vertex(in: VertexInput) -> VertexOutput {
     out.world_pos  = pos.xyz;
     out.normal     = in.normal;
     out.camera_pos = ubo.camera_pos.xyz;
-    out.light_pos  = ubo.light_pos.xyz;
     out.base_color = in.color;
     out.metalness  = in.metrou.x;
     out.roughness  = in.metrou.y;
@@ -55,10 +52,9 @@ struct FragmentInput {
     @location(0) world_pos:  vec3<f32>,
     @location(1) normal:     vec3<f32>,
     @location(2) camera_pos: vec3<f32>,
-    @location(3) light_pos:  vec3<f32>,
-    @location(4) base_color: vec3<f32>,
-    @location(5) metalness:  f32,
-    @location(6) roughness:  f32
+    @location(3) base_color: vec3<f32>,
+    @location(4) metalness:  f32,
+    @location(5) roughness:  f32
 }
 
 struct FragmentOutput {
@@ -72,10 +68,11 @@ fn fragment(in: FragmentInput) -> FragmentOutput {
 
     var radiance = vec3<f32>(0.0);
 
+    /*
     for (var i = 0; i < 2; i++) {
         let L = // branchless if
             vec3<f32>(abs(i-1)) * normalize(sun_pos)
-            + vec3<f32>(i)      * normalize(in.light_pos - in.world_pos);
+            + vec3<f32>(i)      * normalize(light_pos - in.world_pos);
 
         let H = normalize(L + V);
 
@@ -91,6 +88,7 @@ fn fragment(in: FragmentInput) -> FragmentOutput {
 
         radiance += (diffuse + specular) * vec3<f32>(cosTheta);
     }
+    */
 
     let ambient  = in.base_color * 0.035 * (1.0 - in.metalness);
     radiance    += ambient;

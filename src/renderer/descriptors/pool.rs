@@ -28,14 +28,6 @@ impl DescriptorPool {
                 vk::DescriptorPoolSize::builder()
                     .ty(vk::DescriptorType::UNIFORM_BUFFER)
                     .descriptor_count(1)
-                    .build(),
-                vk::DescriptorPoolSize::builder()
-                    .ty(vk::DescriptorType::SAMPLER)
-                    .descriptor_count(1)
-                    .build(),
-                vk::DescriptorPoolSize::builder()
-                    .ty(vk::DescriptorType::SAMPLED_IMAGE)
-                    .descriptor_count(1)
                     .build()
             ];
 
