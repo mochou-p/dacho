@@ -13,7 +13,7 @@ cargo run --example ...
 [![demo](https://i.imgur.com/z01XlYn.png "demo.rs")](demo.rs)
 
 ## Primitives
-[Adding primitives](primitives.rs) to the `World`
+[Adding objects](primitives.rs) to the `World`
 
 ## Serialization
 [Saving](save.rs) and [loading](load.rs) `World`s
