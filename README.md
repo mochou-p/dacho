@@ -16,8 +16,8 @@ fn main() {
 See [examples](examples#examples) for more
 
 ## Notes
-Run with `--release` if your system is missing [Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)  
-If you are using a WM, it is currently recommended that you make a rule to open dacho as floating
+- Run with `--release` if your system is missing [Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)  
+- If you are using a tiling WM, it is currently recommended that you make a rule to open dacho as floating
 
 ## License
 Licensed under either of
