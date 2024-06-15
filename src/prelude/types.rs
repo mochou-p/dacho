@@ -29,7 +29,7 @@ impl V2 {
     }
 
     #[inline]
-    pub fn to_array(self) -> [f32; 2] {
+    pub const fn to_array(self) -> [f32; 2] {
         [self.x, self.y]
     }
 }
@@ -69,7 +69,7 @@ impl V3 {
     }
 
     #[inline]
-    pub fn to_array(self) -> [f32; 3] {
+    pub const fn to_array(self) -> [f32; 3] {
         [self.x, self.y, self.z]
     }
 }

@@ -90,8 +90,8 @@ impl Buffer {
     pub fn copy(
         device:       &Device,
         command_pool: &CommandPool,
-        src_buffer:   &Buffer,
-        dst_buffer:   &Buffer,
+        src_buffer:   &Self,
+        dst_buffer:   &Self,
         size:          vk::DeviceSize
     ) -> Result<()> {
         let command_buffer = command_pool.begin_single_time_commands(device)?;

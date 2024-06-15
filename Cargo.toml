@@ -1,15 +1,16 @@
 # dacho/Cargo.toml
 
 [package]
-name        = "dacho"
-version     = "0.1.0"
-authors     = ["mochou-p"]
-edition     = "2021"
-description = "3D Vulkan Game Engine"
-repository  = "https://github.com/mochou-p/dacho"
-license     = "MIT OR Apache-2.0"
-keywords    = ["vulkan", "engine", "renderer", "ash", "winit"]
-categories  = ["game-development", "game-engines", "graphics", "rendering", "rendering::engine"]
+name         = "dacho"
+version      = "0.1.0"
+rust-version = "1.79.0"
+authors      = ["mochou-p"]
+edition      = "2021"
+description  = "3D Vulkan Game Engine"
+repository   = "https://github.com/mochou-p/dacho"
+license      = "MIT OR Apache-2.0"
+keywords     = ["vulkan", "engine", "renderer", "ash", "winit"]
+categories   = ["game-development", "game-engines", "graphics", "rendering", "rendering::engine"]
 
 [dependencies]
 anyhow            = { version = "1.0.82",  default-features = false, features = ["std"]                             }
@@ -30,4 +31,11 @@ opt-level = 0
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[lints.rust]
+warnings = "deny"
+
+[lints.clippy]
+all     = "deny"
+nursery = "deny"
 

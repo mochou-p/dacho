@@ -27,6 +27,7 @@ impl IndexBuffer {
         indices:         &[u32]
     ) -> Result<Buffer> {
         let index_buffer = {
+            #[allow(clippy::as_ptr_cast_mut)]
             let data        = indices.as_ptr() as *mut core::ffi::c_void;
             let buffer_size = core::mem::size_of_val(indices) as u64;
             let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;

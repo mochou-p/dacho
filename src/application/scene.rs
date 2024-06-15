@@ -29,7 +29,7 @@ pub struct Data {
 
 impl Data {
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { geometry: vec![] }
     }
 }

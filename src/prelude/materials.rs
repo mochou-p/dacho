@@ -11,7 +11,7 @@ impl Material {
     pub const METAL: V2 = V2::new(0.88, 0.11);
 
     #[allow(clippy::should_implement_trait)]
-    pub fn default() -> V2 {
+    pub const fn default() -> V2 {
         Self::MIXED
     }
 }

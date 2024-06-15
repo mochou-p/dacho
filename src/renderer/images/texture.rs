@@ -30,6 +30,7 @@ impl Texture {
         command_pool:    &CommandPool,
         image_data:      &[u8]
     ) -> Result<Image> {
+        #[allow(clippy::as_ptr_cast_mut)]
         let data        = image_data.as_ptr() as *mut core::ffi::c_void;
         let buffer_size = core::mem::size_of_val(image_data) as u64;
 

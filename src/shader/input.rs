@@ -38,11 +38,11 @@ struct TypeInfo {
 }
 
 impl TypeInfo {
-    const FORMAT_SIZE_PAIRS: [TypeInfo; 4] = [
-        TypeInfo::new(vk::Format::R32_SFLOAT,              size_of::<f32>() as u32),
-        TypeInfo::new(vk::Format::R32G32_SFLOAT,       2 * size_of::<f32>() as u32),
-        TypeInfo::new(vk::Format::R32G32B32_SFLOAT,    3 * size_of::<f32>() as u32),
-        TypeInfo::new(vk::Format::R32G32B32A32_SFLOAT, 4 * size_of::<f32>() as u32)
+    const FORMAT_SIZE_PAIRS: [Self; 4] = [
+        Self::new(vk::Format::R32_SFLOAT,              size_of::<f32>() as u32),
+        Self::new(vk::Format::R32G32_SFLOAT,       2 * size_of::<f32>() as u32),
+        Self::new(vk::Format::R32G32B32_SFLOAT,    3 * size_of::<f32>() as u32),
+        Self::new(vk::Format::R32G32B32A32_SFLOAT, 4 * size_of::<f32>() as u32)
     ];
 
     const fn new(format: vk::Format, size: u32) -> Self {

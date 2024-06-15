@@ -32,6 +32,7 @@ use crate::log_indent;
 
 pub struct Pipeline {
         raw:    vk::Pipeline,
+    #[allow(dead_code)]
     pub name:   String,
     pub layout: vk::PipelineLayout
 }
