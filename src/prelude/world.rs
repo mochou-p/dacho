@@ -33,7 +33,7 @@ impl World {
         // super
         use super::*;
 
-        let mut world = World::new();
+        let mut world = Self::new();
 
         world.add(&[
             Cube::default()
@@ -117,15 +117,15 @@ impl World {
         #[cfg(debug_assertions)]
         log!(info, "Loading World `{filename}`");
 
-        match std::fs::read(format!("assets/.cache/worlds.{filename}.dacho")) {
-            Ok(file) => {
+        std::fs::read(format!("assets/.cache/worlds.{filename}.dacho")).map_or_else(
+            |_|    { log!(panic, "World `{filename}` does not exist"); panic!(); },
+            |file| {
                 let data = bincode::deserialize(&file)
                     .expect("failed to deserialize World");
 
                 Self { objects: vec![], data }
-            },
-            Err(_) => { log!(panic, "World `{filename}` does not exist"); panic!(); }
-        }
+            }
+        )
     }
 }
 

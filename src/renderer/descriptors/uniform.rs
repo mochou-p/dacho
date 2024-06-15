@@ -38,7 +38,7 @@ impl UniformBufferObject {
         #[cfg(debug_assertions)]
         log!(info, "Creating UniformBuffer");
 
-        let buffer_size = core::mem::size_of::<UniformBufferObject>() as u64;
+        let buffer_size = core::mem::size_of::<Self>() as u64;
 
         let uniform_buffer = {
             let usage      = vk::BufferUsageFlags::UNIFORM_BUFFER;
@@ -75,15 +75,15 @@ impl UniformBufferObject {
 
         let position = glam::Vec4::new(position.x, position.y, position.z, 0.0);
 
-        let mut ubo = UniformBufferObject {
+        let mut ubo = Self {
             _view:       view,
             _projection: projection,
             _camera_pos: position,
             _time:       time
         };
 
-        let src  = &mut ubo as *mut UniformBufferObject as *mut core::ffi::c_void;
-        let size = core::mem::size_of::<UniformBufferObject>();
+        let src  = &mut ubo as *mut Self as *mut core::ffi::c_void;
+        let size = core::mem::size_of::<Self>();
 
         unsafe {
             #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive

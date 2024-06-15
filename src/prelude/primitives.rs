@@ -98,7 +98,7 @@ pub async fn sphere(
     let stack_step  = PI / stacks as f32;
 
     for i in 0..stacks + 1 {
-        let a  = FRAC_PI_2 - (i as f32) * stack_step;
+        let a  = (i as f32).mul_add(-stack_step, FRAC_PI_2);
         let xy = a.cos();
         let z  = a.sin();
 
@@ -110,9 +110,9 @@ pub async fn sphere(
             vertices.extend_from_slice(
                 &[
                     // position
-                    x * radius + position.x,
-                    y * radius - position.y,
-                    z * radius + position.z,
+                    x.mul_add(radius,  position.x),
+                    y.mul_add(radius, -position.y),
+                    z.mul_add(radius,  position.z),
 
                     // normal
                     x,

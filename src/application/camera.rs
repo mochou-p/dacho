@@ -112,8 +112,8 @@ impl Camera {
 
         self.rotation.angle.x = (self.rotation.angle.x - x)
             .clamp(
-                self.bounds.rotation_x.min + f32::EPSILON * 1000.0,
-                self.bounds.rotation_x.max - f32::EPSILON * 1000.0
+                f32::EPSILON.mul_add( 1000.0, self.bounds.rotation_x.min),
+                f32::EPSILON.mul_add(-1000.0, self.bounds.rotation_x.max)
             );
     }
 

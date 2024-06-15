@@ -34,7 +34,7 @@ impl Cube {
         Self {
             position: V3::new(
                 position.x,
-                position.y - size.y * 0.5 * anchor as i32 as f32,
+                (size.y * 0.5).mul_add(-(anchor as i32 as f32), position.y),
                 position.z
             ),
             size,
@@ -73,7 +73,7 @@ impl Cube {
         self
     }
 
-    pub fn build(&self) -> Object {
+    pub const fn build(&self) -> Object {
         Object::Cube(self.position, self.size, self.color, self.material)
     }
 }
@@ -99,7 +99,7 @@ impl Sphere {
         Self {
             position: V3::new(
                 position.x,
-                position.y - size * 0.5 * anchor as i32 as f32,
+                (size * 0.5).mul_add(-(anchor as i32 as f32), position.y),
                 position.z
             ),
             size,
@@ -138,7 +138,7 @@ impl Sphere {
         self
     }
 
-    pub fn build(&self) -> Object {
+    pub const fn build(&self) -> Object {
         Object::Sphere(self.position, self.size, self.color, self.material)
     }
 }

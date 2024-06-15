@@ -1,14 +1,14 @@
 // dacho/src/renderer/mod.rs
 
 // modules
-           mod buffers;
-           mod commands;
-           mod descriptors;
-           mod devices;
-           mod images;
-           mod presentation;
-pub(super) mod rendering;
-           mod setup;
+    mod buffers;
+    mod commands;
+    mod descriptors;
+    mod devices;
+    mod images;
+    mod presentation;
+pub mod rendering;
+    mod setup;
 
 // std
 use std::collections::HashMap;
@@ -195,7 +195,7 @@ impl Renderer {
         log_indent!(-1);
 
         Ok(
-            Renderer {
+            Self {
                 _entry: entry,
                 instance,
                 #[cfg(debug_assertions)]
@@ -230,7 +230,7 @@ impl Renderer {
             self.swapchain.loader
                 .acquire_next_image(
                     *self.swapchain.raw(),
-                    core::u64::MAX,
+                    u64::MAX,
                     self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
                 )
@@ -251,7 +251,7 @@ impl Renderer {
             self.device.raw().wait_for_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
-                core::u64::MAX
+                u64::MAX
             )
         }
             .expect("Waiting for fences failed");

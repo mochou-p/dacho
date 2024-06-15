@@ -1,11 +1,11 @@
 // dacho/src/application/mod.rs
 
 // modules
-           mod camera;
-pub(super) mod logger;
-pub(super) mod scene;
-           mod timer;
-           mod window;
+    mod camera;
+pub mod logger;
+pub mod scene;
+    mod timer;
+    mod window;
 
 // crates
 use {
