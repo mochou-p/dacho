@@ -9,11 +9,11 @@ use {
 };
 
 // super
-use super::entry::*;
+use super::Entry;
 
 // crate
 use crate::renderer::{
-    devices::logical::*,
+    devices::Device,
     VulkanObject
 };
 

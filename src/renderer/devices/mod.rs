@@ -1,6 +1,9 @@
 // dacho/src/renderer/devices/mod.rs
 
 // modules
-pub(super) mod logical;
-pub(super) mod physical;
+mod logical;
+mod physical;
+
+#[allow(clippy::wildcard_imports)]
+pub(super) use {logical::*, physical::*};
 

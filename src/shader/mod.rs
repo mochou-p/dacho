@@ -1,6 +1,9 @@
 // dacho/src/shader/mod.rs
 
 // modules
-pub mod compilation;
-pub mod input;
+mod compilation;
+mod input;
+
+#[allow(clippy::wildcard_imports)]
+pub use {compilation::*, input::*};
 

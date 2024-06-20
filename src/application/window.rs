@@ -20,7 +20,7 @@ use super::logger::Logger;
 use crate::log;
 
 pub struct Window {
-    pub window: winit_Window,
+        raw:    winit_Window,
     pub width:  u32,
     pub height: u32
 }
@@ -35,22 +35,26 @@ impl Window {
         #[cfg(debug_assertions)]
         log!(info, "Creating Window");
 
-        let window = WindowBuilder::new()
+        let raw = WindowBuilder::new()
             .with_title(title)
             .with_inner_size(PhysicalSize::new(width, height))
             .build(event_loop)?;
 
-        if window.set_cursor_grab(winit::window::CursorGrabMode::Locked).is_err() {
+        if raw.set_cursor_grab(winit::window::CursorGrabMode::Locked).is_err() {
             log!(warning, "Failed to lock the cursor");
         }
 
-        window.set_cursor_visible(false);
+        raw.set_cursor_visible(false);
 
-        Ok(Self { window, width, height })
+        Ok(Self { raw, width, height })
+    }
+
+    pub const fn raw(&self) -> &winit_Window {
+        &self.raw
     }
 
     pub fn request_redraw(&self) {
-        self.window.request_redraw();
+        self.raw.request_redraw();
     }
 }
 

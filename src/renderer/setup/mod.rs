@@ -2,7 +2,13 @@
 
 // modules
 #[cfg(debug_assertions)]
-pub(super) mod debug;
-pub(super) mod entry;
-pub(super) mod instance;
+mod debug;
+mod entry;
+mod instance;
+
+#[cfg(debug_assertions)]
+#[allow(clippy::wildcard_imports)]
+pub(super) use debug::*;
+#[allow(clippy::wildcard_imports)]
+pub(super) use {entry::*, instance::*};
 

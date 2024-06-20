@@ -8,7 +8,7 @@ use {
     glam::f32 as glam,
     winit::{
         event::KeyEvent,
-        keyboard::{KeyCode::*, PhysicalKey::Code}
+        keyboard::{KeyCode::{KeyA, KeyD, KeyS, KeyW, ShiftLeft, Space}, PhysicalKey::Code}
     }
 };
 

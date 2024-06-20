@@ -1,9 +1,12 @@
 // dacho/src/renderer/buffers/mod.rs
 
 // modules
-pub(super) mod index;
-pub(super) mod staging;
-pub(super) mod vertex;
+mod index;
+mod staging;
+mod vertex;
+
+#[allow(clippy::wildcard_imports)]
+pub(super) use {index::*, staging::*, vertex::*};
 
 // crates
 use {
@@ -13,10 +16,10 @@ use {
 
 // super
 use super::{
-    commands::pool::*,
-    devices::{logical::*, physical::*},
-    images::image::*,
-    setup::instance::*,
+    commands::CommandPool,
+    devices::{Device, PhysicalDevice},
+    images::Image,
+    setup::Instance,
     VulkanObject
 };
 

@@ -10,8 +10,8 @@ use {
 
 // crate
 use crate::renderer::{
-    devices::logical::*,
-    setup::{entry::*, instance::*},
+    devices::Device,
+    setup::{Entry, Instance},
     VulkanObject
 };
 

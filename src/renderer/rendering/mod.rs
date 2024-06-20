@@ -1,7 +1,11 @@
 // dacho/src/renderer/rendering/mod.rs
 
 // modules
-pub        mod geometry;
-pub(super) mod pipeline;
-pub(super) mod render_pass;
+mod geometry;
+mod pipeline;
+mod render_pass;
+
+#[allow(clippy::wildcard_imports)]
+pub        use geometry::*;
+pub(super) use {pipeline::*, render_pass::*};
 

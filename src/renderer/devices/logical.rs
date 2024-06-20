@@ -7,11 +7,11 @@ use {
 };
 
 // super
-use super::physical::*;
+use super::PhysicalDevice;
 
 // crate
 use crate::renderer::{
-    setup::instance::*,
+    setup::Instance,
     VulkanObject
 };
 

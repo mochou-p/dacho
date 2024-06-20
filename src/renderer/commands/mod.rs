@@ -1,15 +1,18 @@
 // dacho/src/renderer/commands/mod.rs
 
 // modules
-pub(super) mod buffers;
-pub(super) mod pool;
+mod buffers;
+mod pool;
+
+#[allow(clippy::wildcard_imports)]
+pub(super) use {buffers::*, pool::*};
 
 // super
 use super::{
-    buffers::*,
-    descriptors::set::*,
-    presentation::swapchain::*,
-    rendering::{pipeline::*, render_pass::*}
+    buffers::Buffer,
+    descriptors::DescriptorSet,
+    presentation::Swapchain,
+    rendering::{Pipeline, RenderPass}
 };
 
 pub enum Command<'a> {

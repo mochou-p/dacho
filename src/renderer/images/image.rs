@@ -10,9 +10,9 @@ use {
 use crate::{
     application::logger::Logger,
     renderer::{
-        commands::pool::*,
-        devices::{logical::*, physical::*},
-        setup::instance::*,
+        commands::CommandPool,
+        devices::{Device, PhysicalDevice},
+        setup::Instance,
         VulkanObject
     },
     log

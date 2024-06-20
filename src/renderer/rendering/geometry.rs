@@ -11,18 +11,18 @@ use {
 };
 
 // super
-use super::pipeline::*;
+use super::shader_input_types;
 
 // crate
 use crate::{
     renderer::{
-        buffers::{index::*, vertex::*, *},
-        commands::{pool::*, *},
-        devices::{logical::*, physical::*},
-        setup::instance::*,
+        buffers::{Buffer, IndexBuffer, VertexBuffer},
+        commands::{Command, CommandPool},
+        devices::{Device, PhysicalDevice},
+        setup::Instance,
         VulkanObject
     },
-    shader::input::*
+    shader::{ShaderInfo, size_of_types}
 };
 
 #[derive(Clone, Serialize, Deserialize)]

@@ -11,18 +11,20 @@ use {
 };
 
 // super
-use super::render_pass::*;
+use super::RenderPass;
 
 // crate
 use crate::{
     application::logger::Logger,
     renderer::{
-        descriptors::set_layout::*,
-        devices::logical::*,
-        presentation::swapchain::*,
+        descriptors::DescriptorSetLayout,
+        devices::Device,
+        presentation::Swapchain,
         VulkanObject
     },
-    shader::{compilation::*, input::*},
+    shader::{
+        ShaderInfo, Type,
+        compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type     },
     log
 };
 

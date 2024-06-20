@@ -14,7 +14,7 @@ use {
     winit::{
         event::{DeviceEvent, Event, WindowEvent},
         event_loop::{EventLoop, EventLoopWindowTarget},
-        keyboard::{KeyCode::*, PhysicalKey::Code}
+        keyboard::{KeyCode::Escape, PhysicalKey::Code}
     }
 };
 
@@ -36,7 +36,7 @@ use {
     logger::Logger,
     super::log_indent,
     crate::{
-        shader::compilation::*,
+        shader::compile_shaders,
         log
     }
 };
@@ -60,7 +60,7 @@ impl Application {
         let window = Window::new("dacho", 1600, 900, event_loop)?;
 
         let renderer = Renderer::new(
-            event_loop, &window.window, window.width, window.height, data
+            event_loop, window.raw(), window.width, window.height, data
         )?;
 
         let camera = Camera::new(glam::Vec3::new(0.0, -1.0, 13.0));

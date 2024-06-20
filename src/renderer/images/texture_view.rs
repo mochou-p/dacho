@@ -9,11 +9,11 @@ use {
 };
 
 // super
-use super::{image::*, image_view::*};
+use super::{Image, ImageView};
 
 // crate
 use crate::renderer::{
-    devices::logical::*,
+    devices::Device,
     VulkanObject
 };
 

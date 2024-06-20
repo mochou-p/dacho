@@ -7,13 +7,13 @@ use {
 };
 
 // super
-use super::{pool::*, *};
+use super::{Command, CommandPool};
 
 // crate
 use crate::renderer::{
-    devices::logical::*,
-    presentation::swapchain::*,
-    rendering::pipeline::*,
+    devices::Device,
+    presentation::Swapchain,
+    rendering::Pipeline,
     VulkanObject
 };
 

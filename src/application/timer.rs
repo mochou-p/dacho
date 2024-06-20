@@ -70,7 +70,7 @@ impl Timer {
             },
             _ => {
                 if self.first_frame {
-                    log!(info_r, "Waiting for first Timer tick");
+                    log!(info_r, "Waiting for the first Timer tick");
 
                     self.first_frame = false;
                 }

@@ -7,13 +7,13 @@ use {
 };
 
 // super
-use super::{staging::*, *};
+use super::{Buffer, StagingBuffer};
 
 // crate
 use crate::renderer::{
-    commands::pool::*,
-    devices::{logical::*, physical::*},
-    setup::instance::*
+    commands::CommandPool,
+    devices::{Device, PhysicalDevice},
+    setup::Instance
 };
 
 pub struct IndexBuffer;
