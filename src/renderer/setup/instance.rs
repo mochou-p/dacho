@@ -42,7 +42,7 @@ impl Instance {
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Instance");
-            log_indent!(1);
+            log_indent!(true);
         }
 
         let raw = {
@@ -81,9 +81,9 @@ impl Instance {
                     .enabled_extension_names(&extension_names)
                     .build();
 
-                create_info.p_next = &debug_utils_create_info
-                    as *const vk::DebugUtilsMessengerCreateInfoEXT
-                    as *const core::ffi::c_void;
+                create_info.p_next = core::ptr::from_ref::<vk::DebugUtilsMessengerCreateInfoEXT>(
+                    &debug_utils_create_info
+                ).cast::<core::ffi::c_void>();
 
                 unsafe { entry.raw().create_instance(&create_info, None) }?
             }
@@ -98,7 +98,7 @@ impl Instance {
         };
 
         #[cfg(debug_assertions)]
-        log_indent!(-1);
+        log_indent!(false);
 
         Ok(Self { raw })
     }

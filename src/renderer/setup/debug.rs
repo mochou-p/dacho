@@ -76,6 +76,7 @@ unsafe extern "system" fn validation_layers_callback(
 
     let message = core::ffi::CStr::from_ptr((*p_callback_data).p_message);
 
+    #[allow(clippy::uninlined_format_args)] // false positive
     let mut msg = format!(
         "\n\x1b[33m({NUMBER}) \x1b[1m{kind} \x1b[1m{severity}\x1b[0m\n{:?}\n",
         message

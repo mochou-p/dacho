@@ -54,6 +54,7 @@ impl Color {
     pub const GREY:          V3 = Self::GRAY;
 
     #[allow(clippy::should_implement_trait)]
+    #[must_use]
     pub const fn default() -> V3 {
         Self::WHITE
     }

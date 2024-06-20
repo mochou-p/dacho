@@ -29,7 +29,7 @@ impl Image {
         device:          &Device,
         instance:        &Instance,
         physical_device: &PhysicalDevice,
-        extent_2d:       &vk::Extent2D,
+        extent_2d:        vk::Extent2D,
         format:           vk::Format,
         usage:            vk::ImageUsageFlags,
         properties:       vk::MemoryPropertyFlags,
@@ -150,7 +150,7 @@ impl Image {
             );
         }
 
-        command_pool.end_single_time_commands(device, &command_buffer)?;
+        command_pool.end_single_time_commands(device, command_buffer)?;
 
         Ok(())
     }

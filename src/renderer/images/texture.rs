@@ -45,6 +45,7 @@ impl Texture {
         )?;
 
         let (width, height) = {
+            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             let y = ((buffer_size / 4 / 2) as f32).sqrt() as u32;
 
             (y * 2, y)
@@ -54,7 +55,7 @@ impl Texture {
             device,
             instance,
             physical_device,
-            &vk::Extent2D { width, height },
+            vk::Extent2D { width, height },
             vk::Format::R8G8B8A8_SRGB,
             vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,

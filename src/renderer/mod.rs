@@ -89,7 +89,7 @@ impl Renderer {
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
-            log_indent!(1);
+            log_indent!(true);
         }
 
         let entry           = Entry::new()?;
@@ -102,13 +102,7 @@ impl Renderer {
         let render_pass     = RenderPass::new(&device)?;
 
         let swapchain = Swapchain::new(
-            &instance,
-            &device,
-            &surface,
-            &physical_device,
-            &render_pass,
-            window_width,
-            window_height
+            &instance, &device, &surface, &physical_device, &render_pass, window_width, window_height
         )?;
 
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
@@ -120,17 +114,12 @@ impl Renderer {
 
         #[cfg(debug_assertions)] {
             log!(info, "Processing GeometryData");
-            log_indent!(1);
+            log_indent!(true);
         }
 
-        for geometry_data in data.geometry.iter() {
+        for geometry_data in &data.geometry {
             let geometry = Geometry::new(
-                &instance,
-                &physical_device,
-                &device,
-                &command_pool,
-                geometry_data,
-                &mut shader_info_cache
+                &instance, &physical_device, &device, &command_pool, geometry_data, &mut shader_info_cache
             )?;
 
             if !pipelines.contains_key(&geometry_data.shader) {
@@ -138,11 +127,7 @@ impl Renderer {
                     .context(format!("{} not found in shader info cache", geometry_data.shader))?;
 
                 let pipeline = Pipeline::new(
-                    &device,
-                    &descriptor_set_layout,
-                    &swapchain,
-                    &render_pass,
-                    shader_info
+                    &device, &descriptor_set_layout, &swapchain, &render_pass, shader_info
                 )?;
 
                 pipelines.insert(geometry_data.shader.clone(), pipeline);
@@ -152,7 +137,7 @@ impl Renderer {
         }
 
         #[cfg(debug_assertions)]
-        log_indent!(-1);
+        log_indent!(false);
 
         let (ubo, ubo_mapped) = UniformBufferObject::new_mapped_buffer(&instance, &physical_device, &device)?;
         let descriptor_pool   = DescriptorPool::new(&device)?;
@@ -160,7 +145,7 @@ impl Renderer {
         let command_buffers   = CommandBuffers::new(&command_pool, &swapchain, &device)?;
 
         let mut commands      = vec![Command::BeginRenderPass(&render_pass, &swapchain)];
-        let mut last_pipeline = "".to_string();
+        let mut last_pipeline = String::new();
         let mut first_iter    = true;
 
         #[cfg(debug_assertions)]
@@ -168,7 +153,7 @@ impl Renderer {
 
         geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
-        for geometry in geometries.iter() {
+        for geometry in &geometries {
             if geometry.shader != last_pipeline {
                 commands.push(
                     Command::BindPipeline(
@@ -192,7 +177,7 @@ impl Renderer {
         command_buffers.record(&device, &commands)?;
 
         #[cfg(debug_assertions)]
-        log_indent!(-1);
+        log_indent!(false);
 
         Ok(
             Self {
@@ -308,10 +293,10 @@ impl Renderer {
 impl Drop for Renderer {
     fn drop(&mut self) {
         #[cfg(debug_assertions)] {
-            log_indent!(-1);
+            log_indent!(false);
             println!("\n");
             log!(info, "Destroying Renderer");
-            log_indent!(1);
+            log_indent!(true);
         }
 
         self.device.wait();
@@ -321,7 +306,7 @@ impl Drop for Renderer {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Pipelines");
 
-        for (_, pipeline) in self.pipelines.iter() {
+        for pipeline in self.pipelines.values() {
             pipeline.destroy(Some(&self.device));
         }
 
@@ -341,7 +326,7 @@ impl Drop for Renderer {
         #[cfg(debug_assertions)]
         log!(info, "Destroying VertexBuffers and IndexBuffers");
 
-        for geometry in self.geometries.iter() {
+        for geometry in &self.geometries {
             geometry.destroy(Some(&self.device));
         }
 
@@ -352,7 +337,7 @@ impl Drop for Renderer {
         self.instance .destroy(None);
 
         #[cfg(debug_assertions)]
-        log_indent!(-1);
+        log_indent!(false);
     }
 }
 

@@ -43,17 +43,15 @@ impl GeometryData {
         vertices:     Vec<f32>,
         instances:    Vec<f32>,
         indices:      Vec<u32>
-    ) -> Result<Self> {
-        Ok(
-            Self {
-                shader,
-                cull_mode:    cull_mode.as_raw(),
-                polygon_mode: polygon_mode.as_raw(),
-                vertices,
-                instances,
-                indices,
-            }
-        )
+    ) -> Self {
+        Self {
+            shader,
+            cull_mode:    cull_mode.as_raw(),
+            polygon_mode: polygon_mode.as_raw(),
+            vertices,
+            instances,
+            indices,
+        }
     }
 }
 
@@ -76,7 +74,7 @@ impl Geometry {
         shader_info_cache: &mut HashMap<String, ShaderInfo>
     ) -> Result<Self> {
         let shader      = data.shader.clone();
-        let index_count = data.indices.len() as u32;
+        let index_count = u32::try_from(data.indices.len())?;
 
         if shader_info_cache.get(&data.shader).is_none() {
             let name         = data.shader.clone();
@@ -99,12 +97,12 @@ impl Geometry {
             );
         }
 
-        let instance_count = (
+        let instance_count = u32::try_from(
             data.instances.len()
             / shader_info_cache.get(&data.shader)
                 .context("Shader instance size cache HashMap error")?
                 .instance_size
-        ) as u32;
+        )?;
 
         let vertex_buffer = VertexBuffer::new_buffer(
             instance,

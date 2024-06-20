@@ -43,7 +43,7 @@ impl Scene {
 
         let mut futures = vec![];
 
-        for object in world.objects.iter() {
+        for object in &world.objects {
             futures.push(
                 match object {
                     Cube   (p, s, c, m) => { spawn(cube   (*p, *s, *c, *m))                },
@@ -56,7 +56,7 @@ impl Scene {
 
         let mut geometry = vec![];
 
-        for object in results.iter() {
+        for object in &results {
             match object {
                 Ok(result) => match result {
                     Ok(result) => { geometry.push(result.clone()); },

@@ -38,6 +38,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
+    #[allow(clippy::too_many_lines)]
     pub fn new(
         device:                &Device,
         descriptor_set_layout: &DescriptorSetLayout,
@@ -47,7 +48,7 @@ impl Pipeline {
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Pipeline `{}`", shader_info.name);
-            log_indent!(1);
+            log_indent!(true);
         }
 
         let layout = {
@@ -88,10 +89,10 @@ impl Pipeline {
             ];
 
             let (vertex_binding, mut vertex_attributes, last_location) =
-                vertex_descriptions(&shader_info.vertex_info);
+                vertex_descriptions(&shader_info.vertex_info)?;
 
             let (instance_binding, mut instance_attributes) =
-                instance_descriptions(&shader_info.instance_info, last_location);
+                instance_descriptions(&shader_info.instance_info, last_location)?;
 
             let binding_descriptions = [vertex_binding, instance_binding];
 
@@ -200,11 +201,11 @@ impl Pipeline {
         unsafe { device.raw().destroy_shader_module(module, None); }
 
         #[cfg(debug_assertions)]
-        log_indent!(-1);
+        log_indent!(false);
 
         let name = shader_info.name.clone();
 
-        Ok(Self { name, layout, raw })
+        Ok(Self { raw, name, layout })
     }
 }
 
@@ -235,20 +236,18 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
 
     let read = std::fs::read(spv);
 
-    let bytes = match read {
-        Ok(_) => { read? },
-        Err(_) => {
-            if !std::path::Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
-                log!(panic, "Shader `{filename}.wgsl` not found");
-            }
-
-            block_on(compile_shaders())?;
-
-            std::fs::read(spv)?
+    let bytes = if read.is_ok() { read? } else {
+        if !std::path::Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
+            log!(panic, "Shader `{filename}.wgsl` not found");
         }
+
+        block_on(compile_shaders())?;
+
+        std::fs::read(spv)?
     };
 
-    let words = unsafe { core::slice::from_raw_parts(bytes.as_ptr() as *const u32, bytes.len() / 4) };
+    #[allow(clippy::cast_ptr_alignment)]
+    let words = unsafe { core::slice::from_raw_parts(bytes.as_ptr().cast::<u32>(), bytes.len() / 4) };
 
     Ok(words.to_vec())
 }

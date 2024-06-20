@@ -25,7 +25,7 @@ impl TextureView {
         texture: &Image
     ) -> Result<ImageView> {
         let image_view = ImageView::new(
-            device, texture.raw(), vk::Format::R8G8B8A8_SRGB, vk::ImageAspectFlags::COLOR
+            device, *texture.raw(), vk::Format::R8G8B8A8_SRGB, vk::ImageAspectFlags::COLOR
         )?;
 
         Ok(image_view)

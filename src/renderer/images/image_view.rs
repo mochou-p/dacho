@@ -23,7 +23,7 @@ pub struct ImageView {
 impl ImageView {
     pub fn new(
         device:      &Device,
-        image:       &vk::Image,
+        image:        vk::Image,
         format:       vk::Format,
         aspect_mask:  vk::ImageAspectFlags
     ) -> Result<Self> {
@@ -36,7 +36,7 @@ impl ImageView {
             .build();
 
         let create_info = vk::ImageViewCreateInfo::builder()
-            .image(*image)
+            .image(image)
             .view_type(vk::ImageViewType::TYPE_2D)
             .format(format)
             .subresource_range(subresource_range);

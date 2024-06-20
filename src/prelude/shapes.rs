@@ -30,6 +30,7 @@ pub struct Cube {
 
 #[allow(dead_code)]
 impl Cube {
+    #[must_use]
     pub fn new(position: V3, size: V3, anchor: Anchor, color: V3, material: V2) -> Self {
         Self {
             position: V3::new(
@@ -73,6 +74,7 @@ impl Cube {
         self
     }
 
+    #[must_use]
     pub const fn build(&self) -> Object {
         Object::Cube(self.position, self.size, self.color, self.material)
     }
@@ -95,6 +97,7 @@ pub struct Sphere {
 
 #[allow(dead_code)]
 impl Sphere {
+    #[must_use]
     pub fn new(position: V3, size: f32, anchor: Anchor, color: V3, material: V2) -> Self {
         Self {
             position: V3::new(
@@ -138,6 +141,7 @@ impl Sphere {
         self
     }
 
+    #[must_use]
     pub const fn build(&self) -> Object {
         Object::Sphere(self.position, self.size, self.color, self.material)
     }

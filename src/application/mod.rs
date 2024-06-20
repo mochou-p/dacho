@@ -52,7 +52,7 @@ impl Application {
     pub fn new(event_loop: &EventLoop<()>, data: &Data) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Application");
-            log_indent!(1);
+            log_indent!(true);
 
             block_on(compile_shaders())?;
         }
@@ -70,7 +70,7 @@ impl Application {
         );
 
         #[cfg(debug_assertions)]
-        log_indent!(-1);
+        log_indent!(false);
 
         Ok(Self { window, renderer, camera, timer })
     }

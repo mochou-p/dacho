@@ -15,7 +15,7 @@ pub struct Timer {
     #[cfg(debug_assertions)]
     last_time:   Instant,
     #[cfg(debug_assertions)]
-    last_fps:    usize,
+    last_fps:    f32,
     #[cfg(debug_assertions)]
     rate:        usize,
     #[cfg(debug_assertions)]
@@ -36,7 +36,7 @@ impl Timer {
 
         #[cfg(debug_assertions)] {
             let last_time   = start_time;
-            let last_fps    = 0;
+            let last_fps    = 0.0;
             let frames      = 1;
             let first_frame = true;
 
@@ -60,9 +60,9 @@ impl Timer {
                 self.last_time = now;
                 self.frames    = 1;
 
-                let fps = (self.rate as f32 / elapsed).round() as usize;
+                let fps = (self.rate as f32 / elapsed).round();
 
-                if fps != self.last_fps {
+                if (fps - self.last_fps).abs() >= 1.0 {
                     log!(info_r, "{fps} FPS{}", " ".repeat(27));
 
                     self.last_fps = fps;
@@ -75,7 +75,7 @@ impl Timer {
                     self.first_frame = false;
                 }
 
-                self.frames += 1
+                self.frames += 1;
             }
         }
     }

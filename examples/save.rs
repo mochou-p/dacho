@@ -4,6 +4,6 @@ use dacho::prelude::*;
 
 fn main() {
     World::demo()
-        .save("saved_demo")
+        .save("saved_demo");
 }
 

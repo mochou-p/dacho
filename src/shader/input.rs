@@ -32,32 +32,33 @@ pub struct ShaderInfo {
     pub instance_size: usize
 }
 
-struct TypeInfo {
-    format: vk::Format,
-    size:   u32
+const fn type_to_size(kind: Type) -> usize {
+    match kind {
+        Type::Float =>     size_of::<f32>(),
+        Type::Vec2  => 2 * size_of::<f32>(),
+        Type::Vec3  => 3 * size_of::<f32>(),
+        Type::Vec4  => 4 * size_of::<f32>()
+    }
 }
 
-impl TypeInfo {
-    const FORMAT_SIZE_PAIRS: [Self; 4] = [
-        Self::new(vk::Format::R32_SFLOAT,              size_of::<f32>() as u32),
-        Self::new(vk::Format::R32G32_SFLOAT,       2 * size_of::<f32>() as u32),
-        Self::new(vk::Format::R32G32B32_SFLOAT,    3 * size_of::<f32>() as u32),
-        Self::new(vk::Format::R32G32B32A32_SFLOAT, 4 * size_of::<f32>() as u32)
-    ];
-
-    const fn new(format: vk::Format, size: u32) -> Self {
-        Self { format, size }
+const fn type_to_format(kind: Type) -> vk::Format {
+    match kind {
+        Type::Float => vk::Format::R32_SFLOAT,
+        Type::Vec2  => vk::Format::R32G32_SFLOAT,
+        Type::Vec3  => vk::Format::R32G32B32_SFLOAT,
+        Type::Vec4  => vk::Format::R32G32B32A32_SFLOAT
     }
 }
 
 pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
+    #[allow(clippy::cast_sign_loss)]
     let wgsl_type = &field[
         field
             .rfind(' ')
             .context("Failed to parse wgsl field type")?
             +1
         ..
-        field.len() - (field.chars().last().context("Failed to get the last char")? == ',') as i32 as usize
+        field.len() - i32::from(field.chars().last().context("Failed to get the last char")? == ',') as usize
     ];
 
     let kind = match wgsl_type {
@@ -74,29 +75,29 @@ pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
 pub fn size_of_types(info: &[Type]) -> usize {
     let mut size = 0;
 
-    for kind in info.iter() {
-        size += TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].size as usize;
+    for kind in info {
+        size += type_to_size(*kind);
     }
 
     size
 }
 
-pub fn vertex_descriptions(info: &[Type]) -> (
+pub fn vertex_descriptions(info: &[Type]) -> Result<(
     vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, u32
-) {
+)> {
     let  mut attribute_descriptions = Vec::with_capacity(info.len());
     let (mut location, mut offset)  = (0, 0);
 
-    for kind in info.iter() {
+    for kind in info {
         let attribute_description = vk::VertexInputAttributeDescription::builder()
             .binding(0)
             .location(location)
-            .format(TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].format)
+            .format(type_to_format(*kind))
             .offset(offset)
             .build();
 
         location += 1;
-        offset   += TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].size;
+        offset   += u32::try_from(type_to_size(*kind))?;
 
         attribute_descriptions.push(attribute_description);
     }
@@ -109,25 +110,25 @@ pub fn vertex_descriptions(info: &[Type]) -> (
         .input_rate(vk::VertexInputRate::VERTEX)
         .build();
 
-    (binding_description, attribute_descriptions, location)
+    Ok((binding_description, attribute_descriptions, location))
 }
 
-pub fn instance_descriptions(info: &[Type], location_offset: u32) -> (
+pub fn instance_descriptions(info: &[Type], location_offset: u32) -> Result<(
     vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>
-) {
+)> {
     let  mut attribute_descriptions = Vec::with_capacity(info.len());
     let (mut location, mut offset)  = (location_offset, 0);
 
-    for kind in info.iter() {
+    for kind in info {
         let attribute_description = vk::VertexInputAttributeDescription::builder()
             .binding(1)
             .location(location)
-            .format(TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].format)
+            .format(type_to_format(*kind))
             .offset(offset)
             .build();
 
         location += 1;
-        offset   += TypeInfo::FORMAT_SIZE_PAIRS[*kind as usize].size;
+        offset   += u32::try_from(type_to_size(*kind))?;
 
         attribute_descriptions.push(attribute_description);
     }
@@ -140,6 +141,6 @@ pub fn instance_descriptions(info: &[Type], location_offset: u32) -> (
         .input_rate(vk::VertexInputRate::INSTANCE)
         .build();
 
-    (binding_description, attribute_descriptions)
+    Ok((binding_description, attribute_descriptions))
 }
 

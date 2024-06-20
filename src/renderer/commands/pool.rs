@@ -59,11 +59,11 @@ impl CommandPool {
     pub fn end_single_time_commands(
         &self,
         device:         &Device,
-        command_buffer: &vk::CommandBuffer
+        command_buffer:  vk::CommandBuffer
     ) -> Result<()> {
-        unsafe { device.raw().end_command_buffer(*command_buffer) }?;
+        unsafe { device.raw().end_command_buffer(command_buffer) }?;
 
-        let command_buffers = [*command_buffer];
+        let command_buffers = [command_buffer];
 
         let submit_info = vk::SubmitInfo::builder()
             .command_buffers(&command_buffers);
