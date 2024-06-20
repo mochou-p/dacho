@@ -13,10 +13,12 @@ impl V2 {
     pub const X:    Self = Self::new(1.0, 0.0);
     pub const Y:    Self = Self::new(0.0, 1.0);
 
+    #[must_use]
     pub const fn new(x: f32, y: f32) -> Self {
         Self { x, y }
     }
 
+    #[must_use]
     pub fn normalize(&self) -> Self {
         let n = glam::Vec2::from_array(self.to_array()).normalize();
 
@@ -24,11 +26,13 @@ impl V2 {
     }
 
     #[inline]
+    #[must_use]
     pub fn normalise(&self) -> Self {
         self.normalize()
     }
 
     #[inline]
+    #[must_use]
     pub const fn to_array(self) -> [f32; 2] {
         [self.x, self.y]
     }
@@ -53,10 +57,12 @@ impl V3 {
     pub const XZ:   Self = Self::new(1.0, 0.0, 1.0);
     pub const YZ:   Self = Self::new(0.0, 1.0, 1.0);
 
+    #[must_use]
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
+    #[must_use]
     pub fn normalize(&self) -> Self {
         let n = glam::Vec3::from_array(self.to_array()).normalize();
 
@@ -64,11 +70,13 @@ impl V3 {
     }
 
     #[inline]
+    #[must_use]
     pub fn normalise(&self) -> Self {
         self.normalize()
     }
 
     #[inline]
+    #[must_use]
     pub const fn to_array(self) -> [f32; 3] {
         [self.x, self.y, self.z]
     }

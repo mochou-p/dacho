@@ -20,12 +20,12 @@ macro_rules! log_indent {
 #[macro_export]
 macro_rules! log {
     ($f:ident, $($arg:expr),*) => {
-        Logger::$f(format!($($arg),*))
+        Logger::$f(&format!($($arg),*))
     };
 }
 
-static mut INDENTATION:      isize = 0;
-static     INDENTATION_SIZE: isize = 5;
+static mut INDENTATION:      usize = 0;
+static     INDENTATION_SIZE: usize = 5;
 
 impl Color {
     const RED:    &'static str = "\x1b[31;1m";
@@ -37,47 +37,46 @@ impl Color {
 pub struct Logger;
 
 impl Logger {
-    fn info_str<T: Into<String> + Display>(s: T) -> String {
+    fn info_str<T: Into<String> + Display>(s: &T) -> String {
         format!(
             "{}{}Info{} {}",
-            " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
-            Color::CYAN,
-            Color::RESET,
+            " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
+            Color::CYAN, Color::RESET,
             s
         )
     }
 
-    fn warning_str<T: Into<String> + Display>(s: T) -> String {
+    fn warning_str<T: Into<String> + Display>(s: &T) -> String {
         format!(
             "{}{}Warning{} {}",
-            " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
-            Color::YELLOW,
-            Color::RESET,
+            " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
+            Color::YELLOW, Color::RESET,
             s
         )
     }
 
-    fn error_str<T: Into<String> + Display>(s: T) -> String {
+    fn error_str<T: Into<String> + Display>(s: &T) -> String {
         format!(
             "{}{}Error{} {}",
-            " ".repeat((unsafe { INDENTATION } * INDENTATION_SIZE) as usize),
-            Color::RED,
-            Color::RESET,
+            " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
+            Color::RED, Color::RESET,
             s
         )
     }
 
-    pub fn indent(delta: i8) {
-        if delta > 0 || unsafe { INDENTATION } > 0 {
-            unsafe { INDENTATION += delta as isize; }
+    pub fn indent(delta: bool) {
+        if delta {
+            unsafe { INDENTATION += 1; }
+        } else if unsafe { INDENTATION } > 0 {
+            unsafe { INDENTATION -= 1; }
         }
     }
 
-    pub fn info<T: Into<String> + Display>(message: T) {
+    pub fn info<T: Into<String> + Display>(message: &T) {
         println!("{}", Self::info_str(message));
     }
 
-    pub fn info_r<T: Into<String> + Display>(message: T) {
+    pub fn info_r<T: Into<String> + Display>(message: &T) {
         print!("{}\r", Self::info_str(message));
 
         std::io::stdout()
@@ -85,15 +84,15 @@ impl Logger {
             .expect("Failed to flush stdout");
     }
 
-    pub fn warning<T: Into<String> + Display>(message: T) {
+    pub fn warning<T: Into<String> + Display>(message: &T) {
         println!("{}", Self::warning_str(message));
     }
 
-    pub fn error<T: Into<String> + Display>(message: T) {
+    pub fn error<T: Into<String> + Display>(message: &T) {
         println!("{}", Self::error_str(message));
     }
 
-    pub fn panic<T: Into<String> + Display>(message: T) {
+    pub fn panic<T: Into<String> + Display>(message: &T) {
         panic!("{}", Self::error_str(message));
     }
 }

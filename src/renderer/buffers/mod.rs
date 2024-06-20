@@ -102,7 +102,7 @@ impl Buffer {
             unsafe { device.raw().cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &[*copy_region]); }
         }
 
-        command_pool.end_single_time_commands(device, &command_buffer)?;
+        command_pool.end_single_time_commands(device, command_buffer)?;
 
         Ok(())
     }
@@ -142,7 +142,7 @@ impl Buffer {
             );
         }
 
-        command_pool.end_single_time_commands(device, &command_buffer)?;
+        command_pool.end_single_time_commands(device, command_buffer)?;
 
         Ok(())
     }

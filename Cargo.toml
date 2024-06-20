@@ -36,6 +36,7 @@ opt-level = 3
 warnings = "deny"
 
 [lints.clippy]
-all     = "deny"
-nursery = "deny"
+all      = "deny"
+nursery  = "deny"
+pedantic = "deny"
 

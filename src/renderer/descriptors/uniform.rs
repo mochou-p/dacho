@@ -82,7 +82,7 @@ impl UniformBufferObject {
             _time:       time
         };
 
-        let src  = &mut ubo as *mut Self as *mut core::ffi::c_void;
+        let src  = core::ptr::from_mut::<Self>(&mut ubo).cast::<core::ffi::c_void>();
         let size = core::mem::size_of::<Self>();
 
         unsafe {

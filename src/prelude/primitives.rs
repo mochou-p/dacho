@@ -73,7 +73,7 @@ pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData
         vertices,
         instances,
         indices
-    )?;
+    );
 
     Ok(geometry_data)
 }
@@ -97,12 +97,12 @@ pub async fn sphere(
     let sector_step = 2.0 * PI / sectors as f32;
     let stack_step  = PI / stacks as f32;
 
-    for i in 0..stacks + 1 {
+    for i in 0..=stacks {
         let a  = (i as f32).mul_add(-stack_step, FRAC_PI_2);
         let xy = a.cos();
         let z  = a.sin();
 
-        for j in 0..sectors + 1 {
+        for j in 0..=sectors {
             let a = (j as f32) * sector_step;
             let x = xy * a.cos();
             let y = xy * a.sin();
@@ -124,8 +124,8 @@ pub async fn sphere(
     }
 
     for i in 0..stacks {
-        let mut k1 = (i * (sectors + 1)) as u32;
-        let mut k2 = k1 + sectors as u32 + 1;
+        let mut k1 = u32::try_from(i * (sectors + 1))?;
+        let mut k2 = k1 + u32::try_from(sectors)? + 1;
 
         for _j in 0..sectors {
             if i != 0 {
@@ -159,7 +159,7 @@ pub async fn sphere(
         vertices,
         instances,
         indices
-    )?;
+    );
 
     Ok(geometry_data)
 }

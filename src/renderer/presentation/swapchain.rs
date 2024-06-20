@@ -40,6 +40,7 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
+    #[allow(clippy::too_many_lines)]
     pub fn new(
         instance:        &Instance,
         device:          &Device,
@@ -92,10 +93,10 @@ impl Swapchain {
 
         let mut image_views = Vec::with_capacity(image_count);
 
-        for image in images.iter() {
+        for image in &images {
             let image_view = ImageView::new(
                 device,
-                image,
+                *image,
                 vk::Format::B8G8R8A8_SRGB,
                 vk::ImageAspectFlags::COLOR
             )?;
@@ -107,7 +108,7 @@ impl Swapchain {
             device,
             instance,
             physical_device,
-            &extent,
+            extent,
             vk::Format::D32_SFLOAT_S8_UINT,
             vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -116,7 +117,7 @@ impl Swapchain {
 
         let depth_image_view = ImageView::new(
             device,
-            depth_image.raw(),
+            *depth_image.raw(),
             vk::Format::D32_SFLOAT_S8_UINT,
             vk::ImageAspectFlags::DEPTH
         )?;
@@ -125,7 +126,7 @@ impl Swapchain {
             device,
             instance,
             physical_device,
-            &extent,
+            extent,
             vk::Format::B8G8R8A8_SRGB,
             vk::ImageUsageFlags::TRANSIENT_ATTACHMENT | vk::ImageUsageFlags::COLOR_ATTACHMENT,
             vk::MemoryPropertyFlags::DEVICE_LOCAL,
@@ -134,14 +135,14 @@ impl Swapchain {
 
         let color_image_view = ImageView::new(
             device,
-            color_image.raw(),
+            *color_image.raw(),
             vk::Format::B8G8R8A8_SRGB,
             vk::ImageAspectFlags::COLOR
         )?;
 
         let mut framebuffers = Vec::with_capacity(image_count);
 
-        for image_view in image_views.iter() {
+        for image_view in &image_views {
             let attachments = [*color_image_view.raw(), *depth_image_view.raw(), *image_view.raw()];
 
             let create_info = vk::FramebufferCreateInfo::builder()
@@ -217,15 +218,15 @@ impl VulkanObject for Swapchain {
         log!(info, "Destroying Swapchain");
 
         if let Some(device) = device {
-            for fence in self.may_begin_drawing.iter() {
+            for fence in &self.may_begin_drawing {
                 unsafe { device.raw().destroy_fence(*fence, None); }
             }
 
-            for semaphore in self.images_available.iter() {
+            for semaphore in &self.images_available {
                 unsafe { device.raw().destroy_semaphore(*semaphore, None); }
             }
 
-            for semaphore in self.images_finished.iter() {
+            for semaphore in &self.images_finished {
                 unsafe { device.raw().destroy_semaphore(*semaphore, None); }
             }
 
@@ -234,11 +235,11 @@ impl VulkanObject for Swapchain {
             self.color_image_view .destroy(Some(device));
             self.color_image      .destroy(Some(device));
 
-            for framebuffer in self.framebuffers.iter() {
+            for framebuffer in &self.framebuffers {
                 unsafe { device.raw().destroy_framebuffer(*framebuffer, None); }
             }
 
-            for image_view in self.image_views.iter() {
+            for image_view in &self.image_views {
                 image_view.destroy(Some(device));
             }
         } else {

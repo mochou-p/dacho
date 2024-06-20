@@ -33,6 +33,7 @@ use super::{
     log, log_indent
 };
 
+#[allow(clippy::missing_errors_doc)]
 pub async fn dacho_main(data: &Data) -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
@@ -45,7 +46,7 @@ pub async fn dacho_main(data: &Data) -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         log!(info, "Running EventLoop");
-        log_indent!(1);
+        log_indent!(true);
     }
 
     event_loop.run(move |event, elwt| {

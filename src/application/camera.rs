@@ -105,7 +105,9 @@ impl Camera {
     }
 
     pub fn mouse_motion(&mut self, delta: &(f64, f64)) {
+        #[allow(clippy::cast_possible_truncation)]
         let x = delta.1 as f32 * self.speed.rotation;
+        #[allow(clippy::cast_possible_truncation)]
         let y = delta.0 as f32 * self.speed.rotation;
 
         self.rotation.angle.y += y;

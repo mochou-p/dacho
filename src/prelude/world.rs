@@ -25,10 +25,12 @@ pub struct World {
 
 #[allow(clippy::new_without_default)]
 impl World {
+    #[must_use]
     pub fn new() -> Self {
         Self { objects: vec![], data: Data::new() }
     }
 
+    #[must_use]
     pub fn demo() -> Self {
         // super
         use super::*;
@@ -74,6 +76,7 @@ impl World {
         self
     }
 
+    #[allow(clippy::missing_panics_doc)]
     #[inline]
     pub fn run(&self) {
         self.run_()
@@ -92,19 +95,20 @@ impl World {
     }
 
     // TODO: keep primitives as just instructions
+    #[allow(clippy::missing_panics_doc)]
     pub fn save(&self, filename: &str) {
         #[cfg(debug_assertions)]
         log!(info, "Saving World `{filename}`");
 
         std::fs::write(
-            format!("assets/.cache/worlds.{}.dacho", filename),
+            format!("assets/.cache/worlds.{filename}.dacho"),
             bincode::serialize(
                 &self.save_().expect("failed to build World")
             ).expect("failed to serialize World")
         ).expect("failed to write World to file");
 
         #[cfg(debug_assertions)]
-        log!(info, "Saved")
+        log!(info, "Saved");
     }
 
     #[inline]
@@ -113,6 +117,8 @@ impl World {
         Scene::build(self).await
     }
 
+    #[allow(clippy::missing_panics_doc)]
+    #[must_use]
     pub fn load(filename: &str) -> Self {
         #[cfg(debug_assertions)]
         log!(info, "Loading World `{filename}`");

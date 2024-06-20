@@ -40,7 +40,7 @@ impl CommandBuffers {
         let raw = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
                 .command_pool(*command_pool.raw())
-                .command_buffer_count(swapchain.image_count as u32);
+                .command_buffer_count(u32::try_from(swapchain.image_count)?);
 
             unsafe { device.raw().allocate_command_buffers(&allocate_info) }?
         };
@@ -48,6 +48,7 @@ impl CommandBuffers {
         Ok(Self { raw })
     }
 
+    #[allow(clippy::too_many_lines)]
     pub fn record(
         &self,
         device:   &Device,
@@ -55,7 +56,7 @@ impl CommandBuffers {
     ) -> Result<()> {
         #[cfg(debug_assertions)] {
             log!(info, "Recording commands ({} command buffers)", self.raw.len());
-            log_indent!(1);
+            log_indent!(true);
         }
 
         #[cfg(debug_assertions)]
@@ -80,13 +81,13 @@ impl CommandBuffers {
 
             let mut last_pipeline: Option<&Pipeline> = None;
 
-            for command in commands.iter() {
+            for command in commands {
                 match command {
                     Command::BeginRenderPass(render_pass, swapchain) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
                             log!(info, "Beginning RenderPass");
-                            log_indent!(1);
+                            log_indent!(true);
                         }
 
                         let clear_values = [
@@ -131,10 +132,10 @@ impl CommandBuffers {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
                             log!(info, "Binding Pipeline `{}`", pipeline.name);
-                            log_indent!(1);
+                            log_indent!(true);
 
                             just_drew  = false;
-                            binds     += 1
+                            binds     += 1;
                         }
 
                         last_pipeline = Some(pipeline);
@@ -151,20 +152,18 @@ impl CommandBuffers {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
                             if just_drew {
-                                log_indent!(1);
+                                log_indent!(true);
                             }
 
                             log!(info, "Binding VertexBuffers");
 
-                            binds += 1
+                            binds += 1;
                         }
 
                         unsafe {
                             device.raw().cmd_bind_vertex_buffers(
                                 command_buffer,
-                                0,
-                                &[*vertex_buffer.raw(), *instance_buffer.raw()],
-                                &[0, 0]
+                                0, &[*vertex_buffer.raw(), *instance_buffer.raw()], &[0, 0]
                             );
                         }
                     },
@@ -173,15 +172,13 @@ impl CommandBuffers {
                         if first_command_buffer {
                             log!(info, "Binding IndexBuffer");
 
-                            binds += 1
+                            binds += 1;
                         }
 
                         unsafe {
                             device.raw().cmd_bind_index_buffer(
                                 command_buffer,
-                                *index_buffer.raw(),
-                                0,
-                                vk::IndexType::UINT32
+                                *index_buffer.raw(), 0, vk::IndexType::UINT32
                             );
                         }
                     },
@@ -190,7 +187,7 @@ impl CommandBuffers {
                         if first_command_buffer {
                             log!(info, "Binding DescriptoSet");
 
-                            binds += 1
+                            binds += 1;
                         }
 
                         unsafe {
@@ -198,16 +195,14 @@ impl CommandBuffers {
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
                                 last_pipeline.context("No last pipeline")?.layout,
-                                0,
-                                &[*descriptor_set.raw()],
-                                &[]
+                                0, &[*descriptor_set.raw()], &[]
                             );
                         }
                     },
                     Command::DrawIndexed(index_count, instance_count) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            log_indent!(-1);
+                            log_indent!(false);
                             log!(info, "Drawing");
 
                             just_drew   = true;
@@ -217,11 +212,8 @@ impl CommandBuffers {
                         unsafe {
                             device.raw().cmd_draw_indexed(
                                 command_buffer,
-                                *index_count,
-                                *instance_count,
-                                0,
-                                0,
-                                0
+                                *index_count, *instance_count,
+                                0, 0, 0
                             );
                         }
                     }
@@ -230,7 +222,7 @@ impl CommandBuffers {
 
             #[cfg(debug_assertions)]
             if first_command_buffer {
-                log_indent!(-1);
+                log_indent!(false);
                 log!(info, "Ending RenderPass");
             }
 
@@ -241,7 +233,7 @@ impl CommandBuffers {
         }
 
         #[cfg(debug_assertions)] {
-            log_indent!(-1);
+            log_indent!(false);
             log!(info, "Recorded {draw_calls} draw calls and {binds} binds (per command buffer)");
         }
 

@@ -22,7 +22,7 @@ use crate::{
 #[cfg(debug_assertions)]
 use crate::log_indent;
 
-async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
+fn compile_shader(filepath: &std::path::Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
     let filename = &wgsl_in[wgsl_in.rfind('/').context("Error parsing shader path")?+1..];
     let spv_out  = &format!("assets/.cache/shaders.{filename}.spv");
@@ -69,7 +69,7 @@ async fn compile_shader(filepath: std::path::PathBuf) -> Result<()> {
 pub async fn compile_shaders() -> Result<()> {
     #[cfg(debug_assertions)] {
         log!(info, "Compiling shaders");
-        log_indent!(1);
+        log_indent!(true);
     }
 
     let mut filenames = vec![];
@@ -79,7 +79,7 @@ pub async fn compile_shaders() -> Result<()> {
         let path = shader?.path();
 
         filenames.push(path.display().to_string());
-        futures.push(spawn(compile_shader(path)));
+        futures.push(spawn(async move { compile_shader(&path) }));
     }
 
     let results = join_all(futures).await;
@@ -101,7 +101,7 @@ pub async fn compile_shaders() -> Result<()> {
     }
 
     #[cfg(debug_assertions)]
-    log_indent!(-1);
+    log_indent!(false);
 
     if j != 0 {
         log!(panic, "Failed to compile all shaders");
