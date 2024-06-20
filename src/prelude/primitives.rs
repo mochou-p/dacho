@@ -13,7 +13,7 @@ use {
 use super::types::{V2, V3};
 
 // crate
-use crate::renderer::rendering::geometry::GeometryData;
+use crate::renderer::rendering::GeometryData;
 
 pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData> {
     let hs = size * 0.5;

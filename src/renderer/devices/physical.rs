@@ -8,7 +8,7 @@ use {
 
 // crate
 use crate::renderer::{
-    setup::instance::*,
+    setup::Instance,
     VulkanObject
 };
 

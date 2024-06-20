@@ -9,14 +9,14 @@ use {
 };
 
 // super
-use super::image::*;
+use super::Image;
 
 // crate
 use crate::renderer::{
-    buffers::staging::*,
-    commands::pool::*,
-    devices::{logical::*, physical::*},
-    setup::instance::*,
+    buffers::StagingBuffer,
+    commands::CommandPool,
+    devices::{Device, PhysicalDevice},
+    setup::Instance,
     VulkanObject
 };
 

@@ -9,9 +9,9 @@ use {
 
 // crate
 use crate::renderer::{
-    buffers::*,
-    devices::{logical::*, physical::*},
-    setup::instance::*,
+    buffers::Buffer,
+    devices::{Device, PhysicalDevice},
+    setup::Instance,
     VulkanObject
 };
 

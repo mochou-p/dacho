@@ -22,13 +22,13 @@ use {
 
 // mod
 use {
-    buffers::*,
-    commands::{buffers::*, pool::*, *},
-    descriptors::{pool::*, set::*, set_layout::*, uniform::*},
-    devices::{logical::*, physical::*},
-    presentation::{surface::*, swapchain::*},
-    rendering::{geometry::*, pipeline::*, render_pass::*},
-    setup::{entry::*, instance::*}
+    buffers::Buffer,
+    commands::{Command, CommandBuffers, CommandPool},
+    descriptors::{DescriptorPool, DescriptorSet, DescriptorSetLayout, UniformBufferObject},
+    devices::{Device, PhysicalDevice},
+    presentation::{Surface, Swapchain},
+    rendering::{Geometry, Pipeline, RenderPass},
+    setup::{Entry, Instance}
 };
 
 // super
@@ -37,7 +37,7 @@ use super::application::scene::Data;
 // debug
 #[cfg(debug_assertions)]
 use {
-    setup::debug::*,
+    setup::Debug,
     super::{
         application::logger::Logger,
         log, log_indent

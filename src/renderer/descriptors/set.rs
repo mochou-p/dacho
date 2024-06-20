@@ -7,12 +7,12 @@ use {
 };
 
 // super
-use super::{pool::*, set_layout::*, uniform::*};
+use super::{DescriptorPool, DescriptorSetLayout, UniformBufferObject};
 
 // crate
 use crate::renderer::{
-    buffers::*,
-    devices::logical::*,
+    buffers::Buffer,
+    devices::Device,
     VulkanObject
 };
 

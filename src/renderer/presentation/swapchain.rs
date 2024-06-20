@@ -7,16 +7,16 @@ use {
 };
 
 // super
-use super::surface::*;
+use super::Surface;
 
 // crate
 use crate::{
     application::logger::Logger,
     renderer::{
-        devices::{logical::*, physical::*},
-        images::{image::*, image_view::*},
-        setup::instance::*,
-        rendering::render_pass::*,
+        devices::{Device, PhysicalDevice},
+        images::{Image, ImageView},
+        setup::Instance,
+        rendering::RenderPass,
         VulkanObject
     },
     log

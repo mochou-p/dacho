@@ -18,7 +18,7 @@ use crate::{
         shapes::Object::{Cube, Sphere},
         world::World
     },
-    renderer::rendering::geometry::*,
+    renderer::rendering::GeometryData,
     log
 };
 

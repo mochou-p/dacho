@@ -33,7 +33,7 @@ impl World {
     #[must_use]
     pub fn demo() -> Self {
         // super
-        use super::*;
+        use super::{Anchor, Color, Cube, Material, Sphere, V3};
 
         let mut world = Self::new();
 

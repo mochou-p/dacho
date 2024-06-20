@@ -7,7 +7,7 @@ use {
 };
 
 // super
-use super::{entry::*, instance::*};
+use super::{Entry, Instance};
 
 // crate
 use crate::{

@@ -7,13 +7,13 @@ use {
 };
 
 // super
-use super::*;
+use super::Buffer;
 
 // crate
 use crate::renderer::{
-    commands::pool::*,
-    devices::{logical::*, physical::*},
-    setup::instance::*,
+    commands::CommandPool,
+    devices::{Device, PhysicalDevice},
+    setup::Instance,
     VulkanObject
 };
 

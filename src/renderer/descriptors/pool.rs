@@ -10,7 +10,7 @@ use {
 use crate::{
     application::logger::Logger,
     renderer::{
-        devices::logical::*,
+        devices::Device,
         VulkanObject
     },
     log

@@ -1,8 +1,11 @@
 // dacho/src/renderer/descriptors/mod.rs
 
 // modules
-pub(super) mod pool;
-pub(super) mod set;
-pub(super) mod set_layout;
-pub(super) mod uniform;
+mod pool;
+mod set;
+mod set_layout;
+mod uniform;
+
+#[allow(clippy::wildcard_imports)]
+pub(super) use {pool::*, set::*, set_layout::*, uniform::*};
 
