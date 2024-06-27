@@ -234,7 +234,7 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
     #[cfg(debug_assertions)]
     log!(info, "Reading `{filename}` SPIR-V");
 
-    let spv = &format!("assets/.cache/shaders.{filename}.wgsl.spv");
+    let spv = &format!("target/dacho/shaders/{filename}.wgsl.spv");
 
     let read = std::fs::read(spv);
 
