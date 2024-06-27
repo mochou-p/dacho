@@ -25,7 +25,7 @@ use crate::log_indent;
 fn compile_shader(filepath: &std::path::Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
     let filename = &wgsl_in[wgsl_in.rfind('/').context("Error parsing shader path")?+1..];
-    let spv_out  = &format!("assets/.cache/shaders.{filename}.spv");
+    let spv_out  = &format!("target/dacho/shaders/{filename}.spv");
 
     let options = SpvOptions {
         lang_version: (1, 5),
@@ -51,10 +51,16 @@ fn compile_shader(filepath: &std::path::Path) -> Result<()> {
     let bytes_out: Vec<u8> = words.iter().flat_map(|word| word.to_ne_bytes().to_vec()).collect();
 
     {
-        let cache_dir = "assets/.cache";
+        let mut dir = "target/dacho/";
 
-        if !std::path::Path::new(cache_dir).exists() {
-            std::fs::create_dir(cache_dir)?;
+        if !std::path::Path::new(dir).exists() {
+            std::fs::create_dir(dir)?;
+        }
+
+        dir = "target/dacho/shaders/";
+
+        if !std::path::Path::new(dir).exists() {
+            std::fs::create_dir(dir)?;
         }
     }
 

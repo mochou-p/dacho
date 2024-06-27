@@ -99,9 +99,23 @@ impl World {
     pub fn save(&self, filename: &str) {
         #[cfg(debug_assertions)]
         log!(info, "Saving World `{filename}`");
+        
+        {
+            let mut dir = "target/dacho/";
+
+            if !std::path::Path::new(dir).exists() {
+                std::fs::create_dir(dir).expect(&format!("failed to create `{dir}`"));
+            }
+
+            dir = "target/dacho/worlds/";
+
+            if !std::path::Path::new(dir).exists() {
+                std::fs::create_dir(dir).expect(&format!("failed to create `{dir}`"));
+            }
+        }
 
         std::fs::write(
-            format!("assets/.cache/worlds.{filename}.dacho"),
+            format!("target/dacho/worlds/{filename}.dacho"),
             bincode::serialize(
                 &self.save_().expect("failed to build World")
             ).expect("failed to serialize World")
@@ -123,7 +137,7 @@ impl World {
         #[cfg(debug_assertions)]
         log!(info, "Loading World `{filename}`");
 
-        std::fs::read(format!("assets/.cache/worlds.{filename}.dacho")).map_or_else(
+        std::fs::read(format!("target/dacho/worlds/{filename}.dacho")).map_or_else(
             |_|    { log!(panic, "World `{filename}` does not exist"); panic!(); },
             |file| {
                 let data = bincode::deserialize(&file)
