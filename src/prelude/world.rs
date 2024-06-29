@@ -104,13 +104,13 @@ impl World {
             let mut dir = "target/dacho/";
 
             if !std::path::Path::new(dir).exists() {
-                std::fs::create_dir(dir).expect(&format!("failed to create `{dir}`"));
+                std::fs::create_dir(dir).unwrap_or_else(|_| panic!("failed to create `{dir}`"));
             }
 
             dir = "target/dacho/worlds/";
 
             if !std::path::Path::new(dir).exists() {
-                std::fs::create_dir(dir).expect(&format!("failed to create `{dir}`"));
+                std::fs::create_dir(dir).unwrap_or_else(|_| panic!("failed to create `{dir}`"));
             }
         }
 
