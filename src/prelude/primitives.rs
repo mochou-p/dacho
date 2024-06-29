@@ -62,7 +62,7 @@ pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData
 
     let instances: Vec<f32> = vec![color.x, color.y, color.z, metrou.x, metrou.y];
 
-    let shader       = String::from("pbr");
+    let shader       = String::from("default");
     let cull_mode    = vk::CullModeFlags::FRONT;
     let polygon_mode = vk::PolygonMode::FILL;
 
@@ -84,8 +84,7 @@ pub async fn sphere(
     color:    V3,
     metrou:   V2,
     sectors:  usize,
-    stacks:   usize,
-    shader:   &str
+    stacks:   usize
 ) -> Result<GeometryData> {
     // * 3 -> xyz
     // * 2 -> position, normal
@@ -147,8 +146,7 @@ pub async fn sphere(
 
     let instances: Vec<f32> = vec![color.x, color.y, color.z, metrou.x, metrou.y];
 
-    //                         temp vvvvvv
-    let shader       = String::from(shader);
+    let shader       = String::from("default");
     let cull_mode    = vk::CullModeFlags::FRONT;
     let polygon_mode = vk::PolygonMode::FILL;
 

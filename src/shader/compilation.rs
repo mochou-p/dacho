@@ -81,7 +81,7 @@ pub async fn compile_shaders() -> Result<()> {
     let mut filenames = vec![];
     let mut futures   = vec![];
 
-    for shader in std::fs::read_dir("assets/shaders")? {
+    for shader in std::fs::read_dir("assets/shaders").expect("please move your shaders to `assets/shaders/*.wgsl") {
         let path = shader?.path();
 
         filenames.push(path.display().to_string());

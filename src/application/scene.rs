@@ -46,8 +46,8 @@ impl Scene {
         for object in &world.objects {
             futures.push(
                 match object {
-                    Cube   (p, s, c, m) => { spawn(cube   (*p, *s, *c, *m))                },
-                    Sphere (p, s, c, m) => { spawn(sphere (*p, *s, *c, *m, 32, 18, "pbr")) }
+                    Cube   (p, s, c, m) => { spawn(cube   (*p, *s, *c, *m))         },
+                    Sphere (p, s, c, m) => { spawn(sphere (*p, *s, *c, *m, 32, 18)) }
                 }
             );
         }
