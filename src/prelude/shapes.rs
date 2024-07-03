@@ -1,5 +1,13 @@
 // dacho/src/prelude/shapes.rs
 
+/* getters such as position or size, are only of use before running the World,
+ * since an Object is just an instruction which gets "built" later into real geometry
+ * or other types of objects like a camera
+ */
+
+// crates
+use serde::{Serialize, Deserialize};
+
 // super
 use super::{
     colors::Color,
@@ -7,6 +15,10 @@ use super::{
     types::{V2, V3}
 };
 
+// crate
+use crate::application::camera::CameraMode;
+
+// temp implementation
 #[derive(Default)]
 pub enum Anchor {
     Bottom = -1,
@@ -15,10 +27,41 @@ pub enum Anchor {
     Top
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum Object {
     Cube   (V3, V3,  V3, V2),
-    Sphere (V3, f32, V3, V2)
+    Sphere (V3, f32, V3, V2),
+    Camera (V3, CameraMode)
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct Camera {
+    pub position: V3,
+    pub mode:     CameraMode
+}
+
+impl Camera {
+    #[must_use]
+    pub const fn new(position: V3, mode: CameraMode) -> Self {
+        Self { position, mode }
+    }
+
+    pub fn position(&mut self, rhs: V3) -> &mut Self {
+        self.position = rhs;
+
+        self
+    }
+
+    #[must_use]
+    pub fn build(&self) -> Object {
+        Object::Camera(self.position, self.mode.clone())
+    }
+}
+
+impl Default for Camera {
+    fn default() -> Self {
+        Self::new(V3::Z * 10.0, CameraMode::default())
+    }
 }
 
 pub struct Cube {

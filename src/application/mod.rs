@@ -1,16 +1,15 @@
 // dacho/src/application/mod.rs
 
 // modules
-    mod camera;
+pub mod camera;
 pub mod logger;
 pub mod scene;
     mod timer;
-    mod window;
+pub mod window;
 
 // crates
 use {
     anyhow::Result,
-    glam::f32 as glam,
     winit::{
         event::{DeviceEvent, Event, WindowEvent},
         event_loop::{EventLoop, EventLoopWindowTarget},
@@ -57,14 +56,11 @@ impl Application {
             block_on(compile_shaders())?;
         }
 
-        let window = Window::new("dacho", 1600, 900, event_loop)?;
+        let window   = Window::new("dacho", 1600, 900, event_loop)?;
+        let renderer = Renderer::new(event_loop, &window, data)?;
+        let camera   = Camera::new(data);
 
-        let renderer = Renderer::new(
-            event_loop, window.raw(), window.width, window.height, data
-        )?;
-
-        let camera = Camera::new(glam::Vec3::new(0.0, -1.0, 13.0));
-        let timer  = Timer::new(
+        let timer = Timer::new(
             #[cfg(debug_assertions)]
             50
         );
@@ -91,11 +87,12 @@ impl Application {
                 self.camera.mouse_motion(delta);
             },
             Event::AboutToWait => {
+                self.camera.update();
                 self.renderer.wait_for_device();
                 self.window.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                self.renderer.redraw(self.camera.transform(), self.timer.elapsed());
+                self.renderer.redraw(&self.camera, self.timer.elapsed());
 
                 #[cfg(debug_assertions)]
                 self.timer.fps();

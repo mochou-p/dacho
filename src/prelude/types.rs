@@ -1,6 +1,12 @@
 // dacho/src/prelude/types.rs
 
-#[derive(Copy, Clone)]
+// crates
+use {
+    glam::f32::{Vec2, Vec3},
+    serde::{Serialize, Deserialize}
+};
+
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct V2 {
     pub x: f32,
     pub y: f32
@@ -36,9 +42,15 @@ impl V2 {
     pub const fn to_array(self) -> [f32; 2] {
         [self.x, self.y]
     }
+
+    #[inline]
+    #[must_use]
+    pub const fn to_glam(&self) -> Vec2 {
+        Vec2::new(self.x, self.y)
+    }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct V3 {
     pub x: f32,
     pub y: f32,
@@ -79,6 +91,12 @@ impl V3 {
     #[must_use]
     pub const fn to_array(self) -> [f32; 3] {
         [self.x, self.y, self.z]
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn to_glam(&self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.z)
     }
 }
 

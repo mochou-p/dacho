@@ -14,7 +14,8 @@ pub use {
     materials::*,
     shapes::*,
     types::*,
-    world::*
+    world::*,
+    super::application::camera::CameraMode::*
 };
 
 // crates

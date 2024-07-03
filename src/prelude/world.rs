@@ -33,11 +33,14 @@ impl World {
     #[must_use]
     pub fn demo() -> Self {
         // super
-        use super::{Anchor, Color, Cube, Material, Sphere, V3};
+        use super::{Anchor, Camera, Color, Cube, Material, Sphere, V3};
 
         let mut world = Self::new();
 
         world.add(&[
+            Camera::default()
+                .position(V3::new(0.0, -2.0, 10.0))
+                .build(),
             Cube::default()
                 .size(V3::new(5.0, 0.4, 5.0))
                 .anchor(Anchor::Top)

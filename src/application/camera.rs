@@ -6,18 +6,22 @@ use core::f32::consts::{FRAC_PI_2, PI};
 // crates
 use {
     glam::f32 as glam,
+    serde::{Serialize, Deserialize},
     winit::{
         event::KeyEvent,
         keyboard::{KeyCode::{KeyA, KeyD, KeyS, KeyW, ShiftLeft, Space}, PhysicalKey::Code}
     }
 };
 
-struct CameraRotation {
+// super
+use super::scene::Data;
+
+pub struct CameraRotation {
     angle: glam::Vec2
 }
 
 impl CameraRotation {
-    fn to_direction(&self) -> glam::Vec3 {
+    pub fn to_direction(&self) -> glam::Vec3 {
         glam::Vec3::new(
             self.angle.y.sin() * self.angle.x.cos(),
             self.angle.x.sin(),
@@ -45,16 +49,35 @@ struct CameraBounds {
     rotation_x: Bound
 }
 
+#[derive(Clone, Serialize, Deserialize)]
+pub enum CameraMode {
+    //       zoom ar   near far
+    Camera2D(f32, f32, f32, f32),
+    //       fov  ar   near far
+    Camera3D(f32, f32, f32, f32)
+}
+
+impl Default for CameraMode {
+    fn default() -> Self {
+        // temp              vvv
+        Self::Camera3D(45.0, 0.0, 0.001, 10000.0)
+    }
+}
+
 pub struct Camera {
-    translation: glam::Vec3,
-    rotation:    CameraRotation,
-    movement:    CameraMovement,
-    speed:       CameraSpeed,
-    bounds:      CameraBounds
+    pub translation: glam::Vec3,
+    pub rotation:    CameraRotation,
+        movement:    CameraMovement,
+        speed:       CameraSpeed,
+        bounds:      CameraBounds,
+    pub mode:        CameraMode
 }
 
 impl Camera {
-    pub const fn new(translation: glam::Vec3) -> Self {
+    pub fn new(data: &Data) -> Self {
+        let translation = data.camera.position.to_glam();
+        let mode        = data.camera.mode.clone();
+
         let rotation = CameraRotation {
             angle: glam::Vec2::new(0.0, PI)
         };
@@ -82,7 +105,8 @@ impl Camera {
             rotation,
             movement,
             speed,
-            bounds
+            bounds,
+            mode
         }
     }
 
@@ -119,12 +143,10 @@ impl Camera {
             );
     }
 
-    pub fn transform(&mut self) -> (glam::Vec3, glam::Vec3) {
+    pub fn update(&mut self) {
         self.translation -=
             glam::Quat::from_rotation_y(self.rotation.angle.y)
             * (self.movement.positive - self.movement.negative);
-
-        (self.translation, self.rotation.to_direction())
     }
 }
 
