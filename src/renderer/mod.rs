@@ -17,7 +17,7 @@ use std::collections::HashMap;
 use {
     anyhow::{Context, Result},
     ash::vk,
-    winit::{event_loop::EventLoop, window::Window}
+    winit::event_loop::EventLoop
 };
 
 // mod
@@ -32,7 +32,11 @@ use {
 };
 
 // super
-use super::application::scene::Data;
+use super::application::{
+    camera::Camera,
+    scene::Data,
+    window::Window
+};
 
 // debug
 #[cfg(debug_assertions)]
@@ -83,8 +87,6 @@ impl Renderer {
     pub fn new(
         event_loop:    &EventLoop<()>,
         window:        &Window,
-        window_width:   u32,
-        window_height:  u32,
         data:          &Data
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
@@ -98,11 +100,11 @@ impl Renderer {
         let debug           = Debug::new(&entry, &instance)?;
         let physical_device = PhysicalDevice::new(&instance)?;
         let device          = Device::new(&instance, &physical_device)?;
-        let surface         = Surface::new(&entry, &instance, window)?;
+        let surface         = Surface::new(&entry, &instance, window.raw())?;
         let render_pass     = RenderPass::new(&device)?;
 
         let swapchain = Swapchain::new(
-            &instance, &device, &surface, &physical_device, &render_pass, window_width, window_height
+            &instance, &device, &surface, &physical_device, &render_pass, window.width, window.height
         )?;
 
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
@@ -208,8 +210,8 @@ impl Renderer {
 
     pub fn redraw(
         &mut self,
-        camera_transform: (glam::Vec3, glam::Vec3),
-        time:             f32
+        camera: &Camera,
+        time:    f32
     ) {
         let (image_index, _) = unsafe {
             self.swapchain.loader
@@ -222,14 +224,14 @@ impl Renderer {
         }
             .expect("Acquiring next image failed");
 
-        let aspect_ratio = (self.swapchain.extent.width as f32) / (self.swapchain.extent.height as f32);
+        // temp from swapchain
+        let aspect_ratio = self.swapchain.extent.width as f32 / self.swapchain.extent.height as f32;
 
         UniformBufferObject::update(
             self.ubo_mapped,
-            camera_transform.0,
-            camera_transform.1,
-            time,
-            aspect_ratio
+            camera,
+            aspect_ratio,
+            time
         );
 
         unsafe {
