@@ -14,8 +14,8 @@ use super::logger::Logger;
 // crate
 use crate::{
     prelude::{
-        primitives::{cube, sphere},
-        objects::{Camera, Object, Shape::{Cube, Sphere}},
+        primitives::{circle, cube, quad, sphere},
+        objects::{Camera, Object, Shape2D::{Quad, Circle}, Shape3D::{Cube, Sphere}},
         world::World
     },
     renderer::rendering::GeometryData,
@@ -48,9 +48,13 @@ impl Scene {
 
         for object in &world.objects {
             match object {
-                Object::Shape(shape) => match shape {
-                    Cube   { position, size   } => { futures.push(spawn(cube   (*position, *size))) },
-                    Sphere { position, radius } => { futures.push(spawn(sphere (*position, *radius, 32, 18))) }
+                Object::Shape2D(shape) => match shape {
+                    Quad   { position, size           } => { futures.push(spawn(quad   (*position, *size           ))) }
+                    Circle { position, radius, points } => { futures.push(spawn(circle (*position, *radius, *points))) }
+                },
+                Object::Shape3D(shape) => match shape {
+                    Cube   { position, size                    } => { futures.push(spawn(cube   (*position, *size                     ))) },
+                    Sphere { position, radius, sectors, stacks } => { futures.push(spawn(sphere (*position, *radius, *sectors, *stacks))) }
                 },
                 Object::Camera(_) => { camera_option = Some(object.clone()); }
             }

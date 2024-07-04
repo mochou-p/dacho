@@ -69,7 +69,7 @@ pub struct Camera {
 
 impl Camera {
     pub fn new(data: &Data) -> Self {
-        let (translation, has_perspective, fov, aspect_ratio, near, far) = if let Object::Camera(camera) = &data.camera {
+        let (mut translation, has_perspective, fov, aspect_ratio, near, far) = if let Object::Camera(camera) = &data.camera {
             match camera {
                 Orthographic { position, zoom, aspect_ratio, near, far} => (position.to_glam(), false, zoom .to_radians(), *aspect_ratio, *near, *far),
                 Perspective  { position, fov,  aspect_ratio, near, far} => (position.to_glam(), true,  fov  .to_radians(),  *aspect_ratio, *near, *far)
@@ -77,6 +77,8 @@ impl Camera {
         } else {
             log!(panic, "expected Object::Camera in Data.camera"); panic!();
         };
+
+        translation.y *= -1.0;
 
         let rotation = CameraRotation {
             angle: glam::Vec2::new(0.0, PI)

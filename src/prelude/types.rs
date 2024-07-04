@@ -50,6 +50,14 @@ impl V2 {
     }
 }
 
+impl core::ops::Mul<f32> for V2 {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self { x: self.x * rhs, y: self.y * rhs }
+    }
+}
+
 #[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct V3 {
     pub x: f32,
