@@ -224,13 +224,9 @@ impl Renderer {
         }
             .expect("Acquiring next image failed");
 
-        // temp from swapchain
-        let aspect_ratio = self.swapchain.extent.width as f32 / self.swapchain.extent.height as f32;
-
         UniformBufferObject::update(
             self.ubo_mapped,
             camera,
-            aspect_ratio,
             time
         );
 

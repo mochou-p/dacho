@@ -15,7 +15,7 @@ use super::logger::Logger;
 use crate::{
     prelude::{
         primitives::{cube, sphere},
-        shapes::{Camera, Object::{Camera as OCamera, Cube, Sphere}},
+        objects::{Camera, Object, Shape::{Cube, Sphere}},
         world::World
     },
     renderer::rendering::GeometryData,
@@ -25,13 +25,13 @@ use crate::{
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Data {
     pub geometry: Vec<GeometryData>,
-    pub camera:   Camera
+    pub camera:   Object
 }
 
 impl Data {
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self { geometry: vec![], camera: Camera::default() }
+    pub const fn new() -> Self {
+        Self { geometry: vec![], camera: Camera::DEFAULT_3D }
     }
 }
 
@@ -44,20 +44,20 @@ impl Scene {
 
         let mut futures = vec![];
 
-        let mut camera_option: Option<Camera> = None;
+        let mut camera_option: Option<Object> = None;
 
         for object in &world.objects {
             match object {
-                Cube    (p, s, c, m) => { futures.push(spawn(cube   (*p, *s, *c, *m        ))) },
-                Sphere  (p, s, c, m) => { futures.push(spawn(sphere (*p, *s, *c, *m, 32, 18))) },
-                OCamera (p, m)       => { camera_option = Some(Camera::new(*p, m.clone())); }
+                Object::Shape(shape) => match shape {
+                    Cube   { position, size   } => { futures.push(spawn(cube   (*position, *size))) },
+                    Sphere { position, radius } => { futures.push(spawn(sphere (*position, *radius, 32, 18))) }
+                },
+                Object::Camera(_) => { camera_option = Some(object.clone()); }
             }
         }
 
-        let camera = camera_option.unwrap_or_default();
-
-        let results = join_all(futures).await;
-
+        let     results  = join_all(futures).await;
+        let     camera   = camera_option.map_or(Camera::DEFAULT_3D, |camera| camera);
         let mut geometry = vec![];
 
         for object in &results {

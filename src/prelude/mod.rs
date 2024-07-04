@@ -3,8 +3,8 @@
 // modules
 pub(super) mod colors;
 pub(super) mod materials;
+pub(super) mod objects;
 pub(super) mod primitives;
-pub(super) mod shapes;
 pub(super) mod types;
 pub(super) mod world;
 
@@ -12,10 +12,9 @@ pub(super) mod world;
 pub use {
     colors::{Color as Colour, *},
     materials::*,
-    shapes::*,
+    objects::{Object::*, Camera::*, Shape::*},
     types::*,
-    world::*,
-    super::application::camera::CameraMode::*
+    world::*
 };
 
 // crates

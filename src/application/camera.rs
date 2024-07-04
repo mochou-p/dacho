@@ -4,17 +4,22 @@
 use core::f32::consts::{FRAC_PI_2, PI};
 
 // crates
-use {
-    glam::f32 as glam,
-    serde::{Serialize, Deserialize},
-    winit::{
-        event::KeyEvent,
-        keyboard::{KeyCode::{KeyA, KeyD, KeyS, KeyW, ShiftLeft, Space}, PhysicalKey::Code}
-    }
+use winit::{
+    event::KeyEvent,
+    keyboard::{KeyCode::{KeyA, KeyD, KeyS, KeyW, ShiftLeft, Space}, PhysicalKey::Code}
 };
 
 // super
-use super::scene::Data;
+use super::{
+    logger::Logger,
+    scene::Data
+};
+
+// crate
+use crate::{
+    prelude::objects::{Object, Camera::{Orthographic, Perspective}},
+    log
+};
 
 pub struct CameraRotation {
     angle: glam::Vec2
@@ -49,34 +54,29 @@ struct CameraBounds {
     rotation_x: Bound
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub enum CameraMode {
-    //       zoom ar   near far
-    Camera2D(f32, f32, f32, f32),
-    //       fov  ar   near far
-    Camera3D(f32, f32, f32, f32)
-}
-
-impl Default for CameraMode {
-    fn default() -> Self {
-        // temp              vvv
-        Self::Camera3D(45.0, 0.0, 0.001, 10000.0)
-    }
-}
-
 pub struct Camera {
-    pub translation: glam::Vec3,
-    pub rotation:    CameraRotation,
-        movement:    CameraMovement,
-        speed:       CameraSpeed,
-        bounds:      CameraBounds,
-    pub mode:        CameraMode
+    pub translation:     glam::Vec3,
+    pub rotation:        CameraRotation,
+        movement:        CameraMovement,
+        speed:           CameraSpeed,
+        bounds:          CameraBounds,
+    pub has_perspective: bool, // 3D or not
+    pub fov:             f32,
+    pub aspect_ratio:    f32,
+    pub near:            f32,
+    pub far:             f32
 }
 
 impl Camera {
     pub fn new(data: &Data) -> Self {
-        let translation = data.camera.position.to_glam();
-        let mode        = data.camera.mode.clone();
+        let (translation, has_perspective, fov, aspect_ratio, near, far) = if let Object::Camera(camera) = &data.camera {
+            match camera {
+                Orthographic { position, zoom, aspect_ratio, near, far} => (position.to_glam(), false, zoom .to_radians(), *aspect_ratio, *near, *far),
+                Perspective  { position, fov,  aspect_ratio, near, far} => (position.to_glam(), true,  fov  .to_radians(),  *aspect_ratio, *near, *far)
+            }
+        } else {
+            log!(panic, "expected Object::Camera in Data.camera"); panic!();
+        };
 
         let rotation = CameraRotation {
             angle: glam::Vec2::new(0.0, PI)
@@ -106,7 +106,11 @@ impl Camera {
             movement,
             speed,
             bounds,
-            mode
+            has_perspective,
+            fov,
+            aspect_ratio,
+            near,
+            far
         }
     }
 
