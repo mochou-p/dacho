@@ -9,7 +9,7 @@ use {
 
 // crate
 use crate::{
-    application::camera::{Camera, CameraMode::{Camera2D, Camera3D}},
+    application::camera::Camera,
     renderer::{
         buffers::Buffer,
         devices::{Device, PhysicalDevice},
@@ -67,23 +67,19 @@ impl UniformBufferObject {
     pub fn update(
         ubo_mapped: *mut core::ffi::c_void,
         camera:     &Camera,
-        ar:          f32,
         time:        f32
     ) {
         let view = glam::Mat4::look_at_rh(camera.translation, camera.translation + camera.rotation.to_direction(), glam::Vec3::Y);
 
-        let projection = match camera.mode {
-            Camera2D(zoom, _, near, far) => {
-                let x = zoom * ar;
+        let projection = if camera.has_perspective {
+            let mut projection   = glam::Mat4::perspective_rh(camera.fov, camera.aspect_ratio, camera.near, camera.far);
+            projection.y_axis.y *= -1.0;
 
-                glam::Mat4::orthographic_rh(-x, x, zoom, -zoom, near, far)
-            },
-            Camera3D(fov, _, near, far) => {
-                let mut projection   = glam::Mat4::perspective_rh(fov.to_radians(), ar, near, far);
-                projection.y_axis.y *= -1.0;
+            projection
+        } else {
+            let x = camera.fov * camera.aspect_ratio;
 
-                projection
-            }
+            glam::Mat4::orthographic_rh(-x, x, camera.fov, -camera.fov, camera.near, camera.far)
         };
 
         let mut ubo = Self {

@@ -10,12 +10,12 @@ use {
 };
 
 // super
-use super::types::{V2, V3};
+use super::types::V3;
 
 // crate
 use crate::renderer::rendering::GeometryData;
 
-pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData> {
+pub async fn cube(p: V3, size: V3) -> Result<GeometryData> {
     let hs = size * 0.5;
 
     let vertices: Vec<f32> = vec![
@@ -60,7 +60,7 @@ pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData
         20, 21, 22,  22, 23, 20
     ];
 
-    let instances: Vec<f32> = vec![color.x, color.y, color.z, metrou.x, metrou.y];
+    let instances: Vec<f32> = vec![1.0, 1.0, 1.0, 0.5, 0.7];
 
     let shader       = String::from("default");
     let cull_mode    = vk::CullModeFlags::FRONT;
@@ -81,8 +81,6 @@ pub async fn cube(p: V3, size: V3, color: V3, metrou: V2) -> Result<GeometryData
 pub async fn sphere(
     position: V3,
     radius:   f32,
-    color:    V3,
-    metrou:   V2,
     sectors:  usize,
     stacks:   usize
 ) -> Result<GeometryData> {
@@ -144,7 +142,7 @@ pub async fn sphere(
         }
     }
 
-    let instances: Vec<f32> = vec![color.x, color.y, color.z, metrou.x, metrou.y];
+    let instances: Vec<f32> = vec![1.0, 1.0, 1.0, 0.5, 0.7];
 
     let shader       = String::from("default");
     let cull_mode    = vk::CullModeFlags::FRONT;
