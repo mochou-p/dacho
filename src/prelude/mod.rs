@@ -12,7 +12,7 @@ pub(super) mod world;
 pub use {
     colors::{Color as Colour, *},
     materials::*,
-    objects::{Object::*, Camera::*, Shape::*},
+    objects::{Object::*, Camera::*, Shape2D::*, Shape3D::*},
     types::*,
     world::*
 };

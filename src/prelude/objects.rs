@@ -4,12 +4,13 @@
 use serde::{Serialize, Deserialize};
 
 // super
-use super::types::V3;
+use super::types:: {V2, V3};
 
 #[derive(Clone, Serialize, Deserialize)]
 pub enum Object {
-    Camera (Camera),
-    Shape  (Shape)
+    Camera  (Camera),
+    Shape2D (Shape2D),
+    Shape3D (Shape3D)
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -23,8 +24,14 @@ impl Camera {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub enum Shape {
-    Cube   { position: V3, size:   V3  },
-    Sphere { position: V3, radius: f32 }
+pub enum Shape2D {
+    Quad   { position: V3, size:   V2                 },
+    Circle { position: V3, radius: f32, points: usize }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+pub enum Shape3D {
+    Cube   { position: V3, size:   V3                                 },
+    Sphere { position: V3, radius: f32, sectors: usize, stacks: usize }
 }
 
