@@ -15,7 +15,7 @@ use super::logger::Logger;
 use crate::{
     prelude::{
         primitives::{circle, cube, quad, sphere},
-        objects::{Camera, Object, Shape2D::{Quad, Circle}, Shape3D::{Cube, Sphere}},
+        object::{Object, InnerCamera, InnerShape2D::{Quad, Circle}, InnerShape3D::{Cube, Sphere}},
         world::World
     },
     renderer::rendering::GeometryData,
@@ -31,7 +31,7 @@ pub struct Data {
 impl Data {
     #[allow(clippy::new_without_default)]
     pub const fn new() -> Self {
-        Self { geometry: vec![], camera: Camera::DEFAULT_3D }
+        Self { geometry: vec![], camera: InnerCamera::DEFAULT_3D }
     }
 }
 
@@ -61,7 +61,7 @@ impl Scene {
         }
 
         let     results  = join_all(futures).await;
-        let     camera   = camera_option.map_or(Camera::DEFAULT_3D, |camera| camera);
+        let     camera   = camera_option.map_or(InnerCamera::DEFAULT_3D, |camera| camera);
         let mut geometry = vec![];
 
         for object in &results {

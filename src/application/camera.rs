@@ -17,7 +17,7 @@ use super::{
 
 // crate
 use crate::{
-    prelude::objects::{Object, Camera::{Orthographic, Perspective}},
+    prelude::object::{Object, InnerCamera::{Orthographic, Perspective}},
     log
 };
 
