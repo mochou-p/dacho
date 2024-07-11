@@ -5,7 +5,7 @@ use anyhow::Result;
 
 // super
 use super::{
-    objects::Object,
+    object::Object,
     dacho_main
 };
 

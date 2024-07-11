@@ -3,7 +3,7 @@
 // modules
 pub(super) mod colors;
 pub(super) mod materials;
-pub(super) mod objects;
+pub(super) mod object;
 pub(super) mod primitives;
 pub(super) mod types;
 pub(super) mod world;
@@ -12,7 +12,7 @@ pub(super) mod world;
 pub use {
     colors::{Color as Colour, *},
     materials::*,
-    objects::{Object::*, Camera::*, Shape2D::*, Shape3D::*},
+    object::*,
     types::*,
     world::*
 };
