@@ -11,7 +11,7 @@
 
 // modules
     mod application;
-    mod ecs;
+pub mod ecs;
 pub mod prelude;
     mod renderer;
     mod shader;
