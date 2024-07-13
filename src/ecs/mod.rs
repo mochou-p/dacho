@@ -7,6 +7,7 @@ pub mod world;
 
 // pub use
 pub use {
+    component::Component,
     entity::Entity,
     world::World
 };

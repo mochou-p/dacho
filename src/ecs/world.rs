@@ -8,22 +8,24 @@ use super::entity::Entity;
 
 pub struct World {
     entities: HashMap<u64, Entity>,
-    counter:  u64
+    id:       u64
 }
 
 impl World {
     #[must_use]
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
-        Self { entities: HashMap::new(), counter: 0 }
+        Self { entities: HashMap::new(), id: 0 }
     }
 
-    pub fn add(&mut self, name: &str) -> u64 {
-        self.entities.insert(self.counter, Entity::new(name));
+    #[allow(clippy::missing_panics_doc)]
+    pub fn spawn(&mut self, name: &str) -> (u64, &mut Entity) {
+        let id = self.id;
+        self.id += 1;
 
-        self.counter += 1;
+        self.entities.insert(id, Entity::new(name));
 
-        self.counter - 1
+        (id, self.get(id).expect("unexpected HashMap error"))
     }
 
     pub fn get(&mut self, id: u64) -> Option<&mut Entity> {
@@ -31,11 +33,25 @@ impl World {
     }
 
     pub fn debug(&self) {
-        println!("-- World --");
+        println!("-- World ----------------------");
+
         for (k, v) in &self.entities {
-            println!("{k}: {}", v.name);
+            print!("{k}: {}", v.name);
+
+            if v.components.is_empty() {
+                println!(",");
+            } else {
+                print!(" {{\n  components: {{ ");
+
+                for c in &v.components {
+                    print!("{}, ", c.name());
+                }
+
+                println!("}}\n}},");
+            }
         }
-        println!("-----------");
+
+        println!("-------------------------------");
     }
 }
 
