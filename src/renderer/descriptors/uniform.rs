@@ -3,13 +3,11 @@
 // crates
 use {
     anyhow::Result,
-    ash::vk,
-    glam::f32 as glam
+    ash::vk
 };
 
 // crate
 use crate::{
-    application::camera::Camera,
     renderer::{
         buffers::Buffer,
         devices::{Device, PhysicalDevice},
@@ -26,9 +24,11 @@ use crate::{
 };
 
 pub struct UniformBufferObject {
+    /*
     _view:       glam::Mat4,
     _projection: glam::Mat4,
     _camera_pos: glam::Vec4,
+    */
     _time:       f32
 }
 
@@ -66,9 +66,9 @@ impl UniformBufferObject {
 
     pub fn update(
         ubo_mapped: *mut core::ffi::c_void,
-        camera:     &Camera,
         time:        f32
     ) {
+        /*
         let view = glam::Mat4::look_at_rh(camera.translation, camera.translation + camera.rotation.to_direction(), glam::Vec3::Y);
 
         let projection = if camera.has_perspective {
@@ -81,11 +81,14 @@ impl UniformBufferObject {
 
             glam::Mat4::orthographic_rh(-x, x, camera.fov, -camera.fov, camera.near, camera.far)
         };
+        */
 
         let mut ubo = Self {
+            /*
             _view:       view,
             _projection: projection,
             _camera_pos: camera.translation.extend(0.0),
+            */
             _time:       time
         };
 

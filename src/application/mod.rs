@@ -1,9 +1,7 @@
 // dacho/src/application/mod.rs
 
 // modules
-pub mod camera;
 pub mod logger;
-pub mod scene;
     mod timer;
 pub mod window;
 
@@ -11,7 +9,7 @@ pub mod window;
 use {
     anyhow::Result,
     winit::{
-        event::{DeviceEvent, Event, WindowEvent},
+        event::{Event, WindowEvent},
         event_loop::{EventLoop, EventLoopWindowTarget},
         keyboard::{KeyCode::Escape, PhysicalKey::Code}
     }
@@ -19,14 +17,9 @@ use {
 
 // mod
 use {
-    camera::Camera,
-    scene::Data,
     timer::Timer,
     window::Window
 };
-
-// super
-use super::renderer::Renderer;
 
 // debug
 #[cfg(debug_assertions)]
@@ -42,13 +35,11 @@ use {
 
 pub struct Application {
     window:   Window,
-    renderer: Renderer,
-    camera:   Camera,
     timer:    Timer
 }
 
 impl Application {
-    pub fn new(event_loop: &EventLoop<()>, data: &Data) -> Result<Self> {
+    pub fn new(event_loop: &EventLoop<()>) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Application");
             log_indent!(true);
@@ -57,8 +48,6 @@ impl Application {
         }
 
         let window   = Window::new("dacho", 1600, 900, event_loop)?;
-        let renderer = Renderer::new(event_loop, &window, data)?;
-        let camera   = Camera::new(data);
 
         let timer = Timer::new(
             #[cfg(debug_assertions)]
@@ -68,7 +57,7 @@ impl Application {
         #[cfg(debug_assertions)]
         log_indent!(false);
 
-        Ok(Self { window, renderer, camera, timer })
+        Ok(Self { window, timer })
     }
 
     pub fn handle_event<T>(&mut self, event: &Event<T>, elwt: &EventLoopWindowTarget<T>) {
@@ -80,20 +69,11 @@ impl Application {
                 if event.physical_key == Code(Escape) {
                     elwt.exit();
                 }
-
-                self.camera.keyboard_input(event);
-            },
-            Event::DeviceEvent { event: DeviceEvent::MouseMotion { delta }, .. } => {
-                self.camera.mouse_motion(delta);
             },
             Event::AboutToWait => {
-                self.camera.update();
-                self.renderer.wait_for_device();
                 self.window.request_redraw();
             },
             Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
-                self.renderer.redraw(&self.camera, self.timer.elapsed());
-
                 #[cfg(debug_assertions)]
                 self.timer.fps();
             },

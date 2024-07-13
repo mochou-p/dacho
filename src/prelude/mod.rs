@@ -1,30 +1,17 @@
 // dacho/src/prelude/mod.rs
 
 // modules
-pub(super) mod colors;
-pub(super) mod materials;
-pub(super) mod object;
 pub(super) mod primitives;
 pub(super) mod types;
-pub(super) mod world;
 
 // pub mod
-pub use {
-    colors::{Color as Colour, *},
-    materials::*,
-    object::*,
-    types::*,
-    world::*
-};
+pub use types::*;
 
 // crates
 use anyhow::Result;
 
 // super
-use super::application::{
-    scene::Data,
-    Application
-};
+use super::application::Application;
 
 // debug
 #[cfg(debug_assertions)]
@@ -34,14 +21,14 @@ use super::{
 };
 
 #[allow(clippy::missing_errors_doc)]
-pub async fn dacho_main(data: &Data) -> Result<()> {
+pub async fn dacho_main() -> Result<()> {
     #[cfg(debug_assertions)] {
         println!();
         log!(info, "Creating EventLoop");
     }
 
     let     event_loop  = winit::event_loop::EventLoop::new()?;
-    let mut application = Application::new(&event_loop, data)?;
+    let mut application = Application::new(&event_loop)?;
 
     #[cfg(debug_assertions)] {
         println!();

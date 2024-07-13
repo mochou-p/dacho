@@ -8,6 +8,7 @@ mod instance;
 
 #[cfg(debug_assertions)]
 #[allow(clippy::wildcard_imports)]
+#[allow(unused_imports)]
 pub(super) use debug::*;
 #[allow(clippy::wildcard_imports)]
 pub(super) use {entry::*, instance::*};
