@@ -10,17 +10,21 @@
 pub mod rendering;
     mod setup;
 
-// std
-use std::collections::HashMap;
-
 // crates
+use anyhow::Result;
+
+/*
 use {
     anyhow::{Context, Result},
     ash::vk,
     winit::event_loop::EventLoop
 };
+*/
 
 // mod
+use devices::Device;
+
+/*
 use {
     buffers::Buffer,
     commands::{Command, CommandBuffers, CommandPool},
@@ -32,11 +36,7 @@ use {
 };
 
 // super
-use super::application::{
-    camera::Camera,
-    scene::Data,
-    window::Window
-};
+use super::application::window::Window;
 
 // debug
 #[cfg(debug_assertions)]
@@ -47,6 +47,7 @@ use {
         log, log_indent
     }
 };
+*/
 
 pub trait VulkanObject {
     type RawType;
@@ -65,6 +66,7 @@ pub trait VulkanObject {
 }
 
 pub struct Renderer {
+    /*
     _entry:                 Entry,
     instance:               Instance,
     #[cfg(debug_assertions)]
@@ -81,14 +83,17 @@ pub struct Renderer {
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers
+    */
 }
 
 impl Renderer {
     pub fn new(
+        /*
         event_loop:    &EventLoop<()>,
-        window:        &Window,
-        data:          &Data
+        window:        &Window
+        */
     ) -> Result<Self> {
+        /*
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
             log_indent!(true);
@@ -180,9 +185,11 @@ impl Renderer {
 
         #[cfg(debug_assertions)]
         log_indent!(false);
+        */
 
         Ok(
             Self {
+                /*
                 _entry: entry,
                 instance,
                 #[cfg(debug_assertions)]
@@ -199,10 +206,12 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers
+                */
             }
         )
     }
 
+    /*
     #[inline]
     pub fn wait_for_device(&self) {
         self.device.wait();
@@ -286,8 +295,10 @@ impl Renderer {
             (self.swapchain.current_image + 1)
             % self.swapchain.image_count;
     }
+    */
 }
 
+/*
 impl Drop for Renderer {
     fn drop(&mut self) {
         #[cfg(debug_assertions)] {
@@ -338,4 +349,5 @@ impl Drop for Renderer {
         log_indent!(false);
     }
 }
+*/
 
