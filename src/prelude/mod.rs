@@ -5,7 +5,10 @@ pub(super) mod primitives;
 pub(super) mod types;
 
 // pub mod
-pub use types::*;
+pub use {
+    super::ecs::*,
+    types::*
+};
 
 // crates
 use anyhow::Result;
