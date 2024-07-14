@@ -1,7 +1,10 @@
 // dacho/src/ecs/world.rs
 
 // std
-use std::collections::HashMap;
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap
+};
 
 // super
 use super::{
@@ -11,7 +14,7 @@ use super::{
 
 pub struct World {
     entities:          HashMap<u64, Entity>,
-    components:        HashMap<u64, Box<dyn Component>>,
+    components:        HashMap<u64, (TypeId, Box<dyn Component>)>,
     entity_counter:    u64,
     component_counter: u64
 }
@@ -60,7 +63,7 @@ impl World {
         let id = self.component_counter;
         self.component_counter += 1;
 
-        self.components.insert(id, Box::new(component));
+        self.components.insert(id, (TypeId::of::<T>(), Box::new(component)));
 
         let mut entity = self.get_mut_entity(entity_id).expect("unexpected HashMap error");
         entity.components_ids.push(id);
@@ -97,7 +100,7 @@ impl World {
         self.remove_entity_(id);
     }
 
-    // for the inner recursive functionality of Self::remove_entity
+    // recursive functionality of Self::remove_entity
     fn remove_entity_(&mut self, id: u64) {
         let (children_ids, components_ids) = {
             let entity = self.get_entity(id).expect("unexpected HashMap error");
@@ -116,13 +119,51 @@ impl World {
         self.entities.remove(&id);
     }
 
+    pub fn remove_component<T: Component + 'static>(&mut self, entity_id: u64) {
+        self.remove_component_::<T>(entity_id, false);
+    }
+
+    pub fn remove_components<T: Component + 'static>(&mut self, entity_id: u64) {
+        self.remove_component_::<T>(entity_id, true);
+    }
+
+    // optionally recursive functionality of Self::remove_component(s)
+    fn remove_component_<T: Component + 'static>(&mut self, entity_id: u64, recursive: bool) {
+        let components_ids = {
+            let entity = self.get_entity(entity_id).expect("unexpected HashMap error");
+
+            entity.components_ids.clone()
+        };
+
+        for component_id in &components_ids {
+            let component = self.components.get(component_id).expect("unexpected HashMap error");
+
+            if component.0 == TypeId::of::<T>() {
+                let mut entity = self.get_mut_entity(entity_id).expect("unexpected HashMap error");
+
+                for i in 0..entity.components_ids.len() {
+                    if entity.components_ids[i] == *component_id {
+                        entity.components_ids.remove(i);
+                        break;
+                    }
+                }
+
+                self.components.remove(component_id);
+
+                if !recursive {
+                    break;
+                }
+            }
+        }
+    }
+
     pub fn debug(&self) {
         dbg!(&self.entities);
 
         println!("&self.components = {{");
 
         for (k, v) in &self.components {
-            println!("    {k}: {}", v.name());
+            println!("    {k}: {}", v.1.name());
         }
 
         println!("}}");
