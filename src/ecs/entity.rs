@@ -3,21 +3,18 @@
 // super
 use super::component::Component;
 
+#[derive(Debug)]
 pub struct Entity {
-    pub name:       String,
-        parent:     Option<u64>,
-        children:   Vec<u64>,
-    pub components: Vec<Box<dyn Component>>
+    pub id:            u64,
+    pub parent:        Option<u64>,
+    pub children_ids:  Vec<u64>,
+    pub component_ids: Vec<u64>
 }
 
 impl Entity {
     #[must_use]
-    pub fn new(name: &str) -> Self {
-        Self { name: name.to_string(), parent: None, children: vec![], components: vec![] }
-    }
-
-    pub fn add<T: Component + 'static>(&mut self, component: T) {
-        self.components.push(Box::new(component));
+    pub fn new(id: u64) -> Self {
+        Self { id, parent: None, children_ids: vec![], component_ids: vec![] }
     }
 }
 
