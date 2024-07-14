@@ -99,14 +99,18 @@ impl World {
 
     // for the inner recursive functionality of Self::remove_entity
     fn remove_entity_(&mut self, id: u64) {
-        let children_ids = {
+        let (children_ids, components_ids) = {
             let entity = self.get_entity(id).expect("unexpected HashMap error");
 
-            entity.children_ids.clone()
+            (entity.children_ids.clone(), entity.components_ids.clone())
         };
 
         for child_id in &children_ids {
             self.remove_entity_(*child_id);
+        }
+
+        for component_id in &components_ids {
+            self.components.remove(component_id);
         }
 
         self.entities.remove(&id);
@@ -114,6 +118,14 @@ impl World {
 
     pub fn debug(&self) {
         dbg!(&self.entities);
+
+        println!("&self.components = {{");
+
+        for (k, v) in &self.components {
+            println!("    {k}: {}", v.name());
+        }
+
+        println!("}}");
     }
 }
 
