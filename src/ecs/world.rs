@@ -157,13 +157,17 @@ impl World {
         }
     }
 
+    pub fn call(&self, callback: fn(&Self, &[u64]), ids: &[u64]) {
+        callback(self, ids);
+    }
+
     pub fn debug(&self) {
         dbg!(&self.entities);
 
-        println!("&self.components = {{");
+        print!("&self.components = {{ ");
 
         for (k, v) in &self.components {
-            println!("    {k}: {}", v.1.name());
+            print!("{k}, ");
         }
 
         println!("}}");
