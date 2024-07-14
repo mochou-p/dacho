@@ -63,7 +63,7 @@ impl World {
         self.components.insert(id, Box::new(component));
 
         let mut entity = self.get_mut_entity(entity_id).expect("unexpected HashMap error");
-        entity.component_ids.push(id);
+        entity.components_ids.push(id);
     }
 
     #[must_use]
@@ -73,6 +73,43 @@ impl World {
 
     pub fn get_mut_entity(&mut self, id: u64) -> Option<&mut Entity> {
         self.entities.get_mut(&id)
+    }
+
+    #[allow(clippy::missing_panics_doc)]
+    pub fn remove_entity(&mut self, id: u64) {
+        let parent_id_option = {
+            let entity = self.get_entity(id).expect("unexpected HashMap error");
+
+            entity.parent
+        };
+
+        if let Some(parent_id) = parent_id_option {
+            let parent = self.get_mut_entity(parent_id).expect("unexpected HashMap error");
+
+            for i in 0..parent.children_ids.len() {
+                if parent.children_ids[i] == id {
+                    parent.children_ids.remove(i);
+                    break;
+                }
+            }
+        }
+
+        self.remove_entity_(id);
+    }
+
+    // for the inner recursive functionality of Self::remove_entity
+    fn remove_entity_(&mut self, id: u64) {
+        let children_ids = {
+            let entity = self.get_entity(id).expect("unexpected HashMap error");
+
+            entity.children_ids.clone()
+        };
+
+        for child_id in &children_ids {
+            self.remove_entity_(*child_id);
+        }
+
+        self.entities.remove(&id);
     }
 
     pub fn debug(&self) {
