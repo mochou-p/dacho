@@ -3,7 +3,8 @@
 // std
 use std::{
     any::{Any, TypeId},
-    collections::HashMap
+    collections::HashMap,
+    ops::FnOnce
 };
 
 // super
@@ -14,7 +15,7 @@ use super::{
 
 pub struct World {
     entities:          HashMap<u64, Entity>,
-    components:        HashMap<u64, (TypeId, Box<dyn Component>)>,
+    components:        HashMap<u64, (TypeId, Box<dyn Any>)>,
     entity_counter:    u64,
     component_counter: u64
 }
@@ -80,7 +81,7 @@ impl World {
 
     #[must_use]
     #[allow(clippy::missing_panics_doc)]
-    pub fn get_component<T: Component + 'static>(&self, entity_id: u64) -> &dyn Component {
+    pub fn get_component<T: Component + 'static>(&self, entity_id: u64) -> Option<&T> {
         let components_ids = {
             let entity = self.get_entity(entity_id).expect("unexpected HashMap error");
 
@@ -91,11 +92,40 @@ impl World {
             let component = self.components.get(component_id).expect("unexpected HashMap error");
 
             if component.0 == TypeId::of::<T>() {
-                return &*component.1;
+                return component.1.downcast_ref::<T>();
             }
         }
 
         panic!("TEMP");
+    }
+
+    #[allow(clippy::missing_panics_doc)]
+    pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: u64, closure: F)
+    where
+        F: FnOnce(Option<&mut (TypeId, Box<dyn Any>)>)
+    {
+        let components_ids = {
+            let entity = self.get_entity(entity_id).expect("unexpected HashMap error");
+
+            entity.components_ids.clone()
+        };
+
+        let mut id = 0;
+
+        {
+            for component_id in &components_ids {
+                let component = self.components.get_mut(component_id).expect("unexpected HashMap error");
+
+                if component.0 == TypeId::of::<T>() {
+                    id = *component_id;
+                    break;
+                }
+            }
+
+            assert!(id != 0, "TEMP");
+        }
+
+        closure(self.components.get_mut(&id));
     }
 
     #[allow(clippy::missing_panics_doc)]
@@ -179,6 +209,10 @@ impl World {
 
     pub fn call(&self, callback: fn(&Self, &[u64]), ids: &[u64]) {
         callback(self, ids);
+    }
+
+    pub fn call_mut(&mut self, callback: fn(&mut Self, &[u64], &dyn Any), ids: &[u64], data: &dyn Any) {
+        callback(self, ids, data);
     }
 
     pub fn debug(&self) {
