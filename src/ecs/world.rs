@@ -78,6 +78,26 @@ impl World {
         self.entities.get_mut(&id)
     }
 
+    #[must_use]
+    #[allow(clippy::missing_panics_doc)]
+    pub fn get_component<T: Component + 'static>(&self, entity_id: u64) -> &dyn Component {
+        let components_ids = {
+            let entity = self.get_entity(entity_id).expect("unexpected HashMap error");
+
+            entity.components_ids.clone()
+        };
+
+        for component_id in &components_ids {
+            let component = self.components.get(component_id).expect("unexpected HashMap error");
+
+            if component.0 == TypeId::of::<T>() {
+                return &*component.1;
+            }
+        }
+
+        panic!("TEMP");
+    }
+
     #[allow(clippy::missing_panics_doc)]
     pub fn remove_entity(&mut self, id: u64) {
         let parent_id_option = {
