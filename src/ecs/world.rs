@@ -77,6 +77,29 @@ impl World {
         }
     }
 
+    pub fn spawn_components<T: Component + Copy + 'static>(&mut self, entity_id: Id, amount: u32, component: T) {
+        if self.get_entity(entity_id).is_none() {
+            return;
+        }
+
+        // amount is u32, despite having an alias `Id` for it,
+        // for the purpose of showing intent in the argument,
+        // so this variable exists to ensure the type is the same,
+        // as an extra explicit type check for future code modifications
+        let zero: Id = 0;
+
+        for _ in zero..amount {
+            let id = self.component_counter;
+            self.component_counter += 1;
+
+            self.components.insert(id, (TypeId::of::<T>(), Box::new(component)));
+
+            if let Some(entity) = self.get_mut_entity(entity_id) {
+                entity.components_ids.push(id);
+            }
+        }
+    }
+
     #[inline]
     #[must_use]
     fn get_entity(&self, id: Id) -> Option<&Entity> {
