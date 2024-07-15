@@ -13,11 +13,13 @@ use super::{
     entity::Entity
 };
 
+pub type Id = u32;
+
 pub struct World {
-    entities:          HashMap<u64, Entity>,
-    components:        HashMap<u64, (TypeId, Box<dyn Any>)>,
-    entity_counter:    u64,
-    component_counter: u64
+    entities:          HashMap<Id, Entity>,
+    components:        HashMap<Id, (TypeId, Box<dyn Any>)>,
+    entity_counter:    Id,
+    component_counter: Id
 }
 
 impl World {
@@ -32,7 +34,7 @@ impl World {
         }
     }
 
-    pub fn spawn_entity(&mut self) -> u64 {
+    pub fn spawn_entity(&mut self) -> Id {
         let id = self.entity_counter;
         self.entity_counter += 1;
 
@@ -41,7 +43,7 @@ impl World {
         id
     }
 
-    pub fn spawn_child_entity(&mut self, parent_id: u64) -> Option<u64> {
+    pub fn spawn_child_entity(&mut self, parent_id: Id) -> Option<Id> {
         let id = self.entity_counter;
 
         match self.get_mut_entity(parent_id) {
@@ -60,7 +62,7 @@ impl World {
         Some(id)
     }
 
-    pub fn spawn_component<T: Component + 'static>(&mut self, entity_id: u64, component: T) {
+    pub fn spawn_component<T: Component + 'static>(&mut self, entity_id: Id, component: T) {
         if self.get_entity(entity_id).is_none() {
             return;
         }
@@ -76,16 +78,16 @@ impl World {
     }
 
     #[must_use]
-    pub fn get_entity(&self, id: u64) -> Option<&Entity> {
+    pub fn get_entity(&self, id: Id) -> Option<&Entity> {
         self.entities.get(&id)
     }
 
-    pub fn get_mut_entity(&mut self, id: u64) -> Option<&mut Entity> {
+    pub fn get_mut_entity(&mut self, id: Id) -> Option<&mut Entity> {
         self.entities.get_mut(&id)
     }
 
     #[must_use]
-    pub fn get_component<T: Component + 'static>(&self, entity_id: u64) -> Option<&T> {
+    pub fn get_component<T: Component + 'static>(&self, entity_id: Id) -> Option<&T> {
         let components_ids = {
             match self.get_entity(entity_id) {
                 Some(entity) => entity.components_ids.clone(),
@@ -108,7 +110,7 @@ impl World {
         None
     }
 
-    pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: u64, closure: F)
+    pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
     where
         F: FnOnce(Option<&mut T>)
     {
@@ -122,7 +124,7 @@ impl World {
             }
         };
 
-        let mut id        = u64::MAX;
+        let mut id        = Id::MAX;
         let     user_type = TypeId::of::<T>();
 
         for component_id in &components_ids {
@@ -137,8 +139,8 @@ impl World {
 
         closure(
             match id {
-                u64::MAX => None,
-                _        => {
+                Id::MAX => None,
+                _       => {
                     match self.components.get_mut(&id) {
                         Some((_, component)) => component.downcast_mut::<T>(),
                         None                 => None
@@ -148,7 +150,7 @@ impl World {
         );
     }
 
-    pub fn remove_entity(&mut self, id: u64) {
+    pub fn remove_entity(&mut self, id: Id) {
         let parent_id_option = {
             match self.get_entity(id) {
                 Some(entity) => entity.parent_id_option,
@@ -174,7 +176,7 @@ impl World {
     }
 
     // recursive functionality of Self::remove_entity
-    fn remove_entity_(&mut self, id: u64) {
+    fn remove_entity_(&mut self, id: Id) {
         let (children_ids, components_ids) = {
             match self.get_entity(id) {
                 Some(entity) => (entity.children_ids.clone(), entity.components_ids.clone()),
@@ -195,16 +197,16 @@ impl World {
         self.entities.remove(&id);
     }
 
-    pub fn remove_component<T: Component + 'static>(&mut self, entity_id: u64) {
+    pub fn remove_component<T: Component + 'static>(&mut self, entity_id: Id) {
         self.remove_component_::<T>(entity_id, false);
     }
 
-    pub fn remove_components<T: Component + 'static>(&mut self, entity_id: u64) {
+    pub fn remove_components<T: Component + 'static>(&mut self, entity_id: Id) {
         self.remove_component_::<T>(entity_id, true);
     }
 
     // optionally recursive functionality of Self::remove_component(s)
-    fn remove_component_<T: Component + 'static>(&mut self, entity_id: u64, recursive: bool) {
+    fn remove_component_<T: Component + 'static>(&mut self, entity_id: Id, recursive: bool) {
         let components_ids = {
             match self.get_entity(entity_id) {
                 Some(entity) => entity.components_ids.clone(),
@@ -240,11 +242,11 @@ impl World {
         }
     }
 
-    pub fn call(&self, callback: fn(&Self, &[u64]), ids: &[u64]) {
+    pub fn call(&self, callback: fn(&Self, &[Id]), ids: &[Id]) {
         callback(self, ids);
     }
 
-    pub fn call_mut(&mut self, callback: fn(&mut Self, &[u64], &dyn Any), ids: &[u64], data: &dyn Any) {
+    pub fn call_mut(&mut self, callback: fn(&mut Self, &[Id], &dyn Any), ids: &[Id], data: &dyn Any) {
         callback(self, ids, data);
     }
 
