@@ -95,9 +95,11 @@ impl World {
             }
         };
 
+        let user_type = TypeId::of::<T>();
+
         for component_id in &components_ids {
             if let Some(component) = self.components.get(component_id) {
-                if component.0 == TypeId::of::<T>() {
+                if component.0 == user_type {
                     return component.1.downcast_ref::<T>();
                 }
             }
@@ -120,11 +122,12 @@ impl World {
             }
         };
 
-        let mut id = u64::MAX;
+        let mut id        = u64::MAX;
+        let     user_type = TypeId::of::<T>();
 
         for component_id in &components_ids {
             if let Some((component_type, _)) = self.components.get(component_id) {
-                if *component_type == TypeId::of::<T>() {
+                if *component_type == user_type {
                     id = *component_id;
 
                     break;
@@ -211,9 +214,13 @@ impl World {
             }
         };
 
+        let user_type = TypeId::of::<T>();
+
         for component_id in &components_ids {
             if let Some(component) = self.components.get(component_id) {
-                if component.0 == TypeId::of::<T>() {
+                if component.0 == user_type {
+                    // this World::get_mut_entity call is reduntantly inside a for loop,
+                    // but it is here to satisfy the borrow checker
                     if let Some(entity) = self.get_mut_entity(entity_id) {
                         for i in 0..entity.components_ids.len() {
                             if entity.components_ids[i] == *component_id {
