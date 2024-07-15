@@ -4,7 +4,7 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    ops::FnOnce
+    ops::Fn
 };
 
 // super
@@ -139,42 +139,48 @@ impl World {
 
     pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
     where
-        F: FnOnce(Option<&mut T>)
+        F: Fn(&mut T)
+    {
+        self.get_mut_component_(entity_id, closure, false);
+    }
+
+    pub fn get_mut_components<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
+    where
+        F: Fn(&mut T)
+    {
+        self.get_mut_component_(entity_id, closure, true);
+    }
+
+    // optionally recursive functionality of Self::get_mut_component(s)
+    fn get_mut_component_<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F, recursive: bool)
+    where
+        F: Fn(&mut T)
     {
         let components_ids = {
             if let Some(entity) = self.get_entity(entity_id) {
                 entity.components_ids.clone()
             } else {
-                closure(None);
-
                 return;
             }
         };
 
-        let mut id        = Id::MAX;
-        let     user_type = TypeId::of::<T>();
+        let user_type = TypeId::of::<T>();
 
         for component_id in &components_ids {
             if let Some((component_type, _)) = self.components.get(component_id) {
                 if *component_type == user_type {
-                    id = *component_id;
+                    if let Some((_, component)) = self.components.get_mut(component_id) {
+                        if let Some(downcasted_component) = component.downcast_mut::<T>() {
+                            closure(downcasted_component);
+                        }
+                    }
 
-                    break;
-                }
-            }
-        }
-
-        closure(
-            match id {
-                Id::MAX => None,
-                _       => {
-                    match self.components.get_mut(&id) {
-                        Some((_, component)) => component.downcast_mut::<T>(),
-                        None                 => None
+                    if !recursive {
+                        break;
                     }
                 }
             }
-        );
+        }
     }
 
     pub fn remove_entity(&mut self, id: Id) {
