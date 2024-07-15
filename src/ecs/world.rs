@@ -79,12 +79,13 @@ impl World {
 
     #[inline]
     #[must_use]
-    pub fn get_entity(&self, id: Id) -> Option<&Entity> {
+    fn get_entity(&self, id: Id) -> Option<&Entity> {
         self.entities.get(&id)
     }
 
     #[inline]
-    pub fn get_mut_entity(&mut self, id: Id) -> Option<&mut Entity> {
+    #[must_use]
+    fn get_mut_entity(&mut self, id: Id) -> Option<&mut Entity> {
         self.entities.get_mut(&id)
     }
 
