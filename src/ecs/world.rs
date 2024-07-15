@@ -77,11 +77,13 @@ impl World {
         }
     }
 
+    #[inline]
     #[must_use]
     pub fn get_entity(&self, id: Id) -> Option<&Entity> {
         self.entities.get(&id)
     }
 
+    #[inline]
     pub fn get_mut_entity(&mut self, id: Id) -> Option<&mut Entity> {
         self.entities.get_mut(&id)
     }
@@ -137,6 +139,7 @@ impl World {
         components
     }
 
+    #[inline]
     pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
     where
         F: Fn(&mut T)
@@ -144,6 +147,7 @@ impl World {
         self.get_mut_component_(entity_id, closure, false);
     }
 
+    #[inline]
     pub fn get_mut_components<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
     where
         F: Fn(&mut T)
@@ -230,10 +234,12 @@ impl World {
         self.entities.remove(&id);
     }
 
+    #[inline]
     pub fn remove_component<T: Component + 'static>(&mut self, entity_id: Id) {
         self.remove_component_::<T>(entity_id, false);
     }
 
+    #[inline]
     pub fn remove_components<T: Component + 'static>(&mut self, entity_id: Id) {
         self.remove_component_::<T>(entity_id, true);
     }
@@ -275,10 +281,12 @@ impl World {
         }
     }
 
+    #[inline]
     pub fn call(&self, callback: fn(&Self, &[Id]), ids: &[Id]) {
         callback(self, ids);
     }
 
+    #[inline]
     pub fn call_mut<T>(&mut self, callback: fn(&mut Self, &[Id], T), ids: &[Id], data: T) {
         callback(self, ids, data);
     }
