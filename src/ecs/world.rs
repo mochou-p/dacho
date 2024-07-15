@@ -279,7 +279,7 @@ impl World {
         callback(self, ids);
     }
 
-    pub fn call_mut(&mut self, callback: fn(&mut Self, &[Id], &dyn Any), ids: &[Id], data: &dyn Any) {
+    pub fn call_mut<T>(&mut self, callback: fn(&mut Self, &[Id], T), ids: &[Id], data: T) {
         callback(self, ids, data);
     }
 
