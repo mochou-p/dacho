@@ -8,6 +8,6 @@ pub mod world;
 // pub use
 pub use {
     component::Component,
-    world::World
+    world::{Id, World}
 };
 
