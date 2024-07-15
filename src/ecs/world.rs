@@ -102,7 +102,7 @@ impl World {
     #[allow(clippy::missing_panics_doc)]
     pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: u64, closure: F)
     where
-        F: FnOnce(Option<&mut (TypeId, Box<dyn Any>)>)
+        F: FnOnce(&mut T)
     {
         let components_ids = {
             let entity = self.get_entity(entity_id).expect("unexpected HashMap error");
@@ -125,7 +125,13 @@ impl World {
             assert!(id != 0, "TEMP");
         }
 
-        closure(self.components.get_mut(&id));
+        let (_, component) = self.components.get_mut(&id).expect("None");
+
+        if let Some(weapon) = component.downcast_mut::<T>() {
+            closure(weapon);
+        } else {
+            panic!("TEMP");
+        }
     }
 
     #[allow(clippy::missing_panics_doc)]
