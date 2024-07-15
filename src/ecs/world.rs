@@ -110,6 +110,33 @@ impl World {
         None
     }
 
+    #[must_use]
+    pub fn get_components<T: Component + 'static>(&self, entity_id: Id) -> Vec<&T> {
+        let components_ids = {
+            match self.get_entity(entity_id) {
+                Some(entity) => entity.components_ids.clone(),
+                None         => {
+                    return vec![];
+                }
+            }
+        };
+
+        let     user_type  = TypeId::of::<T>();
+        let mut components = vec![];
+
+        for component_id in &components_ids {
+            if let Some(component) = self.components.get(component_id) {
+                if component.0 == user_type {
+                    if let Some(downcasted_component) = component.1.downcast_ref::<T>() {
+                        components.push(downcasted_component);
+                    }
+                }
+            }
+        }
+
+        components
+    }
+
     pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
     where
         F: FnOnce(Option<&mut T>)
