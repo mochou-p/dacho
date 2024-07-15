@@ -50,7 +50,7 @@ impl World {
             Some(parent) => {
                 parent.children_ids.push(id);
             },
-            None => {
+            _ => {
                 return None;
             }
         }
@@ -70,10 +70,15 @@ impl World {
         let id = self.component_counter;
         self.component_counter += 1;
 
-        self.components.insert(id, (TypeId::of::<T>(), Box::new(component)));
+        let user_type = TypeId::of::<T>();
+
+        self.components.insert(id, (user_type, Box::new(component)));
 
         if let Some(entity) = self.get_mut_entity(entity_id) {
-            entity.components_ids.push(id);
+            entity.components_id_map
+                .entry(user_type)
+                .or_insert_with(|| Vec::with_capacity(1))
+                .push(id);
         }
     }
 
@@ -86,16 +91,21 @@ impl World {
         // for the purpose of showing intent in the argument,
         // so this variable exists to ensure the type is the same,
         // as an extra explicit type check for future code modifications
-        let zero: Id = 0;
+        let zero: Id  = 0;
+        let user_type = TypeId::of::<T>();
+
 
         for _ in zero..amount {
             let id = self.component_counter;
             self.component_counter += 1;
 
-            self.components.insert(id, (TypeId::of::<T>(), Box::new(component)));
+            self.components.insert(id, (user_type, Box::new(component)));
 
             if let Some(entity) = self.get_mut_entity(entity_id) {
-                entity.components_ids.push(id);
+                entity.components_id_map
+                    .entry(user_type)
+                    .or_insert_with(|| Vec::with_capacity(amount as usize))
+                    .push(id);
             }
         }
     }
@@ -114,21 +124,10 @@ impl World {
 
     #[must_use]
     pub fn get_component<T: Component + 'static>(&self, entity_id: Id) -> Option<&T> {
-        let components_ids = {
-            match self.get_entity(entity_id) {
-                Some(entity) => entity.components_ids.clone(),
-                None         => {
-                    return None;
-                }
-            }
-        };
-
-        let user_type = TypeId::of::<T>();
-
-        for component_id in &components_ids {
-            if let Some(component) = self.components.get(component_id) {
-                if component.0 == user_type {
-                    return component.1.downcast_ref::<T>();
+        if let Some(entity) = self.get_entity(entity_id) {
+            if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
+                if let Some((_, component)) = self.components.get(&components_ids[0]) {
+                    return component.downcast_ref::<T>();
                 }
             }
         }
@@ -138,29 +137,25 @@ impl World {
 
     #[must_use]
     pub fn get_components<T: Component + 'static>(&self, entity_id: Id) -> Vec<&T> {
-        let components_ids = {
-            match self.get_entity(entity_id) {
-                Some(entity) => entity.components_ids.clone(),
-                None         => {
-                    return vec![];
-                }
-            }
-        };
+        if let Some(entity) = self.get_entity(entity_id) {
+            let user_type = TypeId::of::<T>();
 
-        let     user_type  = TypeId::of::<T>();
-        let mut components = vec![];
+            if let Some(components_ids) = entity.components_id_map.get(&user_type) {
+                let mut components = Vec::with_capacity(components_ids.len());
 
-        for component_id in &components_ids {
-            if let Some(component) = self.components.get(component_id) {
-                if component.0 == user_type {
-                    if let Some(downcasted_component) = component.1.downcast_ref::<T>() {
-                        components.push(downcasted_component);
+                for component_id in components_ids {
+                    if let Some((_, component)) = self.components.get(component_id) {
+                        if let Some(downcasted_component) = component.downcast_ref::<T>() {
+                            components.push(downcasted_component);
+                        }
                     }
                 }
+
+                return components;
             }
         }
 
-        components
+        vec![]
     }
 
     #[inline]
@@ -185,28 +180,30 @@ impl World {
         F: Fn(&mut T)
     {
         let components_ids = {
-            if let Some(entity) = self.get_entity(entity_id) {
-                entity.components_ids.clone()
-            } else {
-                return;
+            match self.get_entity(entity_id) {
+                Some(entity) => {
+                    match entity.components_id_map.get(&TypeId::of::<T>()) {
+                        Some(components_ids) => components_ids.clone(),
+                        _                    => {
+                            return;
+                        }
+                    }
+                },
+                _ => {
+                    return;
+                }
             }
         };
 
-        let user_type = TypeId::of::<T>();
-
         for component_id in &components_ids {
-            if let Some((component_type, _)) = self.components.get(component_id) {
-                if *component_type == user_type {
-                    if let Some((_, component)) = self.components.get_mut(component_id) {
-                        if let Some(downcasted_component) = component.downcast_mut::<T>() {
-                            closure(downcasted_component);
-                        }
-                    }
-
-                    if !recursive {
-                        break;
-                    }
+            if let Some((_, component)) = self.components.get_mut(component_id) {
+                if let Some(downcasted_component) = component.downcast_mut::<T>() {
+                    closure(downcasted_component);
                 }
+            }
+
+            if !recursive {
+                break;
             }
         }
     }
@@ -215,7 +212,7 @@ impl World {
         let parent_id_option = {
             match self.get_entity(id) {
                 Some(entity) => entity.parent_id_option,
-                None         => {
+                _            => {
                     return;
                 }
             }
@@ -238,10 +235,10 @@ impl World {
 
     // recursive functionality of Self::remove_entity
     fn remove_entity_(&mut self, id: Id) {
-        let (children_ids, components_ids) = {
+        let (children_ids, components_id_map) = {
             match self.get_entity(id) {
-                Some(entity) => (entity.children_ids.clone(), entity.components_ids.clone()),
-                None         => {
+                Some(entity) => (entity.children_ids.clone(), entity.components_id_map.clone()),
+                _            => {
                     return;
                 }
             }
@@ -251,8 +248,10 @@ impl World {
             self.remove_entity_(*child_id);
         }
 
-        for component_id in &components_ids {
-            self.components.remove(component_id);
+        for components_ids in components_id_map.values() {
+            for component_id in components_ids {
+                self.components.remove(component_id);
+            }
         }
 
         self.entities.remove(&id);
@@ -270,38 +269,34 @@ impl World {
 
     // optionally recursive functionality of Self::remove_component(s)
     fn remove_component_<T: Component + 'static>(&mut self, entity_id: Id, recursive: bool) {
+        let user_type = &TypeId::of::<T>();
+
         let components_ids = {
             match self.get_entity(entity_id) {
-                Some(entity) => entity.components_ids.clone(),
-                None         => {
+                Some(entity) => {
+                    match entity.components_id_map.get(user_type) {
+                        Some(components_ids) => components_ids.clone(),
+                        _ => {
+                            return;
+                        }
+                    }
+                },
+                _ => {
                     return;
                 }
             }
         };
 
-        let user_type = TypeId::of::<T>();
-
         for component_id in &components_ids {
-            if let Some(component) = self.components.get(component_id) {
-                if component.0 == user_type {
-                    // this World::get_mut_entity call is reduntantly inside a for loop,
-                    // but it is here to satisfy the borrow checker
-                    if let Some(entity) = self.get_mut_entity(entity_id) {
-                        for i in 0..entity.components_ids.len() {
-                            if entity.components_ids[i] == *component_id {
-                                entity.components_ids.remove(i);
-                                break;
-                            }
-                        }
+            self.components.remove(component_id);
 
-                        self.components.remove(component_id);
-
-                        if !recursive {
-                            break;
-                        }
-                    }
-                }
+            if !recursive {
+                break;
             }
+        }
+
+        if let Some(entity) = self.get_mut_entity(entity_id) {
+            entity.components_id_map.remove(user_type);
         }
     }
 
