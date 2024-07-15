@@ -306,13 +306,13 @@ impl World {
     }
 
     #[inline]
-    pub fn call(&self, callback: fn(&Self, &[Id]), ids: &[Id]) {
-        callback(self, ids);
+    pub fn call<T>(&self, callback: fn(&Self, T), data: T) {
+        callback(self, data);
     }
 
     #[inline]
-    pub fn call_mut<T>(&mut self, callback: fn(&mut Self, &[Id], T), ids: &[Id], data: T) {
-        callback(self, ids, data);
+    pub fn call_mut<T>(&mut self, callback: fn(&mut Self, T), data: T) {
+        callback(self, data);
     }
 
     pub fn debug(&self) {
