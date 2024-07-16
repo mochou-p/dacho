@@ -17,7 +17,7 @@ pub type Id = u32;
 
 pub struct World {
     entities:          HashMap<Id, Entity>,
-    components:        HashMap<Id, (TypeId, Box<dyn Any>)>,
+    components:        HashMap<Id, Box<dyn Any>>,
     entity_counter:    Id,
     component_counter: Id
 }
@@ -70,13 +70,11 @@ impl World {
         let id = self.component_counter;
         self.component_counter += 1;
 
-        let user_type = TypeId::of::<T>();
-
-        self.components.insert(id, (user_type, Box::new(component)));
+        self.components.insert(id, Box::new(component));
 
         if let Some(entity) = self.get_mut_entity(entity_id) {
             entity.components_id_map
-                .entry(user_type)
+                .entry(TypeId::of::<T>())
                 .or_insert_with(|| Vec::with_capacity(1))
                 .push(id);
         }
@@ -91,19 +89,17 @@ impl World {
         // for the purpose of showing intent in the argument,
         // so this variable exists to ensure the type is the same,
         // as an extra explicit type check for future code modifications
-        let zero: Id  = 0;
-        let user_type = TypeId::of::<T>();
-
+        let zero: Id = 0;
 
         for _ in zero..amount {
             let id = self.component_counter;
             self.component_counter += 1;
 
-            self.components.insert(id, (user_type, Box::new(component)));
+            self.components.insert(id, Box::new(component));
 
             if let Some(entity) = self.get_mut_entity(entity_id) {
                 entity.components_id_map
-                    .entry(user_type)
+                    .entry(TypeId::of::<T>())
                     .or_insert_with(|| Vec::with_capacity(amount as usize))
                     .push(id);
             }
@@ -126,7 +122,7 @@ impl World {
     pub fn get_component<T: Component + 'static>(&self, entity_id: Id) -> Option<&T> {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
-                if let Some((_, component)) = self.components.get(&components_ids[0]) {
+                if let Some(component) = self.components.get(&components_ids[0]) {
                     return component.downcast_ref::<T>();
                 }
             }
@@ -144,7 +140,7 @@ impl World {
                 let mut components = Vec::with_capacity(components_ids.len());
 
                 for component_id in components_ids {
-                    if let Some((_, component)) = self.components.get(component_id) {
+                    if let Some(component) = self.components.get(component_id) {
                         if let Some(downcasted_component) = component.downcast_ref::<T>() {
                             components.push(downcasted_component);
                         }
@@ -196,7 +192,7 @@ impl World {
         };
 
         for component_id in &components_ids {
-            if let Some((_, component)) = self.components.get_mut(component_id) {
+            if let Some(component) = self.components.get_mut(component_id) {
                 if let Some(downcasted_component) = component.downcast_mut::<T>() {
                     closure(downcasted_component);
                 }
