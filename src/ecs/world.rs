@@ -5,7 +5,7 @@ use std::{
     any::{Any, TypeId},
     collections::HashMap,
     mem::take,
-    ops::FnOnce
+    ops::{Fn, FnOnce}
 };
 
 // super
@@ -16,13 +16,15 @@ use super::{
 
 pub type Id             = u32;
     type BoxedDynFnOnce = Box<dyn FnOnce(&mut World)>;
+    type BoxedDynFn     = Box<dyn Fn    (&mut World)>;
 
 pub struct World {
-    entities:            HashMap<Id, Entity>,
-    components:          HashMap<Id, Box<dyn Any>>,
-    entity_counter:      Id,
-    component_counter:   Id,
-    start_callbacks:     Vec<BoxedDynFnOnce>
+    entities:          HashMap<Id, Entity>,
+    components:        HashMap<Id, Box<dyn Any>>,
+    entity_counter:    Id,
+    component_counter: Id,
+    start_callbacks:   Vec<BoxedDynFnOnce>,
+    update_callbacks:  Vec<BoxedDynFn>
 }
 
 impl World {
@@ -34,7 +36,8 @@ impl World {
             components:        HashMap::new(),
             entity_counter:    0,
             component_counter: 0,
-            start_callbacks:   vec![]
+            start_callbacks:   vec![],
+            update_callbacks:  vec![]
         }
     }
 
@@ -302,11 +305,25 @@ impl World {
         self.start_callbacks.push(Box::new(callback));
     }
 
-    pub fn run(&mut self) {
-        let mut taken_start_callbacks = take(&mut self.start_callbacks);
+    pub fn update(&mut self, callback: impl Fn(&mut Self) + 'static) {
+        self.update_callbacks.push(Box::new(callback));
+    }
 
-        for callback in taken_start_callbacks {
-            callback(self);
+    pub fn run(&mut self) {
+        {
+            let mut taken_start_callbacks = take(&mut self.start_callbacks);
+
+            for callback in taken_start_callbacks {
+                callback(self);
+            }
+        }
+
+        let taken_update_callbacks = take(&mut self.update_callbacks);
+
+        loop {
+            for callback in &taken_update_callbacks {
+                callback(self);
+            }
         }
     }
 
