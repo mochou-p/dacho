@@ -4,6 +4,7 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
+    mem::take,
     ops::Fn
 };
 
@@ -13,13 +14,17 @@ use super::{
     entity::Entity
 };
 
-pub type Id = u32;
+pub type Id               = u32;
+    type StartCallback    = fn(     &World, &Box<dyn Any>);
+    type StartMutCallback = fn(&mut  World, &Box<dyn Any>);
 
 pub struct World {
-    entities:          HashMap<Id, Entity>,
-    components:        HashMap<Id, Box<dyn Any>>,
-    entity_counter:    Id,
-    component_counter: Id
+    entities:            HashMap<Id, Entity>,
+    components:          HashMap<Id, Box<dyn Any>>,
+    entity_counter:      Id,
+    component_counter:   Id,
+    start_callbacks:     Vec<(StartCallback,    Box<dyn Any>)>,
+    start_mut_callbacks: Vec<(StartMutCallback, Box<dyn Any>)>
 }
 
 impl World {
@@ -27,10 +32,12 @@ impl World {
     #[allow(clippy::new_without_default)]
     pub fn new() -> Self {
         Self {
-            entities:          HashMap::new(),
-            components:        HashMap::new(),
-            entity_counter:    0,
-            component_counter: 0
+            entities:            HashMap::new(),
+            components:          HashMap::new(),
+            entity_counter:      0,
+            component_counter:   0,
+            start_callbacks:     vec![],
+            start_mut_callbacks: vec![]
         }
     }
 
@@ -302,6 +309,28 @@ impl World {
     #[inline]
     pub fn call_mut<T>(&mut self, callback: fn(&mut Self, T), data: T) {
         callback(self, data);
+    }
+
+    pub fn start(&mut self, callback: StartCallback, data: impl Any) {
+        self.start_callbacks.push((callback, Box::new(data)));
+    }
+
+    pub fn start_mut(&mut self, callback: StartMutCallback, data: impl Any) {
+        self.start_mut_callbacks.push((callback, Box::new(data)));
+    }
+
+    pub fn run(&mut self) {
+        for (callback, data) in &self.start_callbacks {
+            callback(self, data);
+        }
+
+        let taken_start_mut_callbacks = take(&mut self.start_mut_callbacks);
+
+        for (callback, data) in &taken_start_mut_callbacks {
+            callback(self, data);
+        }
+
+        self.start_mut_callbacks = taken_start_mut_callbacks;
     }
 
     pub fn debug(&self) {
