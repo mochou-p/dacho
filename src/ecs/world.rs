@@ -85,25 +85,25 @@ impl World {
             return;
         }
 
-        // amount is u32, despite having an alias `Id` for it,
-        // for the purpose of showing intent in the argument,
-        // so this variable exists to ensure the type is the same,
-        // as an extra explicit type check for future code modifications
-        let zero: Id = 0;
+        let range = self.component_counter..self.component_counter + amount;
 
-        for _ in zero..amount {
-            let id = self.component_counter;
-            self.component_counter += 1;
-
-            self.components.insert(id, Box::new(component));
-
-            if let Some(entity) = self.get_mut_entity(entity_id) {
-                entity.components_id_map
-                    .entry(TypeId::of::<T>())
-                    .or_insert_with(|| Vec::with_capacity(amount as usize))
-                    .push(id);
-            }
+        for i in range.clone() {
+            self.components.insert(i, Box::new(component));
         }
+
+        if let Some(entity) = self.get_mut_entity(entity_id) {
+            let capacity = amount as usize;
+
+            entity.components_id_map
+                .entry(TypeId::of::<T>())
+                .and_modify(|components_ids| {
+                    components_ids.reserve_exact(capacity);
+                })
+                .or_insert_with(|| Vec::with_capacity(capacity))
+                .extend(range);
+        }
+
+        self.component_counter += amount;
     }
 
     #[inline]
@@ -134,9 +134,7 @@ impl World {
     #[must_use]
     pub fn get_components<T: Component + 'static>(&self, entity_id: Id) -> Vec<&T> {
         if let Some(entity) = self.get_entity(entity_id) {
-            let user_type = TypeId::of::<T>();
-
-            if let Some(components_ids) = entity.components_id_map.get(&user_type) {
+            if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
                 let mut components = Vec::with_capacity(components_ids.len());
 
                 for component_id in components_ids {
