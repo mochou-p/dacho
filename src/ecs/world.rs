@@ -125,88 +125,84 @@ impl World {
         self.entities.get_mut(&id)
     }
 
-    #[must_use]
-    pub fn get_component<T: Component + 'static>(&self, entity_id: Id) -> Option<&T> {
+    pub fn get_component<T: Component + 'static>(&self, entity_id: Id, closure: impl FnOnce(&Self, &T)) {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
                 if let Some(component) = self.components.get(&components_ids[0]) {
-                    return component.downcast_ref::<T>();
+                    if let Some(downcasted_component) = component.downcast_ref::<T>() {
+                        closure(self, downcasted_component);
+                    }
                 }
             }
         }
-
-        None
     }
 
-    #[must_use]
-    pub fn get_components<T: Component + 'static>(&self, entity_id: Id) -> Vec<&T> {
+    pub fn get_components<T: Component + 'static>(&self, entity_id: Id, closure: impl Fn(&Self, &T)) {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
-                let mut components = Vec::with_capacity(components_ids.len());
+                let mut downcasted_components = Vec::with_capacity(components_ids.len());
 
                 for component_id in components_ids {
                     if let Some(component) = self.components.get(component_id) {
                         if let Some(downcasted_component) = component.downcast_ref::<T>() {
-                            components.push(downcasted_component);
+                            downcasted_components.push(downcasted_component);
                         }
                     }
                 }
 
-                return components;
+                for downcasted_component in &downcasted_components {
+                    closure(self, downcasted_component);
+                }
             }
         }
-
-        vec![]
     }
 
-    #[inline]
-    pub fn get_mut_component<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
-    where
-        F: Fn(&mut T)
-    {
-        self.get_mut_component_(entity_id, closure, false);
-    }
-
-    #[inline]
-    pub fn get_mut_components<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F)
-    where
-        F: Fn(&mut T)
-    {
-        self.get_mut_component_(entity_id, closure, true);
-    }
-
-    // optionally recursive functionality of Self::get_mut_component(s)
-    fn get_mut_component_<T: Component + 'static, F>(&mut self, entity_id: Id, closure: F, recursive: bool)
-    where
-        F: Fn(&mut T)
-    {
-        let components_ids = {
-            match self.get_entity(entity_id) {
-                Some(entity) => {
-                    match entity.components_id_map.get(&TypeId::of::<T>()) {
-                        Some(components_ids) => components_ids.clone(),
-                        _                    => {
-                            return;
-                        }
-                    }
-                },
-                _ => {
-                    return;
-                }
+    pub fn get_mut_component<T: Component + 'static>(&mut self, entity_id: Id, closure: impl FnOnce(&mut Self, &mut T)) {
+        let components_ids = if let Some(entity) = self.get_entity(entity_id) {
+            if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
+                components_ids.clone()
+            } else {
+                return;
             }
+        } else {
+            return;
         };
 
-        for component_id in &components_ids {
-            if let Some(component) = self.components.get_mut(component_id) {
-                if let Some(downcasted_component) = component.downcast_mut::<T>() {
-                    closure(downcasted_component);
-                }
-            }
+        let mut taken_components = take(&mut self.components);
 
-            if !recursive {
-                break;
+        if let Some(component) = taken_components.get_mut(&components_ids[0]) {
+            if let Some(downcasted_component) = component.downcast_mut::<T>() {
+                closure(self, downcasted_component);
             }
         }
+
+        self.components = taken_components;
+    }
+
+    pub fn get_mut_components<T: Component + 'static>(&mut self, entity_id: Id, closure: impl Fn(&mut Self, &mut T)) {
+        let components_ids = if let Some(entity) = self.get_entity(entity_id) {
+            if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
+                components_ids.clone()
+            } else {
+                return;
+            }
+        } else {
+            return;
+        };
+
+        let mut taken_components = take(&mut self.components);
+
+        let mut downcasted_components = taken_components
+            .iter_mut()
+            .filter(|(key, _)| components_ids.contains(key))
+            .filter_map(|(_, value)| value.downcast_mut::<T>())
+            .collect::<Vec<&mut T>>();
+
+        for downcasted_component in &mut downcasted_components {
+            closure(self, *downcasted_component);
+        }
+
+        self.components = taken_components;
     }
 
     pub fn remove_entity(&mut self, id: Id) {
