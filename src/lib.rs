@@ -10,8 +10,8 @@
 #![allow(clippy::unnecessary_wraps)]
 
 // modules
-    mod application;
 pub mod ecs;
+pub mod game;
 pub mod prelude;
     mod renderer;
     mod shader;

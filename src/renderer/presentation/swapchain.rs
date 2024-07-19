@@ -11,7 +11,7 @@ use super::Surface;
 
 // crate
 use crate::{
-    application::logger::Logger,
+    game::logger::Logger,
     renderer::{
         devices::{Device, PhysicalDevice},
         images::{Image, ImageView},

@@ -25,7 +25,7 @@ use super::{
 
 // crate
 use crate::{
-    application::logger::Logger,
+    game::logger::Logger,
     log
 };
 

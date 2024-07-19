@@ -10,21 +10,17 @@
 pub mod rendering;
     mod setup;
 
-// crates
-use anyhow::Result;
+// std
+use std::collections::HashMap;
 
-/*
+// crates
 use {
     anyhow::{Context, Result},
     ash::vk,
     winit::event_loop::EventLoop
 };
-*/
 
 // mod
-use devices::Device;
-
-/*
 use {
     buffers::Buffer,
     commands::{Command, CommandBuffers, CommandPool},
@@ -36,18 +32,17 @@ use {
 };
 
 // super
-use super::application::window::Window;
+use super::game::window::Window;
 
 // debug
 #[cfg(debug_assertions)]
 use {
     setup::Debug,
     super::{
-        application::logger::Logger,
+        game::logger::Logger,
         log, log_indent
     }
 };
-*/
 
 pub trait VulkanObject {
     type RawType;
@@ -66,7 +61,6 @@ pub trait VulkanObject {
 }
 
 pub struct Renderer {
-    /*
     _entry:                 Entry,
     instance:               Instance,
     #[cfg(debug_assertions)]
@@ -83,17 +77,13 @@ pub struct Renderer {
     descriptor_pool:        DescriptorPool,
     command_pool:           CommandPool,
     command_buffers:        CommandBuffers
-    */
 }
 
 impl Renderer {
     pub fn new(
-        /*
-        event_loop:    &EventLoop<()>,
-        window:        &Window
-        */
+        event_loop: &EventLoop<()>,
+        window:     &Window
     ) -> Result<Self> {
-        /*
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
             log_indent!(true);
@@ -115,15 +105,16 @@ impl Renderer {
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
 
-        let mut shader_info_cache = HashMap::new();
+//        let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
-        let mut geometries        = Vec::with_capacity(data.geometry.len());
+        let mut geometries        = Vec::with_capacity(0); //data.geometry.len());
 
         #[cfg(debug_assertions)] {
             log!(info, "Processing GeometryData");
             log_indent!(true);
         }
 
+        /*
         for geometry_data in &data.geometry {
             let geometry = Geometry::new(
                 &instance, &physical_device, &device, &command_pool, geometry_data, &mut shader_info_cache
@@ -142,6 +133,7 @@ impl Renderer {
 
             geometries.push(geometry);
         }
+        */
 
         #[cfg(debug_assertions)]
         log_indent!(false);
@@ -158,8 +150,9 @@ impl Renderer {
         #[cfg(debug_assertions)]
         log!(info, "Sorting Geometry");
 
-        geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
+        // geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
+        /*
         for geometry in &geometries {
             if geometry.shader != last_pipeline {
                 commands.push(
@@ -180,16 +173,15 @@ impl Renderer {
 
             commands.append(&mut geometry.draw());
         }
+        */
 
         command_buffers.record(&device, &commands)?;
 
         #[cfg(debug_assertions)]
         log_indent!(false);
-        */
 
         Ok(
             Self {
-                /*
                 _entry: entry,
                 instance,
                 #[cfg(debug_assertions)]
@@ -206,22 +198,16 @@ impl Renderer {
                 descriptor_pool,
                 command_pool,
                 command_buffers
-                */
             }
         )
     }
 
-    /*
     #[inline]
     pub fn wait_for_device(&self) {
         self.device.wait();
     }
 
-    pub fn redraw(
-        &mut self,
-        camera: &Camera,
-        time:    f32
-    ) {
+    pub fn redraw(&mut self, time: f32) {
         let (image_index, _) = unsafe {
             self.swapchain.loader
                 .acquire_next_image(
@@ -235,7 +221,6 @@ impl Renderer {
 
         UniformBufferObject::update(
             self.ubo_mapped,
-            camera,
             time
         );
 
@@ -295,10 +280,8 @@ impl Renderer {
             (self.swapchain.current_image + 1)
             % self.swapchain.image_count;
     }
-    */
 }
 
-/*
 impl Drop for Renderer {
     fn drop(&mut self) {
         #[cfg(debug_assertions)] {
@@ -349,5 +332,4 @@ impl Drop for Renderer {
         log_indent!(false);
     }
 }
-*/
 

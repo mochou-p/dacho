@@ -15,7 +15,7 @@ use crate::renderer::{
 // debug
 #[cfg(debug_assertions)]
 use crate::{
-    application::logger::Logger,
+    game::logger::Logger,
     log
 };
 
