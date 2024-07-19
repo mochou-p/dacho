@@ -3,11 +3,11 @@
 // modules
 pub mod component;
 pub mod entity;
+pub mod system;
 pub mod world;
 
 // pub use
 pub use {
-    std::any::Any,
     component::Component,
     world::{Id, World}
 };

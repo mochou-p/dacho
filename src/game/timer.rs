@@ -1,4 +1,4 @@
-// dacho/src/application/timer.rs
+// dacho/src/game/timer.rs
 
 // std
 use std::time::Instant;

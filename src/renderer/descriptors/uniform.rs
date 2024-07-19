@@ -7,19 +7,17 @@ use {
 };
 
 // crate
-use crate::{
-    renderer::{
-        buffers::Buffer,
-        devices::{Device, PhysicalDevice},
-        setup::Instance,
-        VulkanObject
-    }
+use crate::renderer::{
+    buffers::Buffer,
+    devices::{Device, PhysicalDevice},
+    setup::Instance,
+    VulkanObject
 };
 
 // debug
 #[cfg(debug_assertions)]
 use crate::{
-    application::logger::Logger,
+    game::logger::Logger,
     log
 };
 

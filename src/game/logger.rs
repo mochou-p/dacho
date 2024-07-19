@@ -1,4 +1,4 @@
-// dacho/src/application/logger.rs
+// dacho/src/game/logger.rs
 
 #![allow(dead_code)]
 
@@ -79,9 +79,7 @@ impl Logger {
     pub fn info_r<T: Into<String> + Display>(message: &T) {
         print!("{}\r", Self::info_str(message));
 
-        std::io::stdout()
-            .flush()
-            .expect("Failed to flush stdout");
+        std::io::stdout().flush();
     }
 
     pub fn warning<T: Into<String> + Display>(message: &T) {
@@ -92,6 +90,7 @@ impl Logger {
         println!("{}", Self::error_str(message));
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn panic<T: Into<String> + Display>(message: &T) {
         panic!("{}", Self::error_str(message));
     }

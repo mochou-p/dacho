@@ -4,27 +4,25 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
-    mem::take,
-    ops::{Fn, FnOnce}
+    mem::take
 };
 
 // super
 use super::{
     component::Component,
-    entity::Entity
+    entity::Entity,
+    system::{StartSystem, UpdateSystem}
 };
 
-pub type Id             = u32;
-    type BoxedDynFnOnce = Box<dyn FnOnce(&mut World)>;
-    type BoxedDynFn     = Box<dyn Fn    (&mut World)>;
+pub type Id = u32;
 
 pub struct World {
-    entities:          HashMap<Id, Entity>,
-    components:        HashMap<Id, Box<dyn Any>>,
-    entity_counter:    Id,
-    component_counter: Id,
-    start_callbacks:   Vec<BoxedDynFnOnce>,
-    update_callbacks:  Vec<BoxedDynFn>
+        entities:          HashMap<Id, Entity>,
+        components:        HashMap<Id, Box<dyn Any>>,
+        entity_counter:    Id,
+        component_counter: Id,
+    pub start_systems:     Vec<StartSystem>,
+    pub update_systems:    Vec<UpdateSystem>
 }
 
 impl World {
@@ -36,8 +34,8 @@ impl World {
             components:        HashMap::new(),
             entity_counter:    0,
             component_counter: 0,
-            start_callbacks:   vec![],
-            update_callbacks:  vec![]
+            start_systems:     vec![],
+            update_systems:    vec![]
         }
     }
 
@@ -297,30 +295,22 @@ impl World {
         }
     }
 
-    pub fn start(&mut self, callback: impl FnOnce(&mut Self) + 'static) {
-        self.start_callbacks.push(Box::new(callback));
+    pub fn start(&mut self) {
+        let taken_start_systems = take(&mut self.start_systems);
+
+        for start_system in taken_start_systems {
+            start_system(self);
+        }
     }
 
-    pub fn update(&mut self, callback: impl Fn(&mut Self) + 'static) {
-        self.update_callbacks.push(Box::new(callback));
-    }
+    pub fn update(&mut self) {
+        let taken_update_systems = take(&mut self.update_systems);
 
-    pub fn run(&mut self) {
-        {
-            let mut taken_start_callbacks = take(&mut self.start_callbacks);
-
-            for callback in taken_start_callbacks {
-                callback(self);
-            }
+        for update_system in &taken_update_systems {
+            update_system(self);
         }
 
-        let taken_update_callbacks = take(&mut self.update_callbacks);
-
-        loop {
-            for callback in &taken_update_callbacks {
-                callback(self);
-            }
-        }
+        self.update_systems = taken_update_systems;
     }
 }
 

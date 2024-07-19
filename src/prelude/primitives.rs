@@ -14,7 +14,7 @@ use super::types::{V2, V3};
 
 // crate
 use crate::{
-    application::logger::Logger,
+    game::logger::Logger,
     renderer::rendering::GeometryData,
     log
 };

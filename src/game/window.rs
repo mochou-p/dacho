@@ -1,4 +1,4 @@
-// dacho/src/application/window.rs
+// dacho/src/game/window.rs
 
 // crates
 use {
@@ -26,6 +26,7 @@ pub struct Window {
 }
 
 impl Window {
+    #[allow(clippy::missing_errors_doc)]
     pub fn new(
         title:      &str,
         width:       u32,
@@ -49,6 +50,7 @@ impl Window {
         Ok(Self { raw, width, height })
     }
 
+    #[must_use]
     pub const fn raw(&self) -> &winit_Window {
         &self.raw
     }

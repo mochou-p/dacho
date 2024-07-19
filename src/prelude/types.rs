@@ -25,7 +25,7 @@ impl V2 {
     }
 
     #[must_use]
-    pub fn normalize(&self) -> Self {
+    pub fn normalize(self) -> Self {
         let n = glam::Vec2::from_array(self.to_array()).normalize();
 
         Self::new(n.x, n.y)
@@ -33,7 +33,7 @@ impl V2 {
 
     #[inline]
     #[must_use]
-    pub fn normalise(&self) -> Self {
+    pub fn normalise(self) -> Self {
         self.normalize()
     }
 
@@ -45,7 +45,7 @@ impl V2 {
 
     #[inline]
     #[must_use]
-    pub const fn to_glam(&self) -> Vec2 {
+    pub const fn to_glam(self) -> Vec2 {
         Vec2::new(self.x, self.y)
     }
 }
@@ -103,7 +103,7 @@ impl V3 {
 
     #[inline]
     #[must_use]
-    pub const fn to_glam(&self) -> Vec3 {
+    pub const fn to_glam(self) -> Vec3 {
         Vec3::new(self.x, self.y, self.z)
     }
 }
