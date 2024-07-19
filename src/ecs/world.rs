@@ -11,10 +11,11 @@ use std::{
 use super::{
     component::Component,
     entity::Entity,
-    system::{StartSystem, UpdateSystem}
+    system::{StartSystem, StateSystem, UpdateSystem}
 };
 
-pub type Id = u32;
+pub type Id    = u32;
+pub type State = u8;
 
 pub struct World {
         entities:          HashMap<Id, Entity>,
@@ -22,7 +23,8 @@ pub struct World {
         entity_counter:    Id,
         component_counter: Id,
     pub start_systems:     Vec<StartSystem>,
-    pub update_systems:    Vec<UpdateSystem>
+    pub update_systems:    Vec<UpdateSystem>,
+    pub state_system:      Option<(State, StateSystem)>
 }
 
 impl World {
@@ -35,7 +37,8 @@ impl World {
             entity_counter:    0,
             component_counter: 0,
             start_systems:     vec![],
-            update_systems:    vec![]
+            update_systems:    vec![],
+            state_system:      None
         }
     }
 
@@ -69,7 +72,7 @@ impl World {
 
     pub fn spawn_component<T>(&mut self, entity_id: Id, component: T)
     where
-        T: Component + 'static
+        T: Component
     {
         if self.get_entity(entity_id).is_none() {
             return;
@@ -90,7 +93,7 @@ impl World {
 
     pub fn spawn_components<T>(&mut self, entity_id: Id, amount: u32, component: T)
     where
-        T: Component + Copy + 'static
+        T: Component + Copy
     {
         if self.get_entity(entity_id).is_none() {
             return;
@@ -130,7 +133,7 @@ impl World {
 
     pub fn get_entity_component<T>(&self, entity_id: Id, closure: impl FnOnce(&T))
     where
-        T: Component + 'static
+        T: Component
     {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
@@ -147,7 +150,7 @@ impl World {
 
     pub fn get_entity_components<T>(&self, entity_id: Id, closure: impl Fn(&T))
     where
-        T: Component + 'static
+        T: Component
     {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
@@ -164,7 +167,7 @@ impl World {
 
     pub fn get_entity_mut_component<T>(&mut self, entity_id: Id, closure: impl FnOnce(&mut T))
     where
-        T: Component + 'static
+        T: Component
     {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
@@ -181,7 +184,7 @@ impl World {
 
     pub fn get_entity_mut_components<T>(&mut self, entity_id: Id, closure: impl Fn(&mut T))
     where
-        T: Component + 'static
+        T: Component
     {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
@@ -247,7 +250,7 @@ impl World {
     #[inline]
     pub fn remove_component<T>(&mut self, entity_id: Id)
     where
-        T: Component + 'static
+        T: Component
     {
         self.remove_component_::<T>(entity_id, false);
     }
@@ -255,14 +258,14 @@ impl World {
     #[inline]
     pub fn remove_components<T>(&mut self, entity_id: Id)
     where
-        T: Component + 'static
+        T: Component
     {
         self.remove_component_::<T>(entity_id, true);
     }
 
     fn remove_component_<T>(&mut self, entity_id: Id, recursive: bool)
     where
-        T: Component + 'static
+        T: Component
     {
         let user_type = &TypeId::of::<T>();
 
@@ -293,6 +296,24 @@ impl World {
         if let Some(entity) = self.get_mut_entity(entity_id) {
             entity.components_id_map.remove(user_type);
         }
+    }
+
+    pub fn get_state(&self, closure: impl FnOnce(State)) {
+        if let Some((state, _)) = self.state_system {
+            closure(state);
+        }
+    }
+
+    pub fn set_state(&mut self, new_state: State) {
+        let taken_state_system = take(&mut self.state_system);
+
+        if let Some((mut old_state, state_system)) = &taken_state_system {
+            state_system(self, old_state, new_state);
+
+            old_state = new_state;
+        }
+
+        self.state_system = taken_state_system;
     }
 
     pub fn start(&mut self) {

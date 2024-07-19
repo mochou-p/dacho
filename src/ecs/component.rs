@@ -1,4 +1,4 @@
 // dacho/src/ecs/component.rs
 
-pub trait Component {}
+pub trait Component: 'static {}
 
