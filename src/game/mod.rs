@@ -25,10 +25,7 @@ use {
 };
 
 // super
-use super::ecs::{
-    system::UpdateSystem,
-    world::World
-};
+use super::ecs::world::{State, World};
 
 // crate
 use crate::renderer::Renderer;
@@ -44,10 +41,6 @@ use {
         log
     }
 };
-
-struct Systems {
-    update: Vec<UpdateSystem>
-}
 
 pub struct Game {
     title:    String,
@@ -70,12 +63,17 @@ impl Game {
         Self { title: String::from(title), world, timer, window: None, renderer: None }
     }
 
-    pub fn start(&mut self, callback: impl FnOnce(&mut World) + 'static) {
-        self.world.start_systems.push(Box::new(callback));
+    pub fn state(&mut self, default: State, state_system: impl Fn(&mut World, State, State) + 'static)
+    {
+        self.world.state_system = Some((default, Box::new(state_system)));
     }
 
-    pub fn update(&mut self, callback: impl Fn(&mut World) + 'static) {
-        self.world.update_systems.push(Box::new(callback));
+    pub fn start(&mut self, start_system: impl FnOnce(&mut World) + 'static) {
+        self.world.start_systems.push(Box::new(start_system));
+    }
+
+    pub fn update(&mut self, update_system: impl Fn(&mut World) + 'static) {
+        self.world.update_systems.push(Box::new(update_system));
     }
 
     #[allow(clippy::missing_panics_doc)]
