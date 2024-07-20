@@ -12,9 +12,11 @@ use std::mem::take;
 use {
     anyhow::Result,
     winit::{
-        event::{Event, WindowEvent},
-        event_loop::{EventLoop, EventLoopWindowTarget},
-        keyboard::{KeyCode::Escape, PhysicalKey::Code}
+        application::ApplicationHandler,
+        event::WindowEvent,
+        event_loop::{ActiveEventLoop, EventLoop, ControlFlow::Poll},
+        keyboard::{KeyCode::Escape, PhysicalKey::Code},
+        window::WindowId
     }
 };
 
@@ -63,8 +65,7 @@ impl Game {
         Self { title: String::from(title), world, timer, window: None, renderer: None }
     }
 
-    pub fn state(&mut self, default: State, state_system: impl Fn(&mut World, State, State) + 'static)
-    {
+    pub fn state(&mut self, default: State, state_system: impl Fn(&mut World, State, State) + 'static) {
         self.world.state_system = Some((default, Box::new(state_system)));
     }
 
@@ -78,46 +79,56 @@ impl Game {
 
     #[allow(clippy::missing_panics_doc)]
     pub fn run(mut self) {
+        let event_loop = EventLoop::new().expect("failed to create an EventLoop");
+
+        event_loop.set_control_flow(Poll);
+        event_loop.run_app(&mut self);
+
+        if let Some(renderer) = self.renderer {
+            drop(renderer);
+        }
+    }
+}
+
+impl ApplicationHandler for Game {
+    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.world.start();
 
-        let event_loop = winit::event_loop::EventLoop::new()
-            .expect("failed to create an EventLoop");
-
         self.window = Some(
-            Window::new(&self.title, 1600, 900, &event_loop)
+            Window::new(&self.title, 1600, 900, event_loop)
                 .expect("failed to create a Window")
         );
 
         if let Some(window) = &self.window {
             self.renderer = Some(
-                Renderer::new(&event_loop, window)
+                Renderer::new(event_loop, window)
                     .expect("failed to create a Renderer")
             );
-        }
-
-        event_loop.run(move |event, elwt| {
-            self.handle_event(&event, elwt);
-        }).expect("failed to run an EventLoop");
+        } 
     }
 
-    fn handle_event<T>(&mut self, event: &Event<T>, elwt: &EventLoopWindowTarget<T>) {
-        match event {
-            Event::WindowEvent { event: WindowEvent::CloseRequested, .. } => {
-                elwt.exit();
-            },
-            Event::WindowEvent { event: WindowEvent::KeyboardInput { event, is_synthetic: false, .. }, .. } => {
-                if event.physical_key == Code(Escape) {
-                    elwt.exit();
-                }
-            },
-            Event::AboutToWait => {
-                self.world.update();
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        self.world.update();
 
-                if let Some(window) = &self.window {
-                    window.request_redraw();
+        if let Some(window) = &self.window {
+            window.request_redraw();
+        }
+    }
+
+    #[allow(clippy::only_used_in_recursion)]
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+        match event {
+            WindowEvent::CloseRequested => {
+                event_loop.exit();
+            },
+            WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
+                if event.physical_key == Code(Escape) {
+                    if let Some(window) = &self.window {
+                        self.window_event(event_loop, id, WindowEvent::CloseRequested);
+                    }
                 }
             },
-            Event::WindowEvent { event: WindowEvent::RedrawRequested, .. } => {
+            WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.redraw(self.timer.elapsed());
                 };

@@ -1,12 +1,9 @@
 // dacho/src/prelude/types.rs
 
 // crates
-use {
-    glam::f32::{Vec2, Vec3},
-    serde::{Serialize, Deserialize}
-};
+use glam::f32::{Vec2, Vec3};
 
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone)]
 pub struct V2 {
     pub x: f32,
     pub y: f32
@@ -58,7 +55,7 @@ impl core::ops::Mul<f32> for V2 {
     }
 }
 
-#[derive(Copy, Clone, Serialize, Deserialize)]
+#[derive(Copy, Clone)]
 pub struct V3 {
     pub x: f32,
     pub y: f32,

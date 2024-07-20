@@ -5,11 +5,8 @@ use {
     anyhow::Result,
     winit::{
         dpi::PhysicalSize,
-        event_loop::EventLoop,
-        window::{
-            Window as winit_Window,
-            WindowBuilder
-        }
+        event_loop::ActiveEventLoop,
+        window::Window as winit_Window
     }
 };
 
@@ -31,15 +28,16 @@ impl Window {
         title:      &str,
         width:       u32,
         height:      u32,
-        event_loop: &EventLoop<()>
+        event_loop: &ActiveEventLoop
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating Window");
 
-        let raw = WindowBuilder::new()
+        let window_attributes = winit_Window::default_attributes()
             .with_title(title)
-            .with_inner_size(PhysicalSize::new(width, height))
-            .build(event_loop)?;
+            .with_inner_size(PhysicalSize::new(width, height));
+
+        let raw = event_loop.create_window(window_attributes)?;
 
         if raw.set_cursor_grab(winit::window::CursorGrabMode::Locked).is_err() {
             log!(warning, "Failed to lock the cursor");
@@ -55,6 +53,7 @@ impl Window {
         &self.raw
     }
 
+    #[inline]
     pub fn request_redraw(&self) {
         self.raw.request_redraw();
     }
