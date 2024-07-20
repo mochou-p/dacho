@@ -6,8 +6,7 @@ use std::collections::HashMap;
 // crates
 use {
     anyhow::{Context, Result},
-    ash::vk,
-    serde::{Serialize, Deserialize}
+    ash::vk
 };
 
 // super
@@ -25,7 +24,7 @@ use crate::{
     shader::{ShaderInfo, size_of_types}
 };
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone)]
 pub struct GeometryData {
     pub shader:       String,
     pub cull_mode:    u32,

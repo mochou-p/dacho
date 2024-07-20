@@ -17,7 +17,7 @@ use std::collections::HashMap;
 use {
     anyhow::{Context, Result},
     ash::vk,
-    winit::event_loop::EventLoop
+    winit::event_loop::ActiveEventLoop
 };
 
 // mod
@@ -81,7 +81,7 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        event_loop: &EventLoop<()>,
+        event_loop: &ActiveEventLoop,
         window:     &Window
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {

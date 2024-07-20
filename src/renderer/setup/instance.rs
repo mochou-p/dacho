@@ -5,7 +5,7 @@ use {
     anyhow::Result,
     ash::vk,
     raw_window_handle::HasRawDisplayHandle,
-    winit::event_loop::EventLoop
+    winit::event_loop::ActiveEventLoop
 };
 
 // super
@@ -37,7 +37,7 @@ pub struct Instance {
 
 impl Instance {
     pub fn new(
-        event_loop: &EventLoop<()>,
+        event_loop: &ActiveEventLoop,
         entry:      &Entry
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
