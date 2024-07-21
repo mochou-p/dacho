@@ -77,8 +77,9 @@ impl Game {
         self.world.update_systems.push(Box::new(update_system));
     }
 
+    #[tokio::main]
     #[allow(clippy::missing_panics_doc)]
-    pub fn run(mut self) {
+    pub async fn run(mut self) {
         let event_loop = EventLoop::new().expect("failed to create an EventLoop");
 
         event_loop.set_control_flow(Poll);
@@ -101,8 +102,12 @@ impl ApplicationHandler for Game {
 
         if let Some(window) = &self.window {
             self.renderer = Some(
-                Renderer::new(event_loop, window)
-                    .expect("failed to create a Renderer")
+                Renderer::new(
+                    event_loop,
+                    window,
+                    &self.world.get_mesh_data()
+                        .expect("failed to get world mesh data")
+                ).expect("failed to create a Renderer")
             );
         } 
     }

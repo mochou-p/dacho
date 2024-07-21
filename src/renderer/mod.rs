@@ -27,7 +27,7 @@ use {
     descriptors::{DescriptorPool, DescriptorSet, DescriptorSetLayout, UniformBufferObject},
     devices::{Device, PhysicalDevice},
     presentation::{Surface, Swapchain},
-    rendering::{Geometry, Pipeline, RenderPass},
+    rendering::{Geometry, GeometryData, Pipeline, RenderPass},
     setup::{Entry, Instance}
 };
 
@@ -81,8 +81,9 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        event_loop: &ActiveEventLoop,
-        window:     &Window
+        event_loop:    &ActiveEventLoop,
+        window:        &Window,
+        geometry_data: &[GeometryData]
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
@@ -105,35 +106,33 @@ impl Renderer {
         let descriptor_set_layout = DescriptorSetLayout::new(&device)?;
         let command_pool          = CommandPool::new(&device)?;
 
-//        let mut shader_info_cache = HashMap::new();
+        let mut shader_info_cache = HashMap::new();
         let mut pipelines         = HashMap::new();
-        let mut geometries        = Vec::with_capacity(0); //data.geometry.len());
+        let mut geometries        = Vec::with_capacity(geometry_data.len());
 
         #[cfg(debug_assertions)] {
             log!(info, "Processing GeometryData");
             log_indent!(true);
         }
 
-        /*
-        for geometry_data in &data.geometry {
+        for data in geometry_data {
             let geometry = Geometry::new(
-                &instance, &physical_device, &device, &command_pool, geometry_data, &mut shader_info_cache
+                &instance, &physical_device, &device, &command_pool, data, &mut shader_info_cache
             )?;
 
-            if !pipelines.contains_key(&geometry_data.shader) {
-                let shader_info = shader_info_cache.get(&geometry_data.shader)
-                    .context(format!("{} not found in shader info cache", geometry_data.shader))?;
+            if !pipelines.contains_key(&data.shader) {
+                let shader_info = shader_info_cache.get(&data.shader)
+                    .context(format!("{} not found in shader info cache", data.shader))?;
 
                 let pipeline = Pipeline::new(
                     &device, &descriptor_set_layout, &swapchain, &render_pass, shader_info
                 )?;
 
-                pipelines.insert(geometry_data.shader.clone(), pipeline);
+                pipelines.insert(data.shader.clone(), pipeline);
             }
 
             geometries.push(geometry);
         }
-        */
 
         #[cfg(debug_assertions)]
         log_indent!(false);
@@ -150,9 +149,8 @@ impl Renderer {
         #[cfg(debug_assertions)]
         log!(info, "Sorting Geometry");
 
-        // geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
+        geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
 
-        /*
         for geometry in &geometries {
             if geometry.shader != last_pipeline {
                 commands.push(
@@ -173,7 +171,6 @@ impl Renderer {
 
             commands.append(&mut geometry.draw());
         }
-        */
 
         command_buffers.record(&device, &commands)?;
 

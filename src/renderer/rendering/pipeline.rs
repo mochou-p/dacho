@@ -24,7 +24,8 @@ use crate::{
     },
     shader::{
         ShaderInfo, Type,
-        compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type     },
+        compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
+    },
     log
 };
 
@@ -245,7 +246,7 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
 
         block_on(compile_shaders())?;
 
-        std::fs::read(spv)?
+        std::fs::read(spv).expect("could not read {spv}")
     };
 
     #[allow(clippy::cast_ptr_alignment)]
