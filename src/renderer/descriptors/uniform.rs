@@ -22,11 +22,9 @@ use crate::{
 };
 
 pub struct UniformBufferObject {
-    /*
     _view:       glam::Mat4,
     _projection: glam::Mat4,
     _camera_pos: glam::Vec4,
-    */
     _time:       f32
 }
 
@@ -66,27 +64,23 @@ impl UniformBufferObject {
         ubo_mapped: *mut core::ffi::c_void,
         time:        f32
     ) {
-        /*
-        let view = glam::Mat4::look_at_rh(camera.translation, camera.translation + camera.rotation.to_direction(), glam::Vec3::Y);
+        const FOV:  f32 = 2.0;
+        const AR:   f32 = 16.0/9.0;
+        const NEAR: f32 = 0.0001;
+        const FAR:  f32 = 10000.0;
 
-        let projection = if camera.has_perspective {
-            let mut projection   = glam::Mat4::perspective_rh(camera.fov, camera.aspect_ratio, camera.near, camera.far);
-            projection.y_axis.y *= -1.0;
+        let view = glam::Mat4::look_at_rh(glam::Vec3::Z, glam::Vec3::ZERO, glam::Vec3::Y);
 
-            projection
-        } else {
-            let x = camera.fov * camera.aspect_ratio;
+        let projection = {
+            let x = FOV * AR;
 
-            glam::Mat4::orthographic_rh(-x, x, camera.fov, -camera.fov, camera.near, camera.far)
+            glam::Mat4::orthographic_rh(-x, x, FOV, -FOV, NEAR, FAR)
         };
-        */
 
         let mut ubo = Self {
-            /*
             _view:       view,
             _projection: projection,
-            _camera_pos: camera.translation.extend(0.0),
-            */
+            _camera_pos: glam::Vec3::NEG_Z.extend(0.0),
             _time:       time
         };
 

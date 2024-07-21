@@ -5,7 +5,6 @@ mod buffers;
 mod pool;
 
 #[allow(clippy::wildcard_imports)]
-#[allow(unused_imports)]
 pub(super) use {buffers::*, pool::*};
 
 // super

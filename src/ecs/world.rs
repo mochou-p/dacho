@@ -7,11 +7,20 @@ use std::{
     mem::take
 };
 
+// crates
+use anyhow::Result;
+
 // super
 use super::{
     component::Component,
     entity::Entity,
     system::{StartSystem, StateSystem, UpdateSystem}
+};
+
+// crate
+use crate::{
+    prelude::mesh::Mesh,
+    renderer::rendering::GeometryData
 };
 
 pub type Id    = u32;
@@ -24,7 +33,8 @@ pub struct World {
         component_counter: Id,
     pub start_systems:     Vec<StartSystem>,
     pub update_systems:    Vec<UpdateSystem>,
-    pub state_system:      Option<(State, StateSystem)>
+    pub state_system:      Option<(State, StateSystem)>,
+        mesh_components:   Vec<Id>
 }
 
 impl World {
@@ -38,7 +48,8 @@ impl World {
             component_counter: 0,
             start_systems:     vec![],
             update_systems:    vec![],
-            state_system:      None
+            state_system:      None,
+            mesh_components:   vec![]
         }
     }
 
@@ -83,9 +94,15 @@ impl World {
 
         self.components.insert(id, Box::new(component));
 
+        let user_type = TypeId::of::<T>();
+
+        if user_type == TypeId::of::<Mesh>() {
+            self.mesh_components.push(id);
+        }
+
         if let Some(entity) = self.get_mut_entity(entity_id) {
             entity.components_id_map
-                .entry(TypeId::of::<T>())
+                .entry(user_type)
                 .or_insert_with(|| Vec::with_capacity(1))
                 .push(id);
         }
@@ -332,6 +349,21 @@ impl World {
         }
 
         self.update_systems = taken_update_systems;
+    }
+
+    #[allow(clippy::missing_errors_doc)]
+    pub fn get_mesh_data(&mut self) -> Result<Vec<GeometryData>> {
+        let mut mesh_data = vec![];
+
+        for component_id in &self.mesh_components {
+            if let Some(component) = self.components.get(component_id) {
+                if let Some(mesh) = component.downcast_ref::<Mesh>() {
+                    mesh_data.push((mesh.data_builder)()?);
+                }
+            }
+        }
+
+        Ok(mesh_data)
     }
 }
 
