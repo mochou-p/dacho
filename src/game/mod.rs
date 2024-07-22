@@ -26,6 +26,9 @@ use {
     window::Window
 };
 
+// pub use
+pub use winit::{keyboard::KeyCode, event::ElementState as KeyState};
+
 // super
 use super::ecs::world::{State, World};
 
@@ -62,25 +65,40 @@ impl Game {
             50
         );
 
-        Self { title: String::from(title), world, timer, window: None, renderer: None }
+        Self {
+            title: String::from(title),
+            world,
+            timer,
+            window: None,
+            renderer: None
+        }
     }
 
+    #[inline]
     pub fn state(&mut self, default: State, state_system: impl Fn(&mut World, State, State) + 'static) {
         self.world.state_system = Some((default, Box::new(state_system)));
     }
 
+    #[inline]
     pub fn start(&mut self, start_system: impl FnOnce(&mut World) + 'static) {
         self.world.start_systems.push(Box::new(start_system));
     }
 
+    #[inline]
     pub fn update(&mut self, update_system: impl Fn(&mut World) + 'static) {
         self.world.update_systems.push(Box::new(update_system));
+    }
+
+    #[inline]
+    pub fn keyboard(&mut self, keyboard_system: impl Fn(&mut World, KeyCode, KeyState) + 'static) {
+        self.world.keyboard_systems.push(Box::new(keyboard_system));
     }
 
     #[tokio::main]
     #[allow(clippy::missing_panics_doc)]
     pub async fn run(mut self) {
-        let event_loop = EventLoop::new().expect("failed to create an EventLoop");
+        let event_loop = EventLoop::new()
+            .expect("failed to create an EventLoop");
 
         event_loop.set_control_flow(Poll);
         event_loop.run_app(&mut self);
@@ -127,10 +145,14 @@ impl ApplicationHandler for Game {
                 event_loop.exit();
             },
             WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
+                if event.repeat {
+                    return;
+                }
+
                 if event.physical_key == Code(Escape) {
-                    if let Some(window) = &self.window {
-                        self.window_event(event_loop, id, WindowEvent::CloseRequested);
-                    }
+                    self.window_event(event_loop, id, WindowEvent::CloseRequested);
+                } else {
+                    self.world.keyboard(&event);
                 }
             },
             WindowEvent::RedrawRequested => {

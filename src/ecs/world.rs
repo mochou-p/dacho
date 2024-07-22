@@ -8,13 +8,19 @@ use std::{
 };
 
 // crates
-use anyhow::Result;
+use {
+    anyhow::Result,
+    winit::{
+        keyboard::{KeyCode, PhysicalKey::Code},
+        event::KeyEvent
+    }
+};
 
 // super
 use super::{
     component::Component,
     entity::Entity,
-    system::{StartSystem, StateSystem, UpdateSystem}
+    system::{KeyboardSystem, StartSystem, StateSystem, UpdateSystem}
 };
 
 // crate
@@ -31,9 +37,10 @@ pub struct World {
         components:        HashMap<Id, Box<dyn Any>>,
         entity_counter:    Id,
         component_counter: Id,
+    pub state_system:      Option<(State, StateSystem)>,
     pub start_systems:     Vec<StartSystem>,
     pub update_systems:    Vec<UpdateSystem>,
-    pub state_system:      Option<(State, StateSystem)>,
+    pub keyboard_systems:  Vec<KeyboardSystem>,
         mesh_components:   Vec<Id>
 }
 
@@ -46,9 +53,10 @@ impl World {
             components:        HashMap::new(),
             entity_counter:    0,
             component_counter: 0,
+            state_system:      None,
             start_systems:     vec![],
             update_systems:    vec![],
-            state_system:      None,
+            keyboard_systems:  vec![],
             mesh_components:   vec![]
         }
     }
@@ -349,6 +357,18 @@ impl World {
         }
 
         self.update_systems = taken_update_systems;
+    }
+
+    pub fn keyboard(&mut self, key_event: &KeyEvent) {
+        let taken_keyboard_systems = take(&mut self.keyboard_systems);
+
+        for keyboard_system in &taken_keyboard_systems {
+            if let Code(code) =  key_event.physical_key {
+                keyboard_system(self, code, key_event.state);
+            }
+        }
+
+        self.keyboard_systems = taken_keyboard_systems;
     }
 
     #[allow(clippy::missing_errors_doc)]
