@@ -13,7 +13,7 @@ use {
     anyhow::Result,
     winit::{
         application::ApplicationHandler,
-        event::WindowEvent,
+        event::ElementState,
         event_loop::{ActiveEventLoop, EventLoop, ControlFlow::Poll},
         keyboard::{KeyCode::Escape, PhysicalKey::Code},
         window::WindowId
@@ -27,7 +27,11 @@ use {
 };
 
 // pub use
-pub use winit::{keyboard::KeyCode, event::ElementState as KeyState};
+pub use winit::{
+    dpi::PhysicalPosition,
+    event::{MouseButton, MouseScrollDelta, WindowEvent},
+    keyboard::KeyCode
+};
 
 // super
 use super::ecs::world::{State, World};
@@ -75,23 +79,68 @@ impl Game {
     }
 
     #[inline]
-    pub fn state(&mut self, default: State, state_system: impl Fn(&mut World, State, State) + 'static) {
-        self.world.state_system = Some((default, Box::new(state_system)));
+    pub fn state(
+        &mut self,
+        default: State,
+        state_system: impl Fn(&mut World, State, State) + 'static
+    ) {
+        self.world.systems.state = Some((default, Box::new(state_system)));
     }
 
     #[inline]
-    pub fn start(&mut self, start_system: impl FnOnce(&mut World) + 'static) {
-        self.world.start_systems.push(Box::new(start_system));
+    pub fn start(
+        &mut self,
+        start_system: impl FnOnce(&mut World) + 'static
+    ) {
+        self.world.systems.start.push(Box::new(start_system));
     }
 
     #[inline]
-    pub fn update(&mut self, update_system: impl Fn(&mut World) + 'static) {
-        self.world.update_systems.push(Box::new(update_system));
+    pub fn update(
+        &mut self,
+        update_system: impl Fn(&mut World) + 'static
+    ) {
+        self.world.systems.update.push(Box::new(update_system));
     }
 
     #[inline]
-    pub fn keyboard(&mut self, keyboard_system: impl Fn(&mut World, KeyCode, KeyState) + 'static) {
-        self.world.keyboard_systems.push(Box::new(keyboard_system));
+    pub fn keyboard(
+        &mut self,
+        keyboard_system: impl Fn(&mut World, KeyCode, ElementState) + 'static
+    ) {
+        self.world.systems.keyboard.push(Box::new(keyboard_system));
+    }
+
+    #[inline]
+    pub fn mouse_position(
+        &mut self,
+        mouse_position_system: impl Fn(&mut World, PhysicalPosition<f64>) + 'static
+    ) {
+        self.world.systems.mouse_position.push(Box::new(mouse_position_system));
+    }
+
+    #[inline]
+    pub fn mouse_button(
+        &mut self,
+        mouse_button_system: impl Fn(&mut World, MouseButton, ElementState) + 'static
+    ) {
+        self.world.systems.mouse_button.push(Box::new(mouse_button_system));
+    }
+
+    #[inline]
+    pub fn mouse_wheel(
+        &mut self,
+        mouse_wheel_system: impl Fn(&mut World, f32, f32) + 'static
+    ) {
+        self.world.systems.mouse_wheel.push(Box::new(mouse_wheel_system));
+    }
+
+    #[inline]
+    pub fn event(
+        &mut self,
+        event_system: impl Fn(&mut World, WindowEvent) + 'static
+    ) {
+        self.world.systems.event.push(Box::new(event_system));
     }
 
     #[tokio::main]
@@ -139,21 +188,39 @@ impl ApplicationHandler for Game {
     }
 
     #[allow(clippy::only_used_in_recursion)]
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, id: WindowId, event: WindowEvent) {
+    fn window_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        id:          WindowId,
+        event:       WindowEvent
+    ) {
         match event {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
             },
             WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
-                if event.repeat {
+                if is_synthetic || event.repeat {
                     return;
                 }
 
                 if event.physical_key == Code(Escape) {
-                    self.window_event(event_loop, id, WindowEvent::CloseRequested);
+                    self.window_event(
+                        event_loop,
+                        id,
+                        WindowEvent::CloseRequested
+                    );
                 } else {
                     self.world.keyboard(&event);
                 }
+            },
+            WindowEvent::CursorMoved { position, .. } => {
+                self.world.mouse_position(position);
+            },
+            WindowEvent::MouseInput { state, button, .. } => {
+                self.world.mouse_buttons(button, state);
+            },
+            WindowEvent::MouseWheel { delta, .. } => {
+                self.world.mouse_wheel(delta);
             },
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {

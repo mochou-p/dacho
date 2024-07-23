@@ -11,8 +11,12 @@ use std::{
 use {
     anyhow::Result,
     winit::{
+        dpi::PhysicalPosition,
+        event::{
+            ElementState, KeyEvent, MouseButton,
+            MouseScrollDelta::{self, LineDelta},
+        },
         keyboard::{KeyCode, PhysicalKey::Code},
-        event::KeyEvent
     }
 };
 
@@ -20,7 +24,7 @@ use {
 use super::{
     component::Component,
     entity::Entity,
-    system::{KeyboardSystem, StartSystem, StateSystem, UpdateSystem}
+    system::Systems
 };
 
 // crate
@@ -33,30 +37,25 @@ pub type Id    = u32;
 pub type State = u8;
 
 pub struct World {
-        entities:          HashMap<Id, Entity>,
-        components:        HashMap<Id, Box<dyn Any>>,
-        entity_counter:    Id,
-        component_counter: Id,
-    pub state_system:      Option<(State, StateSystem)>,
-    pub start_systems:     Vec<StartSystem>,
-    pub update_systems:    Vec<UpdateSystem>,
-    pub keyboard_systems:  Vec<KeyboardSystem>,
-        mesh_components:   Vec<Id>
+    entities:           HashMap<Id, Entity>,
+    components:         HashMap<Id, Box<dyn Any>>,
+    entity_counter:     Id,
+    component_counter:  Id,
+    mesh_components:    Vec<Id>,
+
+    pub(crate) systems: Systems,
 }
 
 impl World {
     #[must_use]
     #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             entities:          HashMap::new(),
             components:        HashMap::new(),
             entity_counter:    0,
             component_counter: 0,
-            state_system:      None,
-            start_systems:     vec![],
-            update_systems:    vec![],
-            keyboard_systems:  vec![],
+            systems:           Systems::new(),
             mesh_components:   vec![]
         }
     }
@@ -324,13 +323,17 @@ impl World {
     }
 
     pub fn get_state(&self, closure: impl FnOnce(State)) {
-        if let Some((state, _)) = self.state_system {
+        if let Some((state, _)) = self.systems.state {
             closure(state);
         }
     }
 
     pub fn set_state(&mut self, new_state: State) {
-        let taken_state_system = take(&mut self.state_system);
+        if self.systems.state.is_none() {
+            return;
+        }
+
+        let taken_state_system = take(&mut self.systems.state);
 
         if let Some((mut old_state, state_system)) = &taken_state_system {
             state_system(self, old_state, new_state);
@@ -338,41 +341,97 @@ impl World {
             old_state = new_state;
         }
 
-        self.state_system = taken_state_system;
+        self.systems.state = taken_state_system;
     }
 
-    pub fn start(&mut self) {
-        let taken_start_systems = take(&mut self.start_systems);
+    pub(crate) fn start(&mut self) {
+        if self.systems.start.is_empty() {
+            return;
+        }
+
+        let taken_start_systems = take(&mut self.systems.start);
 
         for start_system in taken_start_systems {
             start_system(self);
         }
     }
 
-    pub fn update(&mut self) {
-        let taken_update_systems = take(&mut self.update_systems);
+    pub(crate) fn update(&mut self) {
+        if self.systems.update.is_empty() {
+            return;
+        }
+
+        let taken_update_systems = take(&mut self.systems.update);
 
         for update_system in &taken_update_systems {
             update_system(self);
         }
 
-        self.update_systems = taken_update_systems;
+        self.systems.update = taken_update_systems;
     }
 
-    pub fn keyboard(&mut self, key_event: &KeyEvent) {
-        let taken_keyboard_systems = take(&mut self.keyboard_systems);
-
-        for keyboard_system in &taken_keyboard_systems {
-            if let Code(code) =  key_event.physical_key {
-                keyboard_system(self, code, key_event.state);
-            }
+    pub(crate) fn keyboard(&mut self, key_event: &KeyEvent) {
+        if self.systems.keyboard.is_empty() {
+            return;
         }
 
-        self.keyboard_systems = taken_keyboard_systems;
+        if let Code(code) = key_event.physical_key {
+            let taken_keyboard_systems = take(&mut self.systems.keyboard);
+
+            for keyboard_system in &taken_keyboard_systems {
+                keyboard_system(self, code, key_event.state);
+            }
+
+            self.systems.keyboard = taken_keyboard_systems;
+        }
+    }
+
+    pub(crate) fn mouse_position(&mut self, position: PhysicalPosition<f64>) {
+        if self.systems.mouse_position.is_empty() {
+            return;
+        }
+
+        let taken_mouse_position_systems = take(&mut self.systems.mouse_position);
+
+        for mouse_position_system in &taken_mouse_position_systems {
+            mouse_position_system(self, position);
+        }
+
+        self.systems.mouse_position = taken_mouse_position_systems;
+    }
+
+    pub(crate) fn mouse_buttons(&mut self, button: MouseButton, action: ElementState) {
+        if self.systems.mouse_button.is_empty() {
+            return;
+        }
+
+        let taken_mouse_button_systems = take(&mut self.systems.mouse_button);
+
+        for mouse_button_system in &taken_mouse_button_systems {
+            mouse_button_system(self, button, action);
+        }
+
+        self.systems.mouse_button = taken_mouse_button_systems;
+    }
+
+    pub(crate) fn mouse_wheel(&mut self, delta: MouseScrollDelta) {
+        if self.systems.mouse_wheel.is_empty() {
+            return;
+        }
+
+        if let LineDelta(x, y) = delta {
+            let taken_mouse_wheel_systems = take(&mut self.systems.mouse_wheel);
+
+            for mouse_wheel_system in &taken_mouse_wheel_systems {
+                mouse_wheel_system(self, x, y);
+            }
+
+            self.systems.mouse_wheel = taken_mouse_wheel_systems;
+        }
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub fn get_mesh_data(&mut self) -> Result<Vec<GeometryData>> {
+    pub(crate) fn get_mesh_data(&mut self) -> Result<Vec<GeometryData>> {
         let mut mesh_data = vec![];
 
         for component_id in &self.mesh_components {
