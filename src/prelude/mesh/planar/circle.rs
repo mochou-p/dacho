@@ -15,7 +15,12 @@ use crate::{
     log
 };
 
-pub fn mesh(p: V3, radius: f32, points: usize, standing: bool) -> Result<GeometryData> {
+pub fn mesh() -> Result<GeometryData> {
+    let p        = V3::ZERO;
+    let radius   = 0.5;
+    let points   = 10;
+    let standing = false;
+
     if points < 3 {
         log!(panic, "please provide more than 2 Circle.points");
     }
@@ -58,8 +63,6 @@ pub fn mesh(p: V3, radius: f32, points: usize, standing: bool) -> Result<Geometr
 
     indices.extend_from_slice(&[0, u32points, 1]);
 
-    let instances: Vec<f32> = vec![1.0, 1.0, 1.0, 0.5, 0.7];
-
     let shader       = String::from("default");
     let cull_mode    = vk::CullModeFlags::FRONT;
     let polygon_mode = vk::PolygonMode::FILL;
@@ -69,7 +72,7 @@ pub fn mesh(p: V3, radius: f32, points: usize, standing: bool) -> Result<Geometr
         cull_mode,
         polygon_mode,
         vertices,
-        instances,
+        vec![], // instances
         indices
     );
 
