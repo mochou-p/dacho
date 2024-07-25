@@ -41,20 +41,20 @@ impl Mesh {
         let model_matrix = Mat4::from_scale_rotation_translation(
             size.to_glam().extend(1.0),
             Quat::IDENTITY,
-            position.to_glam()
+            position.reverse_y().to_glam()
         );
 
         Self { mesh_id, model_matrix }
     }
 
     #[must_use]
-    pub fn circle(position: V3, radius: f32, points: usize, standing: bool) -> Self {
+    pub fn circle(position: V3, radius: f32) -> Self {
         let mesh_id = 1;
 
         let model_matrix = Mat4::from_scale_rotation_translation(
             Vec3::new(radius, radius, 1.0),
             Quat::IDENTITY,
-            position.to_glam()
+            position.reverse_y().to_glam()
         );
 
         Self { mesh_id, model_matrix }

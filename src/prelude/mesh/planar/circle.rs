@@ -18,12 +18,7 @@ use crate::{
 pub fn mesh() -> Result<GeometryData> {
     let p        = V3::ZERO;
     let radius   = 0.5;
-    let points   = 10;
-    let standing = false;
-
-    if points < 3 {
-        log!(panic, "please provide more than 2 Circle.points");
-    }
+    let points   = 42;
 
     // * 3 -> xyz
     // * 2 -> position, normal
@@ -40,14 +35,7 @@ pub fn mesh() -> Result<GeometryData> {
     let one_over_points =   1.0 / points as f32;
 
     for i in 0..points {
-        let a = angle_step.mul_add(
-            i as f32,
-            if standing {
-                180.0_f32.mul_add(one_over_points, -90.0)
-            } else {
-                -90.0
-            }
-        );
+        let a = angle_step.mul_add(i as f32, -90.0);
 
         let x = a.to_radians().cos().mul_add(radius, p.x);
         let y = a.to_radians().sin().mul_add(radius, p.y);
