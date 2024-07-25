@@ -10,6 +10,7 @@ use std::{
 // crates
 use {
     anyhow::Result,
+    glam::f32::Mat4,
     winit::{
         dpi::PhysicalPosition,
         event::{
@@ -41,7 +42,7 @@ pub struct World {
     components:         HashMap<Id, Box<dyn Any>>,
     entity_counter:     Id,
     component_counter:  Id,
-    mesh_components:    Vec<Id>,
+    mesh_instances:     HashMap<Id, Vec<Id>>,
 
     pub(crate) systems: Systems,
 }
@@ -56,7 +57,7 @@ impl World {
             entity_counter:    0,
             component_counter: 0,
             systems:           Systems::new(),
-            mesh_components:   vec![]
+            mesh_instances:    HashMap::new()
         }
     }
 
@@ -99,13 +100,20 @@ impl World {
         let id = self.component_counter;
         self.component_counter += 1;
 
-        self.components.insert(id, Box::new(component));
-
         let user_type = TypeId::of::<T>();
 
         if user_type == TypeId::of::<Mesh>() {
-            self.mesh_components.push(id);
+            let any_component = &component as &dyn Any;
+
+            if let Some(mesh_component) = any_component.downcast_ref::<Mesh>() {
+                self.mesh_instances
+                    .entry(mesh_component.mesh_id)
+                    .or_insert_with(|| Vec::with_capacity(1))
+                    .push(id);
+            }
         }
+
+        self.components.insert(id, Box::new(component));
 
         if let Some(entity) = self.get_mut_entity(entity_id) {
             entity.components_id_map
@@ -432,14 +440,22 @@ impl World {
 
     #[allow(clippy::missing_errors_doc)]
     pub(crate) fn get_mesh_data(&mut self) -> Result<Vec<GeometryData>> {
-        let mut mesh_data = vec![];
+        let mut mesh_data = Vec::with_capacity(self.mesh_instances.len());
 
-        for component_id in &self.mesh_components {
-            if let Some(component) = self.components.get(component_id) {
-                if let Some(mesh) = component.downcast_ref::<Mesh>() {
-                    mesh_data.push((mesh.data_builder)()?);
+        for (mesh_id, components_ids) in &self.mesh_instances {
+            let mut geometry_data = Mesh::BUILDERS[*mesh_id as usize]()?;
+
+            geometry_data.instances.reserve_exact(components_ids.len() * 16);
+
+            for component_id in components_ids {
+                if let Some(component) = self.components.get(component_id) {
+                    if let Some(mesh_component) = component.downcast_ref::<Mesh>() {
+                        geometry_data.instances.extend(mesh_component.model_matrix.to_cols_array());
+                    }
                 }
             }
+
+            mesh_data.push(geometry_data);
         }
 
         Ok(mesh_data)

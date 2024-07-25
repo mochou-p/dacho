@@ -160,6 +160,10 @@ impl Game {
 
 impl ApplicationHandler for Game {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.window.is_some() {
+            return;
+        }
+
         self.world.start();
 
         self.window = Some(
