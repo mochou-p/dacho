@@ -30,7 +30,7 @@ use {
 pub use winit::{
     dpi::PhysicalPosition,
     event::{MouseButton, MouseScrollDelta, WindowEvent},
-    keyboard::KeyCode
+    keyboard::KeyCode as Key
 };
 
 // super
@@ -52,11 +52,11 @@ use {
 };
 
 pub struct Game {
-    title:    String,
-    world:    World,
-    timer:    Timer,
-    window:   Option<Window>,
-    renderer: Option<Renderer>
+        title:    String,
+    pub world:    World,
+        timer:    Timer,
+        window:   Option<Window>,
+        renderer: Option<Renderer>
 }
 
 impl Game {
@@ -106,7 +106,7 @@ impl Game {
     #[inline]
     pub fn keyboard(
         &mut self,
-        keyboard_system: impl Fn(&mut World, KeyCode, ElementState) + 'static
+        keyboard_system: impl Fn(&mut World, Key, ElementState) + 'static
     ) {
         self.world.systems.keyboard.push(Box::new(keyboard_system));
     }
@@ -176,7 +176,7 @@ impl ApplicationHandler for Game {
                 Renderer::new(
                     event_loop,
                     window,
-                    &self.world.get_mesh_data()
+                    &self.world.get_meshes()
                         .expect("failed to get world mesh data")
                 ).expect("failed to create a Renderer")
             );

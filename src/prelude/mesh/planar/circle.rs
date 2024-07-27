@@ -16,9 +16,9 @@ use crate::{
 };
 
 pub fn mesh() -> Result<GeometryData> {
-    let p        = V3::ZERO;
-    let radius   = 0.5;
-    let points   = 42;
+    let p      = V3::ZERO;
+    let radius = 0.5;
+    let points = 50;
 
     // * 3 -> xyz
     // * 2 -> position, normal
