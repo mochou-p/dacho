@@ -91,11 +91,13 @@ impl Pipeline {
                     .build()
             ];
 
-            let (vertex_binding, mut vertex_attributes, last_location) =
-                vertex_descriptions(&shader_info.vertex_info)?;
+            let (vertex_binding, mut vertex_attributes, last_location) = vertex_descriptions(
+                &shader_info.vertex_info
+            )?;
 
-            let (instance_binding, mut instance_attributes) =
-                instance_descriptions(&shader_info.instance_info, last_location)?;
+            let (instance_binding, mut instance_attributes) = instance_descriptions(
+                &shader_info.instance_info, last_location
+            )?;
 
             let binding_descriptions = [vertex_binding, instance_binding];
 

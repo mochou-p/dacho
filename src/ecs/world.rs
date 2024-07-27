@@ -3,7 +3,7 @@
 // std
 use std::{
     any::{Any, TypeId},
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     mem::take
 };
 
@@ -38,13 +38,14 @@ pub type Id    = u32;
 pub type State = u8;
 
 pub struct World {
-    entities:           HashMap<Id, Entity>,
-    components:         HashMap<Id, Box<dyn Any>>,
-    entity_counter:     Id,
-    component_counter:  Id,
-    mesh_instances:     HashMap<Id, Vec<Id>>,
+    entities:          HashMap<Id, Entity>,
+    components:        HashMap<Id, Box<dyn Any>>,
+    entity_counter:    Id,
+    component_counter: Id,
+    mesh_instances:    HashMap<Id, Vec<Id>>,
 
-    pub(crate) systems: Systems,
+    pub(crate) meshes_updated: HashSet<Id>,
+    pub(crate) systems:        Systems,
 }
 
 impl World {
@@ -56,8 +57,9 @@ impl World {
             components:        HashMap::new(),
             entity_counter:    0,
             component_counter: 0,
-            systems:           Systems::new(),
-            mesh_instances:    HashMap::new()
+            mesh_instances:    HashMap::new(),
+            meshes_updated:    HashSet::with_capacity(Mesh::BUILDERS.len()),
+            systems:           Systems::new()
         }
     }
 
@@ -107,7 +109,7 @@ impl World {
 
             if let Some(mesh_component) = any_component.downcast_ref::<Mesh>() {
                 self.mesh_instances
-                    .entry(mesh_component.mesh_id)
+                    .entry(mesh_component.id)
                     .or_insert_with(|| Vec::with_capacity(1))
                     .push(id);
             }
@@ -141,9 +143,7 @@ impl World {
 
             entity.components_id_map
                 .entry(TypeId::of::<T>())
-                .and_modify(|components_ids| {
-                    components_ids.reserve_exact(capacity);
-                })
+                .and_modify(|components_ids| components_ids.reserve_exact(capacity))
                 .or_insert_with(|| Vec::with_capacity(capacity))
                 .extend(range);
         }
@@ -163,7 +163,7 @@ impl World {
         self.entities.get_mut(&id)
     }
 
-    pub fn get_entity_component<T>(&self, entity_id: Id, closure: impl FnOnce(&T))
+    pub fn get_entity_component<T, R>(&self, entity_id: Id, closure: impl FnOnce(&T) -> R) -> Option<R>
     where
         T: Component
     {
@@ -172,32 +172,45 @@ impl World {
                 if let Some(component_id) = components_ids.first() {
                     if let Some(component) = self.components.get(component_id) {
                         if let Some(downcasted_component) = component.downcast_ref::<T>() {
-                            closure(downcasted_component);
+                            return Some(closure(downcasted_component));
                         }
                     }
                 }
             }
         }
+
+        None
     }
 
-    pub fn get_entity_components<T>(&self, entity_id: Id, closure: impl Fn(&T))
+    pub fn get_entity_components<T, R>(&self, entity_id: Id, closure: impl Fn(&T) -> R) -> Option<Vec<R>>
     where
         T: Component
     {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
+                let mut results = Vec::with_capacity(components_ids.len());
+
                 for component_id in components_ids {
                     if let Some(component) = self.components.get(component_id) {
                         if let Some(downcasted_component) = component.downcast_ref::<T>() {
-                            closure(downcasted_component);
+                            results.push(closure(downcasted_component));
                         }
                     }
                 }
+
+                return 
+                    if results.is_empty() {
+                        None
+                    } else {
+                        Some(results)
+                    };
             }
         }
+
+        None
     }
 
-    pub fn get_entity_mut_component<T>(&mut self, entity_id: Id, closure: impl FnOnce(&mut T))
+    pub fn get_entity_mut_component<T, R>(&mut self, entity_id: Id, closure: impl FnOnce(&mut T) -> R) -> Option<R>
     where
         T: Component
     {
@@ -206,29 +219,42 @@ impl World {
                 if let Some(component_id) = components_ids.first() {
                     if let Some(component) = self.components.get_mut(&component_id.clone()) {
                         if let Some(downcasted_component) = component.downcast_mut::<T>() {
-                            closure(downcasted_component);
+                            return Some(closure(downcasted_component));
                         }
                     }
                 }
             }
         }
+
+        None
     }
 
-    pub fn get_entity_mut_components<T>(&mut self, entity_id: Id, closure: impl Fn(&mut T))
+    pub fn get_entity_mut_components<T, R>(&mut self, entity_id: Id, closure: impl Fn(&mut T) -> R) -> Option<Vec<R>>
     where
         T: Component
     {
         if let Some(entity) = self.get_entity(entity_id) {
             if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
+                let mut results = Vec::with_capacity(components_ids.len());
+
                 for component_id in components_ids.clone() {
                     if let Some(component) = self.components.get_mut(&component_id) {
                         if let Some(downcasted_component) = component.downcast_mut::<T>() {
-                            closure(downcasted_component);
+                            results.push(closure(downcasted_component));
                         }
                     }
                 }
+
+                return 
+                    if results.is_empty() {
+                        None
+                    } else {
+                        Some(results)
+                    };
             }
         }
+
+        None
     }
 
     pub fn remove_entity(&mut self, id: Id) {
@@ -439,7 +465,7 @@ impl World {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub(crate) fn get_mesh_data(&mut self) -> Result<Vec<GeometryData>> {
+    pub(crate) fn get_meshes(&self) -> Result<Vec<GeometryData>> {
         let mut mesh_data = Vec::with_capacity(self.mesh_instances.len());
 
         for (mesh_id, components_ids) in &self.mesh_instances {
@@ -459,6 +485,11 @@ impl World {
         }
 
         Ok(mesh_data)
+    }
+
+    #[inline]
+    pub fn update_mesh(&mut self, mesh_id: Id) {
+        self.meshes_updated.insert(mesh_id);
     }
 }
 

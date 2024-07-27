@@ -142,7 +142,10 @@ impl Renderer {
         let descriptor_set    = DescriptorSet::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
         let command_buffers   = CommandBuffers::new(&command_pool, &swapchain, &device)?;
 
-        let mut commands      = vec![Command::BeginRenderPass(&render_pass, &swapchain)];
+        // 2           -> begin render pass, bind descriptor set
+        // g.len() * 3 -> for each mesh: bind vertices, bind indices, draw
+        // p.len()     -> for each pipeline: bind pipeline
+        let mut commands      = Vec::with_capacity(2 + geometries.len() * 3 + pipelines.len());
         let mut last_pipeline = String::new();
         let mut first_iter    = true;
 
@@ -150,6 +153,7 @@ impl Renderer {
         log!(info, "Sorting Geometry");
 
         geometries.sort_by(|g1, g2| g1.shader.cmp(&g2.shader));
+        commands.push(Command::BeginRenderPass(&render_pass, &swapchain));
 
         for geometry in &geometries {
             if geometry.shader != last_pipeline {

@@ -10,11 +10,11 @@ pub struct V2 {
 }
 
 impl V2 {
-    pub const ZERO: Self = Self::new(0.0, 0.0);
-    pub const ONE:  Self = Self::new(1.0, 1.0);
+    pub const ZERO: Self = Self { x: 0.0, y: 0.0 };
+    pub const ONE:  Self = Self { x: 1.0, y: 1.0 };
 
-    pub const X:    Self = Self::new(1.0, 0.0);
-    pub const Y:    Self = Self::new(0.0, 1.0);
+    pub const X:    Self = Self { x: 1.0, y: 0.0 };
+    pub const Y:    Self = Self { x: 0.0, y: 1.0 };
 
     #[inline]
     #[must_use]
@@ -25,14 +25,14 @@ impl V2 {
     #[inline]
     #[must_use]
     pub fn extend(&self) -> V3 {
-        V3::new(self.x, self.y, 0.0)
+        V3 { x: self.x, y: self.y, z: 0.0 }
     }
 
     #[must_use]
     pub fn normalize(&self) -> Self {
-        let n = glam::Vec2::from_array(self.to_array()).normalize();
+        let n = Vec2 { x: self.x, y: self.y }.normalize();
 
-        Self::new(n.x, n.y)
+        Self { x: n.x, y: n.y }
     }
 
     #[inline]
@@ -44,7 +44,7 @@ impl V2 {
     #[inline]
     #[must_use]
     pub fn reverse_y(&self) -> Self {
-        Self::new(self.x, -self.y)
+        Self { x: self.x, y: -self.y }
     }
 
     #[inline]
@@ -56,7 +56,7 @@ impl V2 {
     #[inline]
     #[must_use]
     pub const fn to_glam(&self) -> Vec2 {
-        Vec2::new(self.x, self.y)
+        Vec2 { x: self.x, y: self.y }
     }
 }
 
@@ -78,16 +78,16 @@ pub struct V3 {
 }
 
 impl V3 {
-    pub const ZERO: Self = Self::new( 0.0,  0.0,  0.0);
-    pub const ONE:  Self = Self::new( 1.0,  1.0,  1.0);
+    pub const ZERO: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
+    pub const ONE:  Self = Self { x: 1.0, y: 1.0, z: 1.0 };
 
-    pub const X:    Self = Self::new(1.0, 0.0, 0.0);
-    pub const Y:    Self = Self::new(0.0, 1.0, 0.0);
-    pub const Z:    Self = Self::new(0.0, 0.0, 1.0);
+    pub const X:    Self = Self { x: 1.0, y: 0.0, z: 0.0 };
+    pub const Y:    Self = Self { x: 0.0, y: 1.0, z: 0.0 };
+    pub const Z:    Self = Self { x: 0.0, y: 0.0, z: 1.0 };
 
-    pub const XY:   Self = Self::new(1.0, 1.0, 0.0);
-    pub const XZ:   Self = Self::new(1.0, 0.0, 1.0);
-    pub const YZ:   Self = Self::new(0.0, 1.0, 1.0);
+    pub const XY:   Self = Self { x: 1.0, y: 1.0, z: 0.0 };
+    pub const XZ:   Self = Self { x: 1.0, y: 0.0, z: 1.0 };
+    pub const YZ:   Self = Self { x: 0.0, y: 1.0, z: 1.0 };
 
     #[must_use]
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
@@ -96,9 +96,9 @@ impl V3 {
 
     #[must_use]
     pub fn normalize(&self) -> Self {
-        let n = glam::Vec3::from_array(self.to_array()).normalize();
+        let n = Vec3 { x: self.x, y: self.y, z: self.z }.normalize();
 
-        Self::new(n.x, n.y, n.z)
+        Self { x: n.x, y: n.y, z: n.z }
     }
 
     #[inline]
@@ -110,7 +110,13 @@ impl V3 {
     #[inline]
     #[must_use]
     pub fn reverse_y(&self) -> Self {
-        Self::new(self.x, -self.y, self.z)
+        Self { x: self.x, y: -self.y, z: self.z }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn from_tuple(tuple: (f32, f32, f32)) -> Self {
+        Self { x: tuple.0, y: tuple.1, z: tuple.2 }
     }
 
     #[inline]
@@ -122,7 +128,17 @@ impl V3 {
     #[inline]
     #[must_use]
     pub const fn to_glam(&self) -> Vec3 {
-        Vec3::new(self.x, self.y, self.z)
+        Vec3 { x: self.x, y: self.y, z: self.z }
+    }
+}
+
+impl core::ops::Add for V3 {
+    type Output = Self;
+
+    #[inline]
+    #[must_use]
+    fn add(self, rhs: Self) -> Self::Output {
+        Self { x: self.x + rhs.x, y: self.y + rhs.y, z: self.z + rhs.z }
     }
 }
 
