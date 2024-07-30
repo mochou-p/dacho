@@ -7,20 +7,22 @@ mod pool;
 #[allow(clippy::wildcard_imports)]
 pub(super) use {buffers::*, pool::*};
 
+// crates
+use ash::vk;
+
 // super
 use super::{
-    buffers::Buffer,
     descriptors::DescriptorSet,
     presentation::Swapchain,
     rendering::{Pipeline, RenderPass}
 };
 
-pub enum Command<'a> {
-    BeginRenderPass(&'a RenderPass, &'a Swapchain),
-    BindPipeline(&'a Pipeline),
-    BindVertexBuffers(&'a Buffer, &'a Buffer),
-    BindIndexBuffer(&'a Buffer),
-    BindDescriptorSets(&'a DescriptorSet),
+pub enum Command {
+    BeginRenderPass,
+    BindPipeline(String),
+    BindVertexBuffers(vk::Buffer, vk::Buffer),
+    BindIndexBuffer(vk::Buffer),
+    BindDescriptorSets,
     DrawIndexed(u32, u32)
 }
 

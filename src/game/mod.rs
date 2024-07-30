@@ -176,8 +176,7 @@ impl ApplicationHandler for Game {
                 Renderer::new(
                     event_loop,
                     window,
-                    &self.world.get_meshes()
-                        .expect("failed to get world mesh data")
+                    &mut self.world.get_meshes().expect("failed to get world mesh data")
                 ).expect("failed to create a Renderer")
             );
         } 
@@ -185,6 +184,14 @@ impl ApplicationHandler for Game {
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         self.world.update();
+
+        if !self.world.meshes_updated.is_empty() {
+            if let Some(updated_meshes) = self.world.get_updated_meshes() {
+                if let Some(renderer) = &mut self.renderer {
+                    renderer.update_meshes(updated_meshes);
+                }
+            }
+        }
 
         if let Some(window) = &self.window {
             window.request_redraw();

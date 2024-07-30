@@ -2,7 +2,6 @@
 
 // modules
 mod planar;
-mod spatial;
 
 // crates
 use {
@@ -37,7 +36,7 @@ impl Mesh {
     pub fn move_by(&mut self, rhs: V3) {
         let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
 
-        translation += rhs.to_glam();
+        translation += rhs.reverse_y().to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
@@ -45,7 +44,7 @@ impl Mesh {
     pub fn move_to(&mut self, rhs: V3) {
         let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
 
-        translation = rhs.to_glam();
+        translation = rhs.reverse_y().to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }

@@ -1,5 +1,8 @@
 // dacho/src/renderer/commands/buffers.rs
 
+// std
+use std::collections::HashMap;
+
 // crates
 use {
     anyhow::{Context, Result},
@@ -11,9 +14,10 @@ use super::{Command, CommandPool};
 
 // crate
 use crate::renderer::{
+    descriptors::DescriptorSet,
     devices::Device,
     presentation::Swapchain,
-    rendering::Pipeline,
+    rendering::{Pipeline, RenderPass},
     VulkanObject
 };
 
@@ -51,8 +55,12 @@ impl CommandBuffers {
     #[allow(clippy::too_many_lines)]
     pub fn record(
         &self,
-        device:   &Device,
-        commands: &[Command]
+        device:         &Device,
+        commands:       &[Command],
+        render_pass:    &RenderPass,
+        swapchain:      &Swapchain,
+        pipelines:      &HashMap<String, Pipeline>,
+        descriptor_set: &DescriptorSet
     ) -> Result<()> {
         #[cfg(debug_assertions)] {
             log!(info, "Recording commands ({} command buffers)", self.raw.len());
@@ -83,7 +91,7 @@ impl CommandBuffers {
 
             for command in commands {
                 match command {
-                    Command::BeginRenderPass(render_pass, swapchain) => {
+                    Command::BeginRenderPass => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
                             log!(info, "Beginning RenderPass");
@@ -128,15 +136,17 @@ impl CommandBuffers {
                             );
                         }
                     },
-                    Command::BindPipeline(pipeline) => {
+                    Command::BindPipeline(name) => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
-                            log!(info, "Binding Pipeline `{}`", pipeline.name);
+                            log!(info, "Binding Pipeline `{}`", name);
                             log_indent!(true);
 
                             just_drew  = false;
                             binds     += 1;
                         }
+
+                        let pipeline = pipelines.get(name).unwrap_or_else(|| panic!("failed to get pipeline {name}"));
 
                         last_pipeline = Some(pipeline);
 
@@ -163,7 +173,7 @@ impl CommandBuffers {
                         unsafe {
                             device.raw().cmd_bind_vertex_buffers(
                                 command_buffer,
-                                0, &[*vertex_buffer.raw(), *instance_buffer.raw()], &[0, 0]
+                                0, &[*vertex_buffer, *instance_buffer], &[0, 0]
                             );
                         }
                     },
@@ -178,11 +188,11 @@ impl CommandBuffers {
                         unsafe {
                             device.raw().cmd_bind_index_buffer(
                                 command_buffer,
-                                *index_buffer.raw(), 0, vk::IndexType::UINT32
+                                *index_buffer, 0, vk::IndexType::UINT32
                             );
                         }
                     },
-                    Command::BindDescriptorSets(descriptor_set) => {
+                    Command::BindDescriptorSets => {
                         #[cfg(debug_assertions)]
                         if first_command_buffer {
                             log!(info, "Binding DescriptoSet");
