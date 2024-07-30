@@ -16,6 +16,8 @@ use crate::{
 };
 
 pub fn mesh() -> Result<GeometryData> {
+    let id     = 1;
+
     let p      = V3::ZERO;
     let radius = 0.5;
     let points = 50;
@@ -57,6 +59,7 @@ pub fn mesh() -> Result<GeometryData> {
 
     let geometry_data = GeometryData::new(
         shader,
+        id,
         cull_mode,
         polygon_mode,
         vertices,

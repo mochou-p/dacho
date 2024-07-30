@@ -3,7 +3,7 @@
 // crates
 use glam::f32::{Vec2, Vec3};
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct V2 {
     pub x: f32,
     pub y: f32
@@ -58,6 +58,12 @@ impl V2 {
     pub const fn to_glam(&self) -> Vec2 {
         Vec2 { x: self.x, y: self.y }
     }
+
+    #[inline]
+    #[must_use]
+    pub fn is_zero(&self) -> bool {
+        *self == Self::ZERO
+    }
 }
 
 impl core::ops::Mul<f32> for V2 {
@@ -70,7 +76,7 @@ impl core::ops::Mul<f32> for V2 {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub struct V3 {
     pub x: f32,
     pub y: f32,
@@ -130,6 +136,12 @@ impl V3 {
     pub const fn to_glam(&self) -> Vec3 {
         Vec3 { x: self.x, y: self.y, z: self.z }
     }
+
+    #[inline]
+    #[must_use]
+    pub fn is_zero(&self) -> bool {
+        *self == Self::ZERO
+    }
 }
 
 impl core::ops::Add for V3 {
@@ -169,6 +181,14 @@ impl core::ops::Mul<isize> for V3 {
     #[must_use]
     fn mul(self, rhs: isize) -> Self::Output {
         Self { x: self.x * rhs as f32, y: self.y * rhs as f32, z: self.z * rhs as f32 }
+    }
+}
+
+impl core::ops::Neg for V3 {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self { x: -self.x, y: -self.y, z: -self.z }
     }
 }
 

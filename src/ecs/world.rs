@@ -23,7 +23,7 @@ use {
 
 // super
 use super::{
-    component::Component,
+    component::{self, Component},
     entity::Entity,
     system::Systems
 };
@@ -490,6 +490,34 @@ impl World {
     #[inline]
     pub fn update_mesh(&mut self, mesh_id: Id) {
         self.meshes_updated.insert(mesh_id);
+    }
+
+    pub(crate) fn get_updated_meshes(&mut self) -> Option<Vec<(Id, Vec<f32>)>> {
+        let mut pairs = Vec::with_capacity(self.meshes_updated.len());
+
+        for mesh_id in &self.meshes_updated {
+            if let Some(components_ids) = self.mesh_instances.get(mesh_id) {
+                let mut instances = Vec::with_capacity(components_ids.len() * 16);
+
+                for component_id in components_ids {
+                    if let Some(component) = self.components.get(component_id) {
+                        if let Some(mesh_component) = component.downcast_ref::<Mesh>() {
+                            instances.extend(mesh_component.model_matrix.to_cols_array());
+                        }
+                    }
+                }
+
+                pairs.push((*mesh_id, instances));
+            }
+        }
+
+        self.meshes_updated.clear();
+
+        if pairs.is_empty() {
+            None
+        } else {
+            Some(pairs)
+        }
     }
 }
 
