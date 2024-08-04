@@ -14,7 +14,7 @@ use {
 
 // crate
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     log
 };
 

@@ -11,7 +11,7 @@ use super::{Entry, Instance};
 
 // crate
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     renderer::VulkanObject,
     log
 };

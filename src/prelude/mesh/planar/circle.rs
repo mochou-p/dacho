@@ -1,21 +1,15 @@
 // dacho/src/prelude/mesh/planar/circle.rs
 
 // crates
-use {
-    anyhow::Result,
-    ash::vk
-};
+use ash::vk;
 
 // crate
 use crate::{
-    game::logger::Logger,
-    ecs::component::Component,
-    prelude::types::{V2, V3},
-    renderer::rendering::GeometryData,
-    log
+    prelude::types::V3,
+    renderer::rendering::GeometryData
 };
 
-pub fn mesh() -> Result<GeometryData> {
+pub fn mesh() -> GeometryData {
     let id     = 1;
 
     let p      = V3::ZERO;
@@ -34,7 +28,6 @@ pub fn mesh() -> Result<GeometryData> {
     vertices.extend_from_slice(&[p.x, p.y, p.z, 0.0, 0.0, 1.0]);
 
     let angle_step      = 360.0 / points as f32;
-    let one_over_points =   1.0 / points as f32;
 
     for i in 0..points {
         let a = angle_step.mul_add(i as f32, -90.0);
@@ -45,7 +38,7 @@ pub fn mesh() -> Result<GeometryData> {
         vertices.extend_from_slice(&[x, -y, p.z, 0.0, 0.0, 1.0]);
     }
 
-    let u32points = u32::try_from(points)?;
+    let u32points = u32::try_from(points).expect("failed to cast points to u32");
 
     for i in 1..u32points {
         indices.extend_from_slice(&[0, i, i + 1]);
@@ -57,7 +50,7 @@ pub fn mesh() -> Result<GeometryData> {
     let cull_mode    = vk::CullModeFlags::FRONT;
     let polygon_mode = vk::PolygonMode::FILL;
 
-    let geometry_data = GeometryData::new(
+    GeometryData::new(
         shader,
         id,
         cull_mode,
@@ -65,8 +58,6 @@ pub fn mesh() -> Result<GeometryData> {
         vertices,
         vec![], // instances
         indices
-    );
-
-    Ok(geometry_data)
+    )
 }
 

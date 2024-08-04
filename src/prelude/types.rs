@@ -24,7 +24,7 @@ impl V2 {
 
     #[inline]
     #[must_use]
-    pub fn extend(&self) -> V3 {
+    pub const fn extend(&self) -> V3 {
         V3 { x: self.x, y: self.y, z: 0.0 }
     }
 

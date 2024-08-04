@@ -1,7 +1,5 @@
 // dacho/src/renderer/images/texture.rs
 
-#![allow(dead_code)]
-
 // crates
 use {
     anyhow::Result,

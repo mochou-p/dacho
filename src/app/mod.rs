@@ -5,19 +5,12 @@ pub mod logger;
     mod timer;
 pub mod window;
 
-// std
-use std::mem::take;
-
 // crates
-use {
-    anyhow::Result,
-    winit::{
-        application::ApplicationHandler,
-        event::ElementState,
-        event_loop::{ActiveEventLoop, EventLoop, ControlFlow::Poll},
-        keyboard::{KeyCode::Escape, PhysicalKey::Code},
-        window::WindowId
-    }
+use winit::{
+    application::ApplicationHandler,
+    event_loop::{ActiveEventLoop, EventLoop, ControlFlow::Poll},
+    keyboard::{KeyCode::Escape, PhysicalKey::Code},
+    window::WindowId
 };
 
 // mod
@@ -39,19 +32,7 @@ use super::ecs::world::{State, World};
 // crate
 use crate::renderer::Renderer;
 
-// debug
-#[cfg(debug_assertions)]
-use {
-    futures::executor::block_on,
-    logger::Logger,
-    super::log_indent,
-    crate::{
-        shader::compile_shaders,
-        log
-    }
-};
-
-pub struct Game {
+pub struct App {
         title:    String,
     pub world:    World,
         timer:    Timer,
@@ -59,7 +40,7 @@ pub struct Game {
         renderer: Option<Renderer>
 }
 
-impl Game {
+impl App {
     #[must_use]
     pub fn new(title: &str) -> Self {
         let world = World::new();
@@ -106,7 +87,7 @@ impl Game {
     #[inline]
     pub fn keyboard(
         &mut self,
-        keyboard_system: impl Fn(&mut World, Key, ElementState) + 'static
+        keyboard_system: impl Fn(&mut World, Key, bool) + 'static
     ) {
         self.world.systems.keyboard.push(Box::new(keyboard_system));
     }
@@ -122,7 +103,7 @@ impl Game {
     #[inline]
     pub fn mouse_button(
         &mut self,
-        mouse_button_system: impl Fn(&mut World, MouseButton, ElementState) + 'static
+        mouse_button_system: impl Fn(&mut World, MouseButton, bool) + 'static
     ) {
         self.world.systems.mouse_button.push(Box::new(mouse_button_system));
     }
@@ -150,7 +131,7 @@ impl Game {
             .expect("failed to create an EventLoop");
 
         event_loop.set_control_flow(Poll);
-        event_loop.run_app(&mut self);
+        event_loop.run_app(&mut self).expect("failed to run the app in event loop");
 
         if let Some(renderer) = self.renderer {
             drop(renderer);
@@ -158,7 +139,7 @@ impl Game {
     }
 }
 
-impl ApplicationHandler for Game {
+impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_some() {
             return;
@@ -176,19 +157,19 @@ impl ApplicationHandler for Game {
                 Renderer::new(
                     event_loop,
                     window,
-                    &mut self.world.get_meshes().expect("failed to get world mesh data")
+                    &mut self.world.get_meshes()
                 ).expect("failed to create a Renderer")
             );
         } 
     }
 
-    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         self.world.update();
 
         if !self.world.meshes_updated.is_empty() {
             if let Some(updated_meshes) = self.world.get_updated_meshes() {
                 if let Some(renderer) = &mut self.renderer {
-                    renderer.update_meshes(updated_meshes);
+                    renderer.update_meshes(updated_meshes).expect("failed to update meshes in the renderer");
                 }
             }
         }

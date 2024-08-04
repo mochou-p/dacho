@@ -3,7 +3,8 @@
 # dacho
 
 ## Disclaimer
-This project is in an early stage of development
+This project is in an early stage of development  
+README is usually only up-to-date for releases/tags
 
 ## Usage
 In dacho, you can make/load a `World`, and run/save it  

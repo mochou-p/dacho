@@ -10,11 +10,11 @@ use {
     }
 };
 
-// super
-use super::logger::Logger;
-
-// crate
-use crate::log;
+#[cfg(debug_assertions)]
+use {
+    super::logger::Logger,
+    crate::log
+};
 
 pub struct Window {
         raw:    winit_Window,
@@ -38,12 +38,6 @@ impl Window {
             .with_inner_size(PhysicalSize::new(width, height));
 
         let raw = event_loop.create_window(window_attributes)?;
-
-        if raw.set_cursor_grab(winit::window::CursorGrabMode::Locked).is_err() {
-            log!(warning, "Failed to lock the cursor");
-        }
-
-        raw.set_cursor_visible(false);
 
         Ok(Self { raw, width, height })
     }

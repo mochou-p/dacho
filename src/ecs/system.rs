@@ -2,7 +2,7 @@
 
 // crates
 use winit::{
-    event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent},
+    event::{MouseButton, WindowEvent},
     dpi::PhysicalPosition,
     keyboard::KeyCode
 };
@@ -10,14 +10,14 @@ use winit::{
 // super
 use super::world::{State, World};
 
-pub type         StateSystem = Box<dyn Fn    (&mut World, State, State)>;
-pub type         StartSystem = Box<dyn FnOnce(&mut World)>;
-pub type        UpdateSystem = Box<dyn Fn    (&mut World)>;
-pub type      KeyboardSystem = Box<dyn Fn    (&mut World, KeyCode, ElementState)>;
-pub type MousePositionSystem = Box<dyn Fn    (&mut World, PhysicalPosition<f64>)>;
-pub type   MouseButtonSystem = Box<dyn Fn    (&mut World, MouseButton, ElementState)>;
-pub type    MouseWheelSystem = Box<dyn Fn    (&mut World, f32, f32)>;
-pub type         EventSystem = Box<dyn Fn    (&mut World, WindowEvent)>;
+type         StateSystem = Box<dyn Fn    (&mut World, State, State)>;
+type         StartSystem = Box<dyn FnOnce(&mut World)>;
+type        UpdateSystem = Box<dyn Fn    (&mut World)>;
+type      KeyboardSystem = Box<dyn Fn    (&mut World, KeyCode, bool)>;
+type MousePositionSystem = Box<dyn Fn    (&mut World, PhysicalPosition<f64>)>;
+type   MouseButtonSystem = Box<dyn Fn    (&mut World, MouseButton, bool)>;
+type    MouseWheelSystem = Box<dyn Fn    (&mut World, f32, f32)>;
+type         EventSystem = Box<dyn Fn    (&mut World, WindowEvent)>;
 
 pub struct Systems {
     pub state:          Option<(State, StateSystem)>,

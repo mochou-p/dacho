@@ -10,13 +10,6 @@ pub(super) use {buffers::*, pool::*};
 // crates
 use ash::vk;
 
-// super
-use super::{
-    descriptors::DescriptorSet,
-    presentation::Swapchain,
-    rendering::{Pipeline, RenderPass}
-};
-
 pub enum Command {
     BeginRenderPass,
     BindPipeline(String),

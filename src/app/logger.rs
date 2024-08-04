@@ -1,7 +1,5 @@
 // dacho/src/game/logger.rs
 
-#![allow(dead_code)]
-
 // core
 use core::fmt::Display;
 
@@ -76,10 +74,11 @@ impl Logger {
         println!("{}", Self::info_str(message));
     }
 
+    #[allow(clippy::missing_panics_doc)]
     pub fn info_r<T: Into<String> + Display>(message: &T) {
         print!("{}\r", Self::info_str(message));
 
-        std::io::stdout().flush();
+        std::io::stdout().flush().expect("failed to flush stdout");
     }
 
     pub fn warning<T: Into<String> + Display>(message: &T) {

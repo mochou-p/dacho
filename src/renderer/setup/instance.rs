@@ -23,7 +23,7 @@ use {
     std::ffi::CString,
     super::debug::messenger_create_info,
     crate::{
-        game::logger::Logger,
+        app::logger::Logger,
         log, log_indent
     }
 };
