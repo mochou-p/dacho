@@ -4,10 +4,7 @@
 mod planar;
 
 // crates
-use {
-    anyhow::Result,
-    glam::{EulerRot, f32::{Mat4, Quat, Vec3}},
-};
+use glam::{EulerRot, f32::{Mat4, Quat, Vec3}};
 
 // super
 use super::types::{V2, V3};
@@ -18,7 +15,7 @@ use crate::{
     renderer::rendering::GeometryData
 };
 
-type MeshBuilder = dyn Fn() -> Result<GeometryData>;
+type MeshBuilder = dyn Fn() -> GeometryData;
 
 pub struct Mesh {
     pub id:           Id, // for instancing
@@ -42,9 +39,9 @@ impl Mesh {
     }
 
     pub fn move_to(&mut self, rhs: V3) {
-        let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
+        let (scale, rotation, _) = self.model_matrix.to_scale_rotation_translation();
 
-        translation = rhs.reverse_y().to_glam();
+        let translation = rhs.reverse_y().to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
@@ -60,9 +57,9 @@ impl Mesh {
     }
 
     pub fn rotate_to(&mut self, euler_xyz: V3) {
-        let (scale, mut rotation, translation) = self.model_matrix.to_scale_rotation_translation();
+        let (scale, _, translation) = self.model_matrix.to_scale_rotation_translation();
 
-        rotation = Quat::from_euler(EulerRot::XYZ, euler_xyz.x, euler_xyz.y, euler_xyz.z);
+        let rotation = Quat::from_euler(EulerRot::XYZ, euler_xyz.x, euler_xyz.y, euler_xyz.z);
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
 
@@ -95,9 +92,9 @@ impl Mesh {
     }
 
     pub fn scale_to(&mut self, rhs: V3) {
-        let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
+        let (_, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
-        scale = rhs.to_glam();
+        let scale = rhs.to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }

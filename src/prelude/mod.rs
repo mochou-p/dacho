@@ -6,7 +6,7 @@ pub(super) mod types;
 
 // pub mod
 pub use {
-    super::{ecs::*, game::*},
+    super::{ecs::*, app::*},
     mesh::Mesh,
     types::*
 };

@@ -3,7 +3,7 @@
 [package]
 name         = "dacho"
 version      = "0.1.0"
-rust-version = "1.79.0"
+rust-version = "1.80.0"
 authors      = ["mochou-p"]
 edition      = "2021"
 description  = "3D Vulkan Game Engine"
@@ -28,9 +28,6 @@ opt-level = 0
 
 [profile.dev.package."*"]
 opt-level = 3
-
-[lints.rust]
-warnings = "deny"
 
 [lints.clippy]
 all      = "deny"

@@ -36,7 +36,7 @@ use {
 // super
 use super::{
     ecs::world::Id,
-    game::window::Window,
+    app::window::Window,
 };
 
 // debug
@@ -44,7 +44,7 @@ use super::{
 use {
     setup::Debug,
     super::{
-        game::logger::Logger,
+        app::logger::Logger,
         log, log_indent
     }
 };
@@ -174,8 +174,6 @@ impl Renderer {
         }
 
         command_buffers.record(&device, &commands, &render_pass, &swapchain, &pipelines, &descriptor_set)?;
-
-        let mut i = 0;
 
         #[cfg(debug_assertions)]
         log_indent!(false);

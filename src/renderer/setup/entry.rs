@@ -9,7 +9,7 @@ use crate::renderer::VulkanObject;
 // debug
 #[cfg(debug_assertions)]
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     log
 };
 

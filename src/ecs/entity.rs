@@ -7,10 +7,7 @@ use std::{
 };
 
 // super
-use super::{
-    component::Component,
-    world::Id
-};
+use super::world::Id;
 
 #[derive(Debug)]
 pub struct Entity {

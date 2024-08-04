@@ -11,7 +11,7 @@ use {
 
 // crate
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     log
 };
 
@@ -123,7 +123,7 @@ pub fn instance_descriptions(info: &[Type], location_offset: LastLocation) -> Re
     let  mut attribute_descriptions = Vec::with_capacity(info.len());
     let (mut location, mut offset)  = (location_offset, 0);
 
-    for mut kind in info {
+    for kind in info {
         if matches!(kind, Type::Mat4x4) {
             let row_kind = Type::Vec4;
 

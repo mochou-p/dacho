@@ -1,7 +1,5 @@
 // dacho/src/renderer/images/sampler.rs
 
-#![allow(dead_code)]
-
 // crates
 use {
     anyhow::Result,
@@ -10,7 +8,7 @@ use {
 
 // crate
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     renderer::{
         devices::Device,
         VulkanObject

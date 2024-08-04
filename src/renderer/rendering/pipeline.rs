@@ -15,7 +15,7 @@ use super::RenderPass;
 
 // crate
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     renderer::{
         descriptors::DescriptorSetLayout,
         devices::Device,

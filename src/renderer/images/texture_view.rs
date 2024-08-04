@@ -1,7 +1,5 @@
 // dacho/src/renderer/images/texture_view.rs
 
-#![allow(dead_code)]
-
 // crates
 use {
     anyhow::Result,

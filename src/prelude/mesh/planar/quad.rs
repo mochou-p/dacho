@@ -1,21 +1,15 @@
 // dacho/src/prelude/mesh/planar/quad.rs
 
 // crates
-use {
-    anyhow::Result,
-    ash::vk
-};
+use ash::vk;
 
 // crate
 use crate::{
-    game::logger::Logger,
-    ecs::component::Component,
     prelude::types::{V2, V3},
-    renderer::rendering::GeometryData,
-    log
+    renderer::rendering::GeometryData
 };
 
-pub fn mesh() -> Result<GeometryData> {
+pub fn mesh() -> GeometryData {
     let id = 0;
 
     let p  = V3::ZERO;
@@ -35,7 +29,7 @@ pub fn mesh() -> Result<GeometryData> {
     let cull_mode    = vk::CullModeFlags::FRONT;
     let polygon_mode = vk::PolygonMode::FILL;
 
-    let geometry_data = GeometryData::new(
+    GeometryData::new(
         shader,
         id,
         cull_mode,
@@ -43,8 +37,6 @@ pub fn mesh() -> Result<GeometryData> {
         vertices,
         vec![], // instances
         indices
-    );
-
-    Ok(geometry_data)
+    )
 }
 

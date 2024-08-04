@@ -8,22 +8,18 @@ use std::{
 };
 
 // crates
-use {
-    anyhow::Result,
-    glam::f32::Mat4,
-    winit::{
-        dpi::PhysicalPosition,
-        event::{
-            ElementState, KeyEvent, MouseButton,
-            MouseScrollDelta::{self, LineDelta},
-        },
-        keyboard::{KeyCode, PhysicalKey::Code},
-    }
+use winit::{
+    dpi::PhysicalPosition,
+    event::{
+        ElementState, KeyEvent, MouseButton,
+        MouseScrollDelta::{self, LineDelta},
+    },
+    keyboard::PhysicalKey::Code,
 };
 
 // super
 use super::{
-    component::{self, Component},
+    component::Component,
     entity::Entity,
     system::Systems
 };
@@ -135,7 +131,7 @@ impl World {
 
         let range = self.component_counter..self.component_counter + amount;
 
-        range.clone()
+        let _ = range.clone()
             .map(|i| self.components.insert(i, Box::new(component)));
 
         if let Some(entity) = self.get_mut_entity(entity_id) {
@@ -363,16 +359,20 @@ impl World {
     }
 
     pub fn set_state(&mut self, new_state: State) {
-        if self.systems.state.is_none() {
+        if let Some(state_system) = &self.systems.state {
+            if state_system.0 == new_state {
+                return;
+            }
+        } else {
             return;
         }
 
-        let taken_state_system = take(&mut self.systems.state);
+        let mut taken_state_system = take(&mut self.systems.state);
 
-        if let Some((mut old_state, state_system)) = &taken_state_system {
-            state_system(self, old_state, new_state);
+        if let Some(state_system) = &mut taken_state_system {
+            state_system.1(self, state_system.0, new_state);
 
-            old_state = new_state;
+            state_system.0 = new_state;
         }
 
         self.systems.state = taken_state_system;
@@ -413,7 +413,7 @@ impl World {
             let taken_keyboard_systems = take(&mut self.systems.keyboard);
 
             for keyboard_system in &taken_keyboard_systems {
-                keyboard_system(self, code, key_event.state);
+                keyboard_system(self, code, key_event.state.is_pressed());
             }
 
             self.systems.keyboard = taken_keyboard_systems;
@@ -442,7 +442,7 @@ impl World {
         let taken_mouse_button_systems = take(&mut self.systems.mouse_button);
 
         for mouse_button_system in &taken_mouse_button_systems {
-            mouse_button_system(self, button, action);
+            mouse_button_system(self, button, action.is_pressed());
         }
 
         self.systems.mouse_button = taken_mouse_button_systems;
@@ -465,11 +465,11 @@ impl World {
     }
 
     #[allow(clippy::missing_errors_doc)]
-    pub(crate) fn get_meshes(&self) -> Result<Vec<GeometryData>> {
+    pub(crate) fn get_meshes(&self) -> Vec<GeometryData> {
         let mut mesh_data = Vec::with_capacity(self.mesh_instances.len());
 
         for (mesh_id, components_ids) in &self.mesh_instances {
-            let mut geometry_data = Mesh::BUILDERS[*mesh_id as usize]()?;
+            let mut geometry_data = Mesh::BUILDERS[*mesh_id as usize]();
 
             geometry_data.instances.reserve_exact(components_ids.len() * 16);
 
@@ -484,7 +484,7 @@ impl World {
             mesh_data.push(geometry_data);
         }
 
-        Ok(mesh_data)
+        mesh_data
     }
 
     #[inline]

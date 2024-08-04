@@ -8,7 +8,7 @@ use {
 
 // crate
 use crate::{
-    game::logger::Logger,
+    app::logger::Logger,
     renderer::{
         commands::CommandPool,
         devices::{Device, PhysicalDevice},
