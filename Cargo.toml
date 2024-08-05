@@ -9,19 +9,25 @@ edition      = "2021"
 description  = "3D Vulkan Game Engine"
 repository   = "https://github.com/mochou-p/dacho"
 license      = "MIT OR Apache-2.0"
+# crates.io
 keywords     = ["vulkan", "engine", "renderer", "ash", "winit"]
 categories   = ["game-development", "game-engines", "graphics", "rendering", "rendering::engine"]
 
 [dependencies]
 anyhow            = { version = "1.0.86",  default-features = false, features = ["std"]                             }
+# vulkan
 ash               = { version = "0.37.3"                                                                            }
-ash-window        = { version = "0.12.0",  default-features = false                                                 }
-futures           = { version = "0.3.30",  default-features = false, features = ["std", "async-await", "executor"]  }
+# math
 glam              = { version = "0.28.0",  default-features = false, features = ["std"]                             }
-naga              = { version = "22.0.0",  default-features = false, features = ["wgsl-in", "spv-out"]              }
-raw-window-handle = { version = "0.5.0",   default-features = false                                                 }
+# async
+futures           = { version = "0.3.30",  default-features = false, features = ["std", "async-await", "executor"]  }
 tokio             = { version = "1.38.1",  default-features = false, features = ["rt", "rt-multi-thread", "macros"] }
+# windowing
 winit             = { version = "0.30.4",                            features = ["rwh_05"]                          }
+raw-window-handle = { version = "0.5.0",   default-features = false                                                 }
+ash-window        = { version = "0.12.0",  default-features = false                                                 }
+# shader compilation
+naga              = { version = "22.0.0",  default-features = false, features = ["wgsl-in", "spv-out"]              }
 
 [profile.dev]
 opt-level = 0

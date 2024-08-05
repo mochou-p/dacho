@@ -19,15 +19,15 @@ pub fn mesh() -> GeometryData {
     // * 3 -> xyz
     // * 2 -> position, normal
     // + 6 -> one more for the center vertex (1 * 3 * 2)
-    let mut vertices: Vec<f32> = Vec::with_capacity(points * 3 * 2 + 6);
+    let mut vertices = Vec::with_capacity(points * 3 * 2 + 6);
 
     // * 3 -> triangle per point
-    let mut indices:  Vec<u32> = Vec::with_capacity(points * 3);
+    let mut indices = Vec::with_capacity(points * 3);
 
     //                           position       normal
     vertices.extend_from_slice(&[p.x, p.y, p.z, 0.0, 0.0, 1.0]);
 
-    let angle_step      = 360.0 / points as f32;
+    let angle_step = 360.0 / points as f32;
 
     for i in 0..points {
         let a = angle_step.mul_add(i as f32, -90.0);

@@ -7,15 +7,18 @@ This project is in an early stage of development
 README is usually only up-to-date for releases/tags
 
 ## Usage
-In dacho, you can make/load a `World`, and run/save it  
+In dacho, you insert your functions into schedules (Start, Update, Keyboard/Mouse input, State change, or custom)  
 ```rust
 // dacho hello world
 
 use dacho::prelude::*;
 
 fn main() {
-    World::new()
-        .run();
+    let mut app = App::new("My game");
+
+    app.start(|_| println!("hello!"))
+
+    app.run();
 }
 ```
 See the [dacho example](https://github.com/mochou-p/dacho-example) for more
