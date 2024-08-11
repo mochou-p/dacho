@@ -12,14 +12,15 @@ use {
 use super::Entry;
 
 // crate
-use crate::renderer::{
-    devices::Device,
-    VulkanObject
-};
+use crate::renderer::VulkanObject;
 
 // debug
 #[cfg(debug_assertions)]
 use {
+    core::{
+        ffi::c_void,
+        ptr::from_ref
+    },
     std::ffi::CString,
     super::debug::messenger_create_info,
     crate::{
@@ -81,9 +82,9 @@ impl Instance {
                     .enabled_extension_names(&extension_names)
                     .build();
 
-                create_info.p_next = core::ptr::from_ref::<vk::DebugUtilsMessengerCreateInfoEXT>(
+                create_info.p_next = from_ref::<vk::DebugUtilsMessengerCreateInfoEXT>(
                     &debug_utils_create_info
-                ).cast::<core::ffi::c_void>();
+                ).cast::<c_void>();
 
                 unsafe { entry.raw().create_instance(&create_info, None) }?
             }
@@ -111,7 +112,7 @@ impl VulkanObject for Instance {
         &self.raw
     }
 
-    fn destroy(&self, _: Option<&Device>) {
+    fn destroy(&self) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Instance");
 

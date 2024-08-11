@@ -63,10 +63,10 @@ impl Image {
             let mut result = 0;
 
             for i in 0..memory_properties.memory_type_count {
-                let a = (memory_requirements.memory_type_bits & (1 << i)) != 0;
-                let b = (memory_properties.memory_types[i as usize].property_flags & properties) == properties;
+                let req = (memory_requirements.memory_type_bits & (1 << i)) != 0;
+                let mem = (memory_properties.memory_types[i as usize].property_flags & properties) == properties;
 
-                if a && b {
+                if req && mem {
                     found  = true;
                     result = i;
                     break;
@@ -91,6 +91,7 @@ impl Image {
         Ok(Self { raw, memory })
     }
 
+    #[allow(dead_code)]
     pub fn transition_layout(
         &self,
         device:       &Device,
@@ -163,14 +164,10 @@ impl VulkanObject for Image {
         &self.raw
     }
 
-    fn destroy(&self, device: Option<&Device>) {
-        if let Some(device) = device {
-            unsafe {
-                device.raw().destroy_image(self.raw, None);
-                device.raw().free_memory(self.memory, None);
-            }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
+    fn device_destroy(&self, device: &Device) {
+        unsafe {
+            device.raw().destroy_image(self.raw, None);
+            device.raw().free_memory(self.memory, None);
         }
     }
 }

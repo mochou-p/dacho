@@ -68,9 +68,9 @@ impl CommandBuffers {
         }
 
         #[cfg(debug_assertions)]
-        let mut draw_calls = 0;
+        let mut draw_calls = 0_u32;
         #[cfg(debug_assertions)]
-        let mut binds      = 0;
+        let mut binds      = 0_u32;
         #[cfg(debug_assertions)]
         let mut first_command_buffer;
         #[cfg(debug_assertions)]

@@ -10,7 +10,6 @@ use {
 
 // crate
 use crate::renderer::{
-    devices::Device,
     setup::{Entry, Instance},
     VulkanObject
 };
@@ -59,7 +58,7 @@ impl VulkanObject for Surface {
         &self.raw
     }
 
-    fn destroy(&self, _: Option<&Device>) {
+    fn destroy(&self) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Surface");
 

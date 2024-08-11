@@ -10,15 +10,18 @@ use {
 use super::Surface;
 
 // crate
+use crate::renderer::{
+    devices::{Device, PhysicalDevice},
+    images::{Image, ImageView},
+    setup::Instance,
+    rendering::RenderPass,
+    VulkanObject
+};
+
+// debug
+#[cfg(debug_assertions)]
 use crate::{
     app::logger::Logger,
-    renderer::{
-        devices::{Device, PhysicalDevice},
-        images::{Image, ImageView},
-        setup::Instance,
-        rendering::RenderPass,
-        VulkanObject
-    },
     log
 };
 
@@ -47,8 +50,8 @@ impl Swapchain {
         surface:         &Surface,
         physical_device: &PhysicalDevice,
         render_pass:     &RenderPass,
-        width:            u32,
-        height:           u32
+        width:            u16,
+        height:           u16
     ) -> Result<Self> {
         #[cfg(debug_assertions)]
         log!(info, "Creating Swapchain");
@@ -63,8 +66,8 @@ impl Swapchain {
             }?;
 
             let extent = vk::Extent2D::builder()
-                .width(width)
-                .height(height)
+                .width(u32::from(width))
+                .height(u32::from(height))
                 .build();
 
             let create_info = vk::SwapchainCreateInfoKHR::builder()
@@ -213,37 +216,33 @@ impl VulkanObject for Swapchain {
         &self.raw
     }
 
-    fn destroy(&self, device: Option<&Device>) {
+    fn device_destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Swapchain");
 
-        if let Some(device) = device {
-            for fence in &self.may_begin_drawing {
-                unsafe { device.raw().destroy_fence(*fence, None); }
-            }
+        for fence in &self.may_begin_drawing {
+            unsafe { device.raw().destroy_fence(*fence, None); }
+        }
 
-            for semaphore in &self.images_available {
-                unsafe { device.raw().destroy_semaphore(*semaphore, None); }
-            }
+        for semaphore in &self.images_available {
+            unsafe { device.raw().destroy_semaphore(*semaphore, None); }
+        }
 
-            for semaphore in &self.images_finished {
-                unsafe { device.raw().destroy_semaphore(*semaphore, None); }
-            }
+        for semaphore in &self.images_finished {
+            unsafe { device.raw().destroy_semaphore(*semaphore, None); }
+        }
 
-            self.depth_image_view .destroy(Some(device));
-            self.depth_image      .destroy(Some(device));
-            self.color_image_view .destroy(Some(device));
-            self.color_image      .destroy(Some(device));
+        self.depth_image_view .device_destroy(device);
+        self.depth_image      .device_destroy(device);
+        self.color_image_view .device_destroy(device);
+        self.color_image      .device_destroy(device);
 
-            for framebuffer in &self.framebuffers {
-                unsafe { device.raw().destroy_framebuffer(*framebuffer, None); }
-            }
+        for framebuffer in &self.framebuffers {
+            unsafe { device.raw().destroy_framebuffer(*framebuffer, None); }
+        }
 
-            for image_view in &self.image_views {
-                image_view.destroy(Some(device));
-            }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
+        for image_view in &self.image_views {
+            image_view.device_destroy(device);
         }
 
         unsafe { self.loader.destroy_swapchain(self.raw, None); }

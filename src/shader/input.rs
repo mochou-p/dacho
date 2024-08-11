@@ -127,7 +127,7 @@ pub fn instance_descriptions(info: &[Type], location_offset: LastLocation) -> Re
         if matches!(kind, Type::Mat4x4) {
             let row_kind = Type::Vec4;
 
-            for _ in 0..4 {
+            for _ in 0..4_u8 {
                 let attribute_description = vk::VertexInputAttributeDescription::builder()
                     .binding(1)
                     .location(location)

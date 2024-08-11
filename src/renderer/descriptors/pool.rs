@@ -7,12 +7,15 @@ use {
 };
 
 // crate
+use crate::renderer::{
+    devices::Device,
+    VulkanObject
+};
+
+// debug
+#[cfg(debug_assertions)]
 use crate::{
     app::logger::Logger,
-    renderer::{
-        devices::Device,
-        VulkanObject
-    },
     log
 };
 
@@ -51,15 +54,11 @@ impl VulkanObject for DescriptorPool {
         &self.raw
     }
 
-    fn destroy(&self, device: Option<&Device>) {
+    fn device_destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying DescriptorPool");
 
-        if let Some(device) = device {
-            unsafe { device.raw().destroy_descriptor_pool(self.raw, None); }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
-        }
+        unsafe { device.raw().destroy_descriptor_pool(self.raw, None); }
     }
 }
 

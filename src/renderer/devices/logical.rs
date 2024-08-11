@@ -79,7 +79,7 @@ impl VulkanObject for Device {
         &self.raw
     }
 
-    fn destroy(&self, _: Option<&Device>) {
+    fn destroy(&self) {
         #[cfg(debug_assertions)]
         log!(info, "Destroying Device");
 

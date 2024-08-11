@@ -1,7 +1,17 @@
 // dacho/src/renderer/rendering/pipeline.rs
 
+// core
+use core::{
+    slice::from_raw_parts,
+    str::from_utf8
+};
+
 // std
-use std::ffi::CString;
+use std::{
+    ffi::CString,
+    fs::read,
+    path::Path
+};
 
 // crates
 use {
@@ -19,7 +29,6 @@ use crate::{
     renderer::{
         descriptors::DescriptorSetLayout,
         devices::Device,
-        presentation::Swapchain,
         VulkanObject
     },
     shader::{
@@ -45,7 +54,8 @@ impl Pipeline {
     pub fn new(
         device:                &Device,
         descriptor_set_layout: &DescriptorSetLayout,
-        swapchain:             &Swapchain,
+        width:                  u16,
+        height:                 u16,
         render_pass:           &RenderPass,
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
@@ -116,8 +126,8 @@ impl Pipeline {
                 vk::Viewport::builder()
                     .x(0.0)
                     .y(0.0)
-                    .width(swapchain.extent.width as f32)
-                    .height(swapchain.extent.height as f32)
+                    .width(f32::from(width))
+                    .height(f32::from(height))
                     .min_depth(0.0)
                     .max_depth(1.0)
                     .build()
@@ -131,7 +141,12 @@ impl Pipeline {
                             .y(0)
                             .build()
                     )
-                    .extent(swapchain.extent)
+                    .extent(
+                        vk::Extent2D::builder()
+                            .width(u32::from(width))
+                            .height(u32::from(height))
+                            .build()
+                    )
                     .build()
             ];
 
@@ -221,14 +236,13 @@ impl VulkanObject for Pipeline {
         &self.raw
     }
 
-    fn destroy(&self, device: Option<&Device>) {
-        if let Some(device) = device {
-            unsafe {
-                device.raw().destroy_pipeline(self.raw, None);
-                device.raw().destroy_pipeline_layout(self.layout, None);
-            }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
+    fn device_destroy(&self, device: &Device) {
+        #[cfg(debug_assertions)]
+        log!(info, "Destroying Pipeline {}", self.name);
+
+        unsafe {
+            device.raw().destroy_pipeline(self.raw, None);
+            device.raw().destroy_pipeline_layout(self.layout, None);
         }
     }
 }
@@ -239,20 +253,20 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
 
     let spv = &format!("target/dacho/shaders/{filename}.wgsl.spv");
 
-    let read = std::fs::read(spv);
+    let bytes_res = read(spv);
 
-    let bytes = if read.is_ok() { read? } else {
-        if !std::path::Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
+    let bytes = if bytes_res.is_ok() { bytes_res? } else {
+        if !Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
             log!(panic, "Shader `{filename}.wgsl` not found");
         }
 
         block_on(compile_shaders())?;
 
-        std::fs::read(spv).expect("could not read {spv}")
+        read(spv).expect("could not read {spv}")
     };
 
     #[allow(clippy::cast_ptr_alignment)]
-    let words = unsafe { core::slice::from_raw_parts(bytes.as_ptr().cast::<u32>(), bytes.len() / 4) };
+    let words = unsafe { from_raw_parts(bytes.as_ptr().cast::<u32>(), bytes.len() / 4) };
 
     Ok(words.to_vec())
 }
@@ -272,8 +286,8 @@ pub fn shader_input_types(
     #[cfg(debug_assertions)]
     log!(info, "Parsing `{filename}` for input types");
 
-    let bytes = &std::fs::read(format!("assets/shaders/{filename}.wgsl"))?;
-    let code  = core::str::from_utf8(bytes)?;
+    let bytes = &read(format!("assets/shaders/{filename}.wgsl"))?;
+    let code  = from_utf8(bytes)?;
 
     let (mut vertex_types, mut instance_types) = (vec![], vec![]);
 

@@ -4,7 +4,7 @@
 use core::fmt::Display;
 
 // std
-use std::io::Write;
+use std::io::{Write, stdout};
 
 struct Color;
 
@@ -32,33 +32,34 @@ impl Color {
     const RESET:  &'static str = "\x1b[0m";
 }
 
+#[allow(clippy::exhaustive_structs)]
 pub struct Logger;
 
 impl Logger {
-    fn info_str<T: Into<String> + Display>(s: &T) -> String {
+    fn info_str<T: Into<String> + Display>(string: &T) -> String {
         format!(
             "{}{}Info{} {}",
             " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
             Color::CYAN, Color::RESET,
-            s
+            string
         )
     }
 
-    fn warning_str<T: Into<String> + Display>(s: &T) -> String {
+    fn warning_str<T: Into<String> + Display>(string: &T) -> String {
         format!(
             "{}{}Warning{} {}",
             " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
             Color::YELLOW, Color::RESET,
-            s
+            string
         )
     }
 
-    fn error_str<T: Into<String> + Display>(s: &T) -> String {
+    fn error_str<T: Into<String> + Display>(string: &T) -> String {
         format!(
             "{}{}Error{} {}",
             " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
             Color::RED, Color::RESET,
-            s
+            string
         )
     }
 
@@ -78,7 +79,7 @@ impl Logger {
     pub fn info_r<T: Into<String> + Display>(message: &T) {
         print!("{}\r", Self::info_str(message));
 
-        std::io::stdout().flush().expect("failed to flush stdout");
+        stdout().flush().expect("failed to flush stdout");
     }
 
     pub fn warning<T: Into<String> + Display>(message: &T) {

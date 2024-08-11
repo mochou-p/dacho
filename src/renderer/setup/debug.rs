@@ -1,5 +1,11 @@
 // dacho/src/renderer/setup/debug.rs
 
+// core
+use core::{
+    ffi::{c_void, CStr},
+    ptr::{null, null_mut}
+};
+
 // crates
 use {
     anyhow::Result,
@@ -54,7 +60,7 @@ unsafe extern "system" fn validation_layers_callback(
     message_severity:        MessageSeverity,
     message_type:            MessageType,
     p_callback_data:  *const CallbackData,
-    _p_user_data:     *mut   core::ffi::c_void
+    _p_user_data:     *mut   c_void
 ) -> vk::Bool32 {
     static mut NUMBER: usize = 0;
     NUMBER += 1;
@@ -74,7 +80,7 @@ unsafe extern "system" fn validation_layers_callback(
         _                        => "\x1b[35;1m[Unknown]"
     };
 
-    let message = core::ffi::CStr::from_ptr((*p_callback_data).p_message);
+    let message = CStr::from_ptr((*p_callback_data).p_message);
 
     #[allow(clippy::uninlined_format_args)] // false positive
     let mut msg = format!(
@@ -94,7 +100,7 @@ unsafe extern "system" fn validation_layers_callback(
 pub fn messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
     vk::DebugUtilsMessengerCreateInfoEXT {
         s_type: vk::StructureType::DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-        p_next: core::ptr::null(),
+        p_next: null(),
         flags:  vk::DebugUtilsMessengerCreateFlagsEXT::empty(),
         message_severity:
             MessageSeverity::WARNING |
@@ -104,7 +110,7 @@ pub fn messenger_create_info() -> vk::DebugUtilsMessengerCreateInfoEXT {
             MessageType::PERFORMANCE |
             MessageType::VALIDATION,
         pfn_user_callback: Some(validation_layers_callback),
-        p_user_data:       core::ptr::null_mut()
+        p_user_data:       null_mut()
     }
 }
 

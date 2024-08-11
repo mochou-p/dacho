@@ -17,6 +17,7 @@ use crate::{
 
 type MeshBuilder = dyn Fn() -> GeometryData;
 
+#[non_exhaustive]
 pub struct Mesh {
     pub id:           Id, // for instancing
     pub model_matrix: Mat4

@@ -19,6 +19,7 @@ type   MouseButtonSystem = Box<dyn Fn    (&mut World, MouseButton, bool)>;
 type    MouseWheelSystem = Box<dyn Fn    (&mut World, f32, f32)>;
 type         EventSystem = Box<dyn Fn    (&mut World, WindowEvent)>;
 
+#[non_exhaustive]
 pub struct Systems {
     pub state:          Option<(State, StateSystem)>,
     pub start:          Vec<StartSystem>,

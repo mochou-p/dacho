@@ -1,11 +1,13 @@
 // dacho/src/ecs/world.rs
 
-// std
-use std::{
+// core
+use core::{
     any::{Any, TypeId},
-    collections::{HashMap, HashSet},
     mem::take
 };
+
+// std
+use std::collections::{HashMap, HashSet};
 
 // crates
 use winit::{
@@ -131,8 +133,9 @@ impl World {
 
         let range = self.component_counter..self.component_counter + amount;
 
-        let _ = range.clone()
-            .map(|i| self.components.insert(i, Box::new(component)));
+        for i in range.clone() {
+            self.components.insert(i, Box::new(component));
+        }
 
         if let Some(entity) = self.get_mut_entity(entity_id) {
             let capacity = amount as usize;

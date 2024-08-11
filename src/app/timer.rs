@@ -17,9 +17,9 @@ pub struct Timer {
     #[cfg(debug_assertions)]
     last_fps:    f32,
     #[cfg(debug_assertions)]
-    rate:        usize,
+    rate:        u16, // fps will be calculated every rate frames
     #[cfg(debug_assertions)]
-    frames:      usize,
+    frames:      u16,
     #[cfg(debug_assertions)]
     first_frame: bool
 }
@@ -27,7 +27,7 @@ pub struct Timer {
 impl Timer {
     pub fn new(
         #[cfg(debug_assertions)]
-        rate: usize
+        rate: u16
     ) -> Self {
         #[cfg(debug_assertions)]
         log!(info, "Creating Timer");
@@ -60,7 +60,7 @@ impl Timer {
                 self.last_time = now;
                 self.frames    = 1;
 
-                let fps = (self.rate as f32 / elapsed).round();
+                let fps = (f32::from(self.rate) / elapsed).round();
 
                 if (fps - self.last_fps).abs() >= 1.0 {
                     log!(info_r, "{fps} FPS{}", " ".repeat(27));

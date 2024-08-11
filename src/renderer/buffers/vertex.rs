@@ -1,5 +1,11 @@
 // dacho/src/renderer/buffers/vertex.rs
 
+// core
+use core::{
+    ffi::c_void,
+    mem::size_of_val
+};
+
 // crates
 use {
     anyhow::Result,
@@ -28,8 +34,8 @@ impl VertexBuffer {
     ) -> Result<Buffer> {
         let vertex_buffer = {
             #[allow(clippy::as_ptr_cast_mut)]
-            let data        = vertices.as_ptr() as *mut core::ffi::c_void;
-            let buffer_size = core::mem::size_of_val(vertices) as u64;
+            let data        = vertices.as_ptr() as *mut c_void;
+            let buffer_size = size_of_val(vertices) as u64;
             let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
             StagingBuffer::new_buffer(

@@ -1,9 +1,17 @@
 // dacho/src/renderer/descriptors/uniform.rs
 
+// core
+use core::{
+    ffi::c_void,
+    mem::size_of,
+    ptr::{copy_nonoverlapping, from_mut}
+};
+
 // crates
 use {
     anyhow::Result,
-    ash::vk
+    ash::vk,
+    glam::f32::{Mat4, Vec3, Vec4}
 };
 
 // crate
@@ -22,9 +30,9 @@ use crate::{
 };
 
 pub struct UniformBufferObject {
-    _view:       glam::Mat4,
-    _projection: glam::Mat4,
-    _camera_pos: glam::Vec4,
+    _view:       Mat4,
+    _projection: Mat4,
+    _camera_pos: Vec4,
     _time:       f32
 }
 
@@ -33,11 +41,11 @@ impl UniformBufferObject {
         instance:        &Instance,
         physical_device: &PhysicalDevice,
         device:          &Device
-    ) -> Result<(Buffer, *mut core::ffi::c_void)> {
+    ) -> Result<(Buffer, *mut c_void)> {
         #[cfg(debug_assertions)]
         log!(info, "Creating UniformBuffer");
 
-        let buffer_size = core::mem::size_of::<Self>() as u64;
+        let buffer_size = size_of::<Self>() as u64;
 
         let uniform_buffer = {
             let usage      = vk::BufferUsageFlags::UNIFORM_BUFFER;
@@ -61,15 +69,15 @@ impl UniformBufferObject {
     }
 
     pub fn update(
-        ubo_mapped: *mut core::ffi::c_void,
-        time:        f32
+        ubo_mapped: *mut c_void,
+        time:            f32
     ) {
         const FOV:  f32 = 2.0;
         const AR:   f32 = 16.0/9.0;
         const NEAR: f32 = 0.0001;
         const FAR:  f32 = 10000.0;
 
-        let view = glam::Mat4::look_at_rh(glam::Vec3::Z, glam::Vec3::ZERO, glam::Vec3::Y);
+        let view = Mat4::look_at_rh(Vec3::Z, Vec3::ZERO, Vec3::Y);
 
         let projection = {
             let x = FOV * AR;
@@ -80,16 +88,16 @@ impl UniformBufferObject {
         let mut ubo = Self {
             _view:       view,
             _projection: projection,
-            _camera_pos: glam::Vec3::NEG_Z.extend(0.0),
+            _camera_pos: Vec3::NEG_Z.extend(0.0),
             _time:       time
         };
 
-        let src  = core::ptr::from_mut::<Self>(&mut ubo).cast::<core::ffi::c_void>();
-        let size = core::mem::size_of::<Self>();
+        let src  = from_mut::<Self>(&mut ubo).cast::<c_void>();
+        let size = size_of::<Self>();
 
         unsafe {
             #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
-            core::ptr::copy_nonoverlapping(src, unsafe { ubo_mapped }, size);
+            copy_nonoverlapping(src, unsafe { ubo_mapped }, size);
         }
     }
 }

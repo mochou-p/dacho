@@ -1,5 +1,14 @@
 // dacho/src/shader/compilation.rs
 
+// core
+use core::str::from_utf8;
+
+// std
+use std::{
+    fs::{create_dir_all, read, read_dir, write},
+    path::Path
+};
+
 // crates
 use {
     anyhow::{Context, Result, bail},
@@ -22,7 +31,7 @@ use crate::{
 #[cfg(debug_assertions)]
 use crate::log_indent;
 
-fn compile_shader(filepath: &std::path::Path) -> Result<()> {
+fn compile_shader(filepath: &Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
     let filename = &wgsl_in[wgsl_in.rfind('/').context("Error parsing shader path")?+1..];
     let spv_out  = &format!("target/dacho/shaders/{filename}.spv");
@@ -32,8 +41,8 @@ fn compile_shader(filepath: &std::path::Path) -> Result<()> {
         ..Default::default()
     };
 
-    let bytes_in = &std::fs::read(wgsl_in)?;
-    let code     = core::str::from_utf8(bytes_in)?;
+    let bytes_in = &read(wgsl_in)?;
+    let code     = from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
     if module.clone().map_err(|error| log!(error, "`{wgsl_in}`: {error}")).is_err() {
@@ -50,21 +59,9 @@ fn compile_shader(filepath: &std::path::Path) -> Result<()> {
 
     let bytes_out: Vec<u8> = words.iter().flat_map(|word| word.to_ne_bytes().to_vec()).collect();
 
-    {
-        let mut dir = "target/dacho/";
+    create_dir_all("target/dacho/shaders")?;
 
-        if !std::path::Path::new(dir).exists() {
-            std::fs::create_dir(dir)?;
-        }
-
-        dir = "target/dacho/shaders/";
-
-        if !std::path::Path::new(dir).exists() {
-            std::fs::create_dir(dir)?;
-        }
-    }
-
-    std::fs::write(spv_out, bytes_out)?;
+    write(spv_out, bytes_out)?;
 
     #[cfg(debug_assertions)]
     log!(info, "Compiled `{wgsl_in}`");
@@ -81,7 +78,7 @@ pub async fn compile_shaders() -> Result<()> {
     let mut filenames = vec![];
     let mut futures   = vec![];
 
-    for shader in std::fs::read_dir("assets/shaders").expect("please move your shaders to `assets/shaders/*.wgsl") {
+    for shader in read_dir("assets/shaders").expect("please move your shaders to `assets/shaders/*.wgsl") {
         let path = shader?.path();
 
         filenames.push(path.display().to_string());

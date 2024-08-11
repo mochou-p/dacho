@@ -1,5 +1,11 @@
 // dacho/src/renderer/buffers/staging.rs
 
+// core
+use core::{
+    ffi::c_void,
+    ptr::copy_nonoverlapping
+};
+
 // crates
 use {
     anyhow::Result,
@@ -25,7 +31,7 @@ impl StagingBuffer {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        data:            *mut core::ffi::c_void,
+        data:            *mut c_void,
         buffer_size:      u64,
         buffer_type:      vk::BufferUsageFlags
     ) -> Result<Buffer> {
@@ -54,7 +60,7 @@ impl StagingBuffer {
 
         unsafe {
             #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
-            core::ptr::copy_nonoverlapping(unsafe { data }, memory, usize::try_from(buffer_size)?);
+            copy_nonoverlapping(unsafe { data }, memory, usize::try_from(buffer_size)?);
             device.raw().unmap_memory(staging_buffer.memory);
         }
 
@@ -80,7 +86,7 @@ impl StagingBuffer {
             buffer_size
         )?;
 
-        staging_buffer.destroy(Some(device));
+        staging_buffer.device_destroy(device);
 
         Ok(buffer)
     }

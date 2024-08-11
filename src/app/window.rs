@@ -18,16 +18,16 @@ use {
 
 pub struct Window {
         raw:    winit_Window,
-    pub width:  u32,
-    pub height: u32
+    pub width:  u16,
+    pub height: u16
 }
 
 impl Window {
     #[allow(clippy::missing_errors_doc)]
     pub fn new(
         title:      &str,
-        width:       u32,
-        height:      u32,
+        width:       u16,
+        height:      u16,
         event_loop: &ActiveEventLoop
     ) -> Result<Self> {
         #[cfg(debug_assertions)]

@@ -1,8 +1,12 @@
 // dacho/src/prelude/types.rs
 
+// core
+use core::ops::{Add, Mul, Neg, Sub};
+
 // crates
 use glam::f32::{Vec2, Vec3};
 
+#[allow(clippy::exhaustive_structs)]
 #[derive(Copy, Clone, PartialEq)]
 pub struct V2 {
     pub x: f32,
@@ -66,7 +70,7 @@ impl V2 {
     }
 }
 
-impl core::ops::Mul<f32> for V2 {
+impl Mul<f32> for V2 {
     type Output = Self;
 
     #[inline]
@@ -76,6 +80,7 @@ impl core::ops::Mul<f32> for V2 {
     }
 }
 
+#[allow(clippy::exhaustive_structs)]
 #[derive(Copy, Clone, PartialEq)]
 pub struct V3 {
     pub x: f32,
@@ -144,7 +149,7 @@ impl V3 {
     }
 }
 
-impl core::ops::Add for V3 {
+impl Add for V3 {
     type Output = Self;
 
     #[inline]
@@ -154,7 +159,7 @@ impl core::ops::Add for V3 {
     }
 }
 
-impl core::ops::Sub for V3 {
+impl Sub for V3 {
     type Output = Self;
 
     #[inline]
@@ -164,7 +169,7 @@ impl core::ops::Sub for V3 {
     }
 }
 
-impl core::ops::Mul<f32> for V3 {
+impl Mul<f32> for V3 {
     type Output = Self;
 
     #[inline]
@@ -174,17 +179,17 @@ impl core::ops::Mul<f32> for V3 {
     }
 }
 
-impl core::ops::Mul<isize> for V3 {
+impl Mul<i16> for V3 {
     type Output = Self;
 
     #[inline]
     #[must_use]
-    fn mul(self, rhs: isize) -> Self::Output {
-        Self { x: self.x * rhs as f32, y: self.y * rhs as f32, z: self.z * rhs as f32 }
+    fn mul(self, rhs: i16) -> Self::Output {
+        Self { x: self.x * f32::from(rhs), y: self.y * f32::from(rhs), z: self.z * f32::from(rhs) }
     }
 }
 
-impl core::ops::Neg for V3 {
+impl Neg for V3 {
     type Output = Self;
 
     fn neg(self) -> Self::Output {

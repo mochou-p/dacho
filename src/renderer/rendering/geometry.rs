@@ -1,5 +1,8 @@
 // dacho/src/renderer/rendering/geometry.rs
 
+// core
+use core::mem::size_of;
+
 // std
 use std::collections::HashMap;
 
@@ -86,7 +89,7 @@ impl Geometry {
             let cull_mode                    = vk::CullModeFlags::from_raw(data.cull_mode);
             let polygon_mode                 = vk::PolygonMode::from_raw(data.polygon_mode);
             let (vertex_info, instance_info) = shader_input_types(&data.shader)?;
-            let instance_size                = size_of_types(&instance_info) / core::mem::size_of::<f32>();
+            let instance_size                = size_of_types(&instance_info) / size_of::<f32>();
 
             shader_info_cache.insert(
                 data.shader.clone(),
@@ -123,10 +126,10 @@ impl Geometry {
         ]
     }
 
-    pub fn destroy(&self, device: Option<&Device>) {
-        self.   vertex_buffer.destroy(device);
-        self. instance_buffer.destroy(device);
-        self.    index_buffer.destroy(device);
+    pub fn device_destroy(&self, device: &Device) {
+        self.   vertex_buffer.device_destroy(device);
+        self. instance_buffer.device_destroy(device);
+        self.    index_buffer.device_destroy(device);
     }
 }
 

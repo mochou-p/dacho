@@ -1,5 +1,8 @@
 // dacho/src/renderer/descriptors/set.rs
 
+// core
+use core::mem::size_of;
+
 // crates
 use {
     anyhow::Result,
@@ -52,7 +55,7 @@ impl DescriptorSet {
             vk::DescriptorBufferInfo::builder()
                 .buffer(*ubo.raw())
                 .offset(0)
-                .range(core::mem::size_of::<UniformBufferObject>() as u64)
+                .range(size_of::<UniformBufferObject>() as u64)
                 .build()
         ];
 

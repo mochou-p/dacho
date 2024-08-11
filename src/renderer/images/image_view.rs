@@ -7,13 +7,9 @@ use {
 };
 
 // crate
-use crate::{
-    app::logger::Logger,
-    renderer::{
-        devices::Device,
-        VulkanObject
-    },
-    log
+use crate::renderer::{
+    devices::Device,
+    VulkanObject
 };
 
 pub struct ImageView {
@@ -54,12 +50,8 @@ impl VulkanObject for ImageView {
         &self.raw
     }
 
-    fn destroy(&self, device: Option<&Device>) {
-        if let Some(device) = device {
-            unsafe { device.raw().destroy_image_view(self.raw, None); }
-        } else {
-            log!(panic, "Expected Option<&Device>, got None");
-        }
+    fn device_destroy(&self, device: &Device) {
+        unsafe { device.raw().destroy_image_view(self.raw, None); }
     }
 }
 

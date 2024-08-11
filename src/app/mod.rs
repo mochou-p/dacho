@@ -166,12 +166,14 @@ impl ApplicationHandler for App {
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         self.world.update();
 
-        if !self.world.meshes_updated.is_empty() {
-            if let Some(updated_meshes) = self.world.get_updated_meshes() {
-                if let Some(renderer) = &mut self.renderer {
+        if let Some(renderer) = &mut self.renderer {
+            if !self.world.meshes_updated.is_empty() {
+                if let Some(updated_meshes) = self.world.get_updated_meshes() {
                     renderer.update_meshes(updated_meshes).expect("failed to update meshes in the renderer");
                 }
             }
+
+            renderer.wait_for_device();
         }
 
         if let Some(window) = &self.window {
@@ -179,14 +181,15 @@ impl ApplicationHandler for App {
         }
     }
 
-    #[allow(clippy::only_used_in_recursion)]
+    #[allow(clippy::only_used_in_recursion, clippy::renamed_function_params)]
     fn window_event(
         &mut self,
-        event_loop: &ActiveEventLoop,
-        id:          WindowId,
-        event:       WindowEvent
+        event_loop:   &ActiveEventLoop,
+        window_id:     WindowId,
+        window_event:  WindowEvent
     ) {
-        match event {
+        #[allow(clippy::wildcard_enum_match_arm)]
+        match window_event {
             WindowEvent::CloseRequested => {
                 event_loop.exit();
             },
@@ -198,7 +201,7 @@ impl ApplicationHandler for App {
                 if event.physical_key == Code(Escape) {
                     self.window_event(
                         event_loop,
-                        id,
+                        window_id,
                         WindowEvent::CloseRequested
                     );
                 } else {

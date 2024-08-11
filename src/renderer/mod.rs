@@ -10,10 +10,11 @@
 pub mod rendering;
     mod setup;
 
+// core
+use core::ffi::c_void;
+
 // std
 use std::collections::HashMap;
-
-use self::buffers::VertexBuffer;
 
 // crates
 use {
@@ -24,7 +25,7 @@ use {
 
 // mod
 use {
-    buffers::Buffer,
+    buffers::{Buffer, VertexBuffer},
     commands::{Command, CommandBuffers, CommandPool},
     descriptors::{DescriptorPool, DescriptorSet, DescriptorSetLayout, UniformBufferObject},
     devices::{Device, PhysicalDevice},
@@ -54,15 +55,8 @@ pub trait VulkanObject {
 
     fn raw(&self) -> &Self::RawType;
 
-    // &Device for objects made by device
-    //  None   for objects made by entry/khr loader
-    fn destroy(&self, _device: Option<&Device>) {
-        // empty implementation for structs that do not
-        // call any .create_*()
-        //
-        // close vulkan wrappers implement this function,
-        // while abstract dacho structs do not
-    }
+    fn device_destroy(&self, _device: &Device) {}
+    fn        destroy(&self)                   {}
 }
 
 pub struct Renderer {
@@ -79,7 +73,7 @@ pub struct Renderer {
     pipelines:                  HashMap<String, Pipeline>,
     geometries:                 Vec<Geometry>,
     ubo:                        Buffer,
-    ubo_mapped:            *mut core::ffi::c_void,
+    ubo_mapped:            *mut c_void,
     descriptor_pool:            DescriptorPool,
     command_pool:               CommandPool,
     descriptor_set:             DescriptorSet,
@@ -129,7 +123,7 @@ impl Renderer {
                 let shader_info = shader_info_cache.get(&data.shader)
                     .context(format!("{} not found in shader info cache", data.shader))?;
 
-                let pipeline = Pipeline::new(&device, &descriptor_set_layout, &swapchain, &render_pass, shader_info)?;
+                let pipeline = Pipeline::new(&device, &descriptor_set_layout, window.width, window.height, &render_pass, shader_info)?;
 
                 pipelines.insert(data.shader.clone(), pipeline);
             }
@@ -211,15 +205,15 @@ impl Renderer {
 
     pub fn update_meshes(&mut self, updated_meshes: Vec<(Id, Vec<f32>)>) -> Result<()> {
         for (mesh_id, instances) in updated_meshes {
-            let g = &mut self.geometries[mesh_id as usize];
+            let geometry = &mut self.geometries[mesh_id as usize];
 
-            g.instance_buffer.destroy(Some(&self.device));
-            g.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &instances)?;
-            g.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 -> temp while the only shader is the default
+            geometry.instance_buffer.device_destroy(&self.device);
+            geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &instances)?;
+            geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 -> temp while the only shader is the default
 
-            let i = *self.mesh_id_commands_i.get(&g.id).context("failed to get command index from mesh id")?;
+            let i = *self.mesh_id_commands_i.get(&geometry.id).context("failed to get command index from mesh id")?;
 
-            self.commands.splice(i..=i+2, g.draw());
+            self.commands.splice(i..=i+2, geometry.draw());
         }
 
         self.command_buffers.record(&self.device, &self.commands, &self.render_pass, &self.swapchain, &self.pipelines, &self.descriptor_set)?;
@@ -313,17 +307,17 @@ impl Drop for Renderer {
 
         self.device.wait();
 
-        self.command_pool.destroy(Some(&self.device));
+        self.command_pool.device_destroy(&self.device);
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying Pipelines");
 
         for pipeline in self.pipelines.values() {
-            pipeline.destroy(Some(&self.device));
+            pipeline.device_destroy(&self.device);
         }
 
-        self.render_pass .destroy(Some(&self.device));
-        self.swapchain   .destroy(Some(&self.device));
+        self.render_pass .device_destroy(&self.device);
+        self.swapchain   .device_destroy(&self.device);
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying Textures and Samplers");
@@ -331,22 +325,22 @@ impl Drop for Renderer {
         #[cfg(debug_assertions)]
         log!(info, "Destroying UniformBuffer");
 
-        self.ubo                   .destroy(Some(&self.device));
-        self.descriptor_pool       .destroy(Some(&self.device));
-        self.descriptor_set_layout .destroy(Some(&self.device));
+        self.ubo                   .device_destroy(&self.device);
+        self.descriptor_pool       .device_destroy(&self.device);
+        self.descriptor_set_layout .device_destroy(&self.device);
 
         #[cfg(debug_assertions)]
         log!(info, "Destroying VertexBuffers and IndexBuffers");
 
         for geometry in &self.geometries {
-            geometry.destroy(Some(&self.device));
+            geometry.device_destroy(&self.device);
         }
 
-        self.device   .destroy(None);
-        self.surface  .destroy(None);
+        self.device   .destroy();
+        self.surface  .destroy();
         #[cfg(debug_assertions)]
         self.debug    .destroy();
-        self.instance .destroy(None);
+        self.instance .destroy();
 
         #[cfg(debug_assertions)]
         log_indent!(false);

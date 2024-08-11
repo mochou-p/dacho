@@ -1,14 +1,15 @@
 // dacho/src/ecs/entity.rs
 
+// core
+use core::any::TypeId;
+
 // std
-use std::{
-    any::TypeId,
-    collections::HashMap
-};
+use std::collections::HashMap;
 
 // super
 use super::world::Id;
 
+#[non_exhaustive]
 #[derive(Debug)]
 pub struct Entity {
     pub id:                Id,
