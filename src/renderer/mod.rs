@@ -30,14 +30,15 @@ use {
     descriptors::{DescriptorPool, DescriptorSet, DescriptorSetLayout, UniformBufferObject},
     devices::{Device, PhysicalDevice},
     presentation::{Surface, Swapchain},
-    rendering::{Geometry, GeometryData, Pipeline, RenderPass},
+    rendering::{Geometry, Pipeline, RenderPass},
     setup::{Entry, Instance}
 };
 
 // super
 use super::{
-    ecs::world::Id,
     app::window::Window,
+    ecs::world::Id,
+    prelude::mesh::Mesh
 };
 
 // debug
@@ -84,9 +85,9 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        event_loop:    &ActiveEventLoop,
-        window:        &Window,
-        geometry_data: &mut [GeometryData]
+        event_loop:     &ActiveEventLoop,
+        window:         &Window,
+        mesh_instances:  Vec<(Id, Vec<f32>)>
     ) -> Result<Self> {
         #[cfg(debug_assertions)] {
             log!(info, "Creating Renderer");
@@ -104,26 +105,96 @@ impl Renderer {
         let swapchain             = Swapchain           ::new(&instance, &device, &surface, &physical_device, &render_pass, window.width, window.height)?;
         let descriptor_set_layout = DescriptorSetLayout ::new(&device)?;
         let command_pool          = CommandPool         ::new(&device)?;
+        let (ubo, ubo_mapped)     = UniformBufferObject ::new_mapped_buffer(&instance, &physical_device, &device)?;
+        let descriptor_pool       = DescriptorPool      ::new(&device)?;
+        let descriptor_set        = DescriptorSet       ::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
+        let command_buffers       = CommandBuffers      ::new(&command_pool, &swapchain, &device)?;
 
-        let mut shader_info_cache = HashMap::new();
-        let mut pipelines         = HashMap::new();
-        let mut geometries        = Vec::with_capacity(geometry_data.len());
+        let (pipelines, geometries, commands, mesh_id_commands_i) = Self::geometry(
+            &instance,
+            &physical_device,
+            &device,
+            &command_pool,
+            &descriptor_set_layout,
+            &render_pass,
+            &swapchain,
+            &descriptor_set,
+            &command_buffers,
+            window.width,
+            window.height,
+            mesh_instances
+        )?;
+
+        #[cfg(debug_assertions)]
+        log_indent!(false);
+
+        Ok(
+            Self {
+                _entry: entry,
+                instance,
+                #[cfg(debug_assertions)]
+                debug,
+                physical_device,
+                device,
+                surface,
+                render_pass,
+                swapchain,
+                descriptor_set_layout,
+                pipelines,
+                geometries,
+                ubo,
+                ubo_mapped,
+                descriptor_pool,
+                command_pool,
+                descriptor_set,
+                command_buffers,
+                commands,
+                mesh_id_commands_i
+            }
+        )
+    }
+
+    #[allow(clippy::type_complexity, clippy::too_many_arguments)]
+    fn geometry(
+            instance:              &Instance,
+            physical_device:       &PhysicalDevice,
+            device:                &Device,
+            command_pool:          &CommandPool,
+            descriptor_set_layout: &DescriptorSetLayout,
+            render_pass:           &RenderPass,
+            swapchain:             &Swapchain,
+            descriptor_set:        &DescriptorSet,
+            command_buffers:       &CommandBuffers,
+            width:                  u16,
+            height:                 u16,
+        mut mesh_instances:         Vec<(Id, Vec<f32>)>
+    ) -> Result<(HashMap::<String, Pipeline>, Vec::<Geometry>, Vec::<Command>, HashMap::<Id, usize>)> {
+        if mesh_instances.is_empty() {
+            return Ok((HashMap::new(), vec![], vec![], HashMap::new()));
+        }
+
+        let mut shader_info_cache = HashMap::with_capacity(1);
+        let mut pipelines         = HashMap::with_capacity(1);
+        let mut geometries        = Vec::with_capacity(mesh_instances.len());
 
         #[cfg(debug_assertions)] {
             log!(info, "Processing GeometryData");
             log_indent!(true);
         }
 
-        geometry_data.sort_by(|g1, g2| g1.id.cmp(&g2.id));
+        mesh_instances.sort_by(|m1, m2| m1.0.cmp(&m2.0));
 
-        for data in geometry_data {
-            let geometry = Geometry::new(&instance, &physical_device, &device, &command_pool, data, &mut shader_info_cache)?;
+        for mi in mesh_instances {
+            let mut data   = Mesh::BUILDERS[mi.0 as usize]();
+            data.instances = mi.1;
+
+            let geometry = Geometry::new(instance, physical_device, device, command_pool, &data, &mut shader_info_cache)?;
 
             if !pipelines.contains_key(&data.shader) {
                 let shader_info = shader_info_cache.get(&data.shader)
                     .context(format!("{} not found in shader info cache", data.shader))?;
 
-                let pipeline = Pipeline::new(&device, &descriptor_set_layout, window.width, window.height, &render_pass, shader_info)?;
+                let pipeline = Pipeline::new(device, descriptor_set_layout, width, height, render_pass, shader_info)?;
 
                 pipelines.insert(data.shader.clone(), pipeline);
             }
@@ -133,11 +204,6 @@ impl Renderer {
 
         #[cfg(debug_assertions)]
         log_indent!(false);
-
-        let (ubo, ubo_mapped) = UniformBufferObject ::new_mapped_buffer(&instance, &physical_device, &device)?;
-        let descriptor_pool   = DescriptorPool      ::new(&device)?;
-        let descriptor_set    = DescriptorSet       ::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
-        let command_buffers   = CommandBuffers      ::new(&command_pool, &swapchain, &device)?;
 
         // 2           -> begin render pass, bind descriptor set
         // g.len() * 3 -> for each mesh: bind vertices, bind indices, draw
@@ -167,35 +233,9 @@ impl Renderer {
             commands.append(&mut geometry.draw());
         }
 
-        command_buffers.record(&device, &commands, &render_pass, &swapchain, &pipelines, &descriptor_set)?;
+        command_buffers.record(device, &commands, render_pass, swapchain, &pipelines, descriptor_set)?;
 
-        #[cfg(debug_assertions)]
-        log_indent!(false);
-
-        Ok(
-            Self {
-                _entry: entry,
-                instance,
-                #[cfg(debug_assertions)]
-                debug,
-                physical_device,
-                device,
-                surface,
-                render_pass,
-                swapchain,
-                descriptor_set_layout,
-                pipelines,
-                geometries,
-                ubo,
-                ubo_mapped,
-                descriptor_pool,
-                command_pool,
-                descriptor_set,
-                command_buffers,
-                commands,
-                mesh_id_commands_i
-            }
-        )
+        Ok((pipelines, geometries, commands, mesh_id_commands_i))
     }
 
     #[inline]

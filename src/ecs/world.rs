@@ -27,10 +27,7 @@ use super::{
 };
 
 // crate
-use crate::{
-    prelude::mesh::Mesh,
-    renderer::rendering::GeometryData
-};
+use crate::prelude::mesh::Mesh;
 
 pub type Id    = u32;
 pub type State = u8;
@@ -43,7 +40,7 @@ pub struct World {
     mesh_instances:    HashMap<Id, Vec<Id>>,
 
     pub(crate) meshes_updated: HashSet<Id>,
-    pub(crate) systems:        Systems,
+    pub(crate) systems:        Systems
 }
 
 impl World {
@@ -110,6 +107,8 @@ impl World {
                     .entry(mesh_component.id)
                     .or_insert_with(|| Vec::with_capacity(1))
                     .push(id);
+
+                self.update_mesh(mesh_component.id);
             }
         }
 
@@ -467,40 +466,21 @@ impl World {
         }
     }
 
-    #[allow(clippy::missing_errors_doc)]
-    pub(crate) fn get_meshes(&self) -> Vec<GeometryData> {
-        let mut mesh_data = Vec::with_capacity(self.mesh_instances.len());
-
-        for (mesh_id, components_ids) in &self.mesh_instances {
-            let mut geometry_data = Mesh::BUILDERS[*mesh_id as usize]();
-
-            geometry_data.instances.reserve_exact(components_ids.len() * 16);
-
-            for component_id in components_ids {
-                if let Some(component) = self.components.get(component_id) {
-                    if let Some(mesh_component) = component.downcast_ref::<Mesh>() {
-                        geometry_data.instances.extend(mesh_component.model_matrix.to_cols_array());
-                    }
-                }
-            }
-
-            mesh_data.push(geometry_data);
-        }
-
-        mesh_data
-    }
-
     #[inline]
     pub fn update_mesh(&mut self, mesh_id: Id) {
         self.meshes_updated.insert(mesh_id);
     }
 
-    pub(crate) fn get_updated_meshes(&mut self) -> Option<Vec<(Id, Vec<f32>)>> {
-        let mut pairs = Vec::with_capacity(self.meshes_updated.len());
+    pub(crate) fn get_updated_mesh_instances(&mut self) -> Vec<(Id, Vec<f32>)> {
+        if self.meshes_updated.is_empty() {
+            return vec![];
+        }
+
+        let mut mesh_instances = Vec::with_capacity(self.meshes_updated.len());
 
         for mesh_id in &self.meshes_updated {
             if let Some(components_ids) = self.mesh_instances.get(mesh_id) {
-                let mut instances = Vec::with_capacity(components_ids.len() * 16);
+                let mut instances = Vec::with_capacity(components_ids.len() * 16); // mat4x4
 
                 for component_id in components_ids {
                     if let Some(component) = self.components.get(component_id) {
@@ -510,17 +490,13 @@ impl World {
                     }
                 }
 
-                pairs.push((*mesh_id, instances));
+                mesh_instances.push((*mesh_id, instances));
             }
         }
 
         self.meshes_updated.clear();
 
-        if pairs.is_empty() {
-            None
-        } else {
-            Some(pairs)
-        }
+        mesh_instances
     }
 }
 

@@ -157,7 +157,7 @@ impl ApplicationHandler for App {
                 Renderer::new(
                     event_loop,
                     window,
-                    &mut self.world.get_meshes()
+                    self.world.get_updated_mesh_instances()
                 ).expect("failed to create a Renderer")
             );
         } 
@@ -167,12 +167,7 @@ impl ApplicationHandler for App {
         self.world.update();
 
         if let Some(renderer) = &mut self.renderer {
-            if !self.world.meshes_updated.is_empty() {
-                if let Some(updated_meshes) = self.world.get_updated_meshes() {
-                    renderer.update_meshes(updated_meshes).expect("failed to update meshes in the renderer");
-                }
-            }
-
+            renderer.update_meshes(self.world.get_updated_mesh_instances()).expect("failed to update meshes in the renderer");
             renderer.wait_for_device();
         }
 
