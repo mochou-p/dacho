@@ -8,6 +8,7 @@ use core::{
 
 // std
 use std::{
+    collections::HashMap,
     ffi::CString,
     fs::read,
     path::Path
@@ -21,12 +22,17 @@ use {
 };
 
 // super
-use super::RenderPass;
+use super::{
+    geometry::Geometry,
+    render_pass::RenderPass
+};
 
 // crate
 use crate::{
     app::logger::Logger,
+    ecs::world::Id,
     renderer::{
+        commands::Command,
         descriptors::DescriptorSetLayout,
         devices::Device,
         VulkanObject
@@ -43,10 +49,11 @@ use crate::{
 use crate::log_indent;
 
 pub struct Pipeline {
-        raw:    vk::Pipeline,
+        raw:        vk::Pipeline,
     #[allow(dead_code)]
-    pub name:   String,
-    pub layout: vk::PipelineLayout
+    pub name:       String,
+    pub layout:     vk::PipelineLayout,
+    pub geometries: HashMap<Id, Geometry>
 }
 
 impl Pipeline {
@@ -225,7 +232,30 @@ impl Pipeline {
 
         let name = shader_info.name.clone();
 
-        Ok(Self { raw, name, layout })
+        Ok(Self { raw, name, layout, geometries: HashMap::new() })
+    }
+
+    pub fn commands_multiple(pipelines: &HashMap<String, Self>) -> Vec<Command> {
+        let mut commands   = Vec::new();
+        let mut first_iter = true;
+
+        commands.push(Command::BeginRenderPass);
+
+        for pipeline in pipelines.values() {
+            commands.push(Command::BindPipeline(pipeline.name.clone()));
+
+            if first_iter {
+                commands.push(Command::BindDescriptorSets);
+
+                first_iter = false;
+            }
+
+            for geometry in pipeline.geometries.values() {
+                commands.extend(geometry.draw());
+            }
+        }
+
+        commands
     }
 }
 
@@ -238,7 +268,11 @@ impl VulkanObject for Pipeline {
 
     fn device_destroy(&self, device: &Device) {
         #[cfg(debug_assertions)]
-        log!(info, "Destroying Pipeline {}", self.name);
+        log!(info, "Destroying Pipeline {} and it's Buffers", self.name);
+
+        for geometry in self.geometries.values() {
+            geometry.device_destroy(device);
+        }
 
         unsafe {
             device.raw().destroy_pipeline(self.raw, None);

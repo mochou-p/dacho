@@ -61,6 +61,7 @@ impl GeometryData {
     }
 }
 
+#[derive(Hash)]
 pub struct Geometry {
     pub shader:          String,
     pub id:              Id,

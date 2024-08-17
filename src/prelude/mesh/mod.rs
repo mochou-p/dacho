@@ -19,6 +19,7 @@ type MeshBuilder = dyn Fn() -> GeometryData;
 
 #[non_exhaustive]
 pub struct Mesh {
+    pub shader:       String,
     pub id:           Id, // for instancing
     pub model_matrix: Mat4
 }
@@ -110,7 +111,7 @@ impl Mesh {
             position.reverse_y().to_glam()
         );
 
-        Self { id, model_matrix }
+        Self { shader: String::from("default"), id, model_matrix }
     }
 
     #[must_use]
@@ -123,7 +124,7 @@ impl Mesh {
             position.reverse_y().to_glam()
         );
 
-        Self { id, model_matrix }
+        Self { shader: String::from("default"), id, model_matrix }
     }
 }
 

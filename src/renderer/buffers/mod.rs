@@ -29,6 +29,7 @@ use crate::{
     log
 };
 
+#[derive(Hash)]
 pub struct Buffer {
         raw:    vk::Buffer,
     pub memory: vk::DeviceMemory

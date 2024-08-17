@@ -18,7 +18,7 @@ use std::collections::HashMap;
 
 // crates
 use {
-    anyhow::{Context, Result},
+    anyhow::Result,
     ash::vk,
     winit::event_loop::ActiveEventLoop
 };
@@ -26,7 +26,7 @@ use {
 // mod
 use {
     buffers::{Buffer, VertexBuffer},
-    commands::{Command, CommandBuffers, CommandPool},
+    commands::{CommandBuffers, CommandPool},
     descriptors::{DescriptorPool, DescriptorSet, DescriptorSetLayout, UniformBufferObject},
     devices::{Device, PhysicalDevice},
     presentation::{Surface, Swapchain},
@@ -72,15 +72,12 @@ pub struct Renderer {
     swapchain:                  Swapchain,
     descriptor_set_layout:      DescriptorSetLayout,
     pipelines:                  HashMap<String, Pipeline>,
-    geometries:                 Vec<Geometry>,
     ubo:                        Buffer,
     ubo_mapped:            *mut c_void,
     descriptor_pool:            DescriptorPool,
     command_pool:               CommandPool,
     descriptor_set:             DescriptorSet,
-    command_buffers:            CommandBuffers,
-    commands:                   Vec<Command>,
-    mesh_id_commands_i:         HashMap<Id, usize>
+    command_buffers:            CommandBuffers
 }
 
 impl Renderer {
@@ -110,19 +107,25 @@ impl Renderer {
         let descriptor_set        = DescriptorSet       ::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
         let command_buffers       = CommandBuffers      ::new(&command_pool, &swapchain, &device)?;
 
-        let (pipelines, geometries, commands, mesh_id_commands_i) = Self::geometry(
+        let pipelines = Self::geometry(
             &instance,
             &physical_device,
             &device,
             &command_pool,
             &descriptor_set_layout,
             &render_pass,
-            &swapchain,
-            &descriptor_set,
-            &command_buffers,
             window.width,
             window.height,
             mesh_instances
+        )?;
+
+        command_buffers.record(
+            &device,
+            &Pipeline::commands_multiple(&pipelines),
+            &render_pass,
+            &swapchain,
+            &pipelines,
+            &descriptor_set
         )?;
 
         #[cfg(debug_assertions)]
@@ -141,48 +144,39 @@ impl Renderer {
                 swapchain,
                 descriptor_set_layout,
                 pipelines,
-                geometries,
                 ubo,
                 ubo_mapped,
                 descriptor_pool,
                 command_pool,
                 descriptor_set,
-                command_buffers,
-                commands,
-                mesh_id_commands_i
+                command_buffers
             }
         )
     }
 
-    #[allow(clippy::type_complexity, clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)]
     fn geometry(
-            instance:              &Instance,
-            physical_device:       &PhysicalDevice,
-            device:                &Device,
-            command_pool:          &CommandPool,
-            descriptor_set_layout: &DescriptorSetLayout,
-            render_pass:           &RenderPass,
-            swapchain:             &Swapchain,
-            descriptor_set:        &DescriptorSet,
-            command_buffers:       &CommandBuffers,
-            width:                  u16,
-            height:                 u16,
-        mut mesh_instances:         Vec<(Id, Vec<f32>)>
-    ) -> Result<(HashMap::<String, Pipeline>, Vec::<Geometry>, Vec::<Command>, HashMap::<Id, usize>)> {
+        instance:              &Instance,
+        physical_device:       &PhysicalDevice,
+        device:                &Device,
+        command_pool:          &CommandPool,
+        descriptor_set_layout: &DescriptorSetLayout,
+        render_pass:           &RenderPass,
+        width:                  u16,
+        height:                 u16,
+        mesh_instances:         Vec<(Id, Vec<f32>)>
+    ) -> Result<HashMap::<String, Pipeline>> {
         if mesh_instances.is_empty() {
-            return Ok((HashMap::new(), vec![], vec![], HashMap::new()));
+            return Ok(HashMap::new());
         }
-
-        let mut shader_info_cache = HashMap::with_capacity(1);
-        let mut pipelines         = HashMap::with_capacity(1);
-        let mut geometries        = Vec::with_capacity(mesh_instances.len());
 
         #[cfg(debug_assertions)] {
             log!(info, "Processing GeometryData");
             log_indent!(true);
         }
 
-        mesh_instances.sort_by(|m1, m2| m1.0.cmp(&m2.0));
+        let mut geometries        = HashMap::new();
+        let mut shader_info_cache = HashMap::with_capacity(1);
 
         for mi in mesh_instances {
             let mut data   = Mesh::BUILDERS[mi.0 as usize]();
@@ -190,52 +184,20 @@ impl Renderer {
 
             let geometry = Geometry::new(instance, physical_device, device, command_pool, &data, &mut shader_info_cache)?;
 
-            if !pipelines.contains_key(&data.shader) {
-                let shader_info = shader_info_cache.get(&data.shader)
-                    .context(format!("{} not found in shader info cache", data.shader))?;
-
-                let pipeline = Pipeline::new(device, descriptor_set_layout, width, height, render_pass, shader_info)?;
-
-                pipelines.insert(data.shader.clone(), pipeline);
-            }
-
-            geometries.push(geometry);
+            geometries.insert(mi.0, geometry);
         }
 
         #[cfg(debug_assertions)]
-        log_indent!(false);
+        log_indent!(false); 
 
-        // 2           -> begin render pass, bind descriptor set
-        // g.len() * 3 -> for each mesh: bind vertices, bind indices, draw
-        // p.len()     -> for each pipeline: bind pipeline
-        let mut commands           = Vec::with_capacity(2 + geometries.len() * 3 + pipelines.len());
-        let mut last_pipeline      = String::new();
-        let mut first_iter         = true;
-        let mut mesh_id_commands_i = HashMap::with_capacity(geometries.len());
+        let     shader_info = shader_info_cache.get("default").expect("failed to find the default shader");
+        let mut pipeline    = Pipeline::new(device, descriptor_set_layout, width, height, render_pass, shader_info)?;
+        pipeline.geometries = geometries;
 
-        commands.push(Command::BeginRenderPass);
+        let mut pipelines = HashMap::new();
+        pipelines.insert(String::from("default"), pipeline);
 
-        for geometry in &geometries {
-            if geometry.shader != last_pipeline {
-                commands.push(Command::BindPipeline(geometry.shader.clone()));
-
-                last_pipeline.clone_from(&geometry.shader);
-            }
-
-            if first_iter {
-                commands.push(Command::BindDescriptorSets);
-
-                first_iter = false;
-            }
-
-            mesh_id_commands_i.insert(geometry.id, commands.len());
-
-            commands.append(&mut geometry.draw());
-        }
-
-        command_buffers.record(device, &commands, render_pass, swapchain, &pipelines, descriptor_set)?;
-
-        Ok((pipelines, geometries, commands, mesh_id_commands_i))
+        Ok(pipelines)
     }
 
     #[inline]
@@ -244,19 +206,37 @@ impl Renderer {
     }
 
     pub fn update_meshes(&mut self, updated_meshes: Vec<(Id, Vec<f32>)>) -> Result<()> {
-        for (mesh_id, instances) in updated_meshes {
-            let geometry = &mut self.geometries[mesh_id as usize];
-
-            geometry.instance_buffer.device_destroy(&self.device);
-            geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &instances)?;
-            geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 -> temp while the only shader is the default
-
-            let i = *self.mesh_id_commands_i.get(&geometry.id).context("failed to get command index from mesh id")?;
-
-            self.commands.splice(i..=i+2, geometry.draw());
+        if updated_meshes.is_empty() {
+            return Ok(());
         }
 
-        self.command_buffers.record(&self.device, &self.commands, &self.render_pass, &self.swapchain, &self.pipelines, &self.descriptor_set)?;
+        let pipeline = self.pipelines.get_mut("default").expect("failed to get the default pipeline");
+
+        for (mesh_id, instances) in updated_meshes {
+            let geometry_option = pipeline.geometries.get_mut(&mesh_id);
+
+            if let Some(geometry) = geometry_option {
+                geometry.instance_buffer.device_destroy(&self.device);
+                geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &instances)?;
+                geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 => temp for the default shader
+            } else {
+                let mut data   = Mesh::BUILDERS[mesh_id as usize]();
+                data.instances = instances;
+
+                let geometry = Geometry::new(&self.instance, &self.physical_device, &self.device, &self.command_pool, &data, &mut HashMap::new())?; // temp
+
+                pipeline.geometries.insert(mesh_id, geometry);
+            }
+        }
+
+        self.command_buffers.record(
+            &self.device,
+            &Pipeline::commands_multiple(&self.pipelines),
+            &self.render_pass,
+            &self.swapchain,
+            &self.pipelines,
+            &self.descriptor_set
+        )?;
 
         Ok(())
     }
@@ -368,13 +348,6 @@ impl Drop for Renderer {
         self.ubo                   .device_destroy(&self.device);
         self.descriptor_pool       .device_destroy(&self.device);
         self.descriptor_set_layout .device_destroy(&self.device);
-
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying VertexBuffers and IndexBuffers");
-
-        for geometry in &self.geometries {
-            geometry.device_destroy(&self.device);
-        }
 
         self.device   .destroy();
         self.surface  .destroy();
