@@ -7,16 +7,13 @@ use {
 };
 
 // crate
-use crate::renderer::{
-    setup::Instance,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        setup::Instance,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct PhysicalDevice {
@@ -25,8 +22,7 @@ pub struct PhysicalDevice {
 
 impl PhysicalDevice {
     pub fn new(instance: &Instance) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Choosing PhysicalDevice");
+        debug!(LOG_SRC, "Creating PhysicalDevice");
 
         let raw = unsafe { instance.raw().enumerate_physical_devices() }?
             .into_iter()

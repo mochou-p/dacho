@@ -7,16 +7,13 @@ use {
 };
 
 // crate
-use crate::renderer::{
-    devices::Device,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        devices::Device,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct CommandPool {
@@ -25,8 +22,7 @@ pub struct CommandPool {
 
 impl CommandPool {
     pub fn new(device: &Device) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating CommandPool");
+        debug!(LOG_SRC, "Creating CommandPool");
 
         let raw = {
             let create_info = vk::CommandPoolCreateInfo::builder()
@@ -88,8 +84,7 @@ impl VulkanObject for CommandPool {
     }
 
     fn device_destroy(&self, device: &Device) {
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying CommandPool");
+        debug!(LOG_SRC, "Destroying CommandPool");
 
         unsafe { device.raw().destroy_command_pool(self.raw, None); }
     }

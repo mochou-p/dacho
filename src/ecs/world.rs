@@ -16,18 +16,22 @@ use winit::{
         ElementState, KeyEvent, MouseButton,
         MouseScrollDelta::{self, LineDelta},
     },
-    keyboard::PhysicalKey::Code,
+    keyboard::PhysicalKey::Code
 };
 
 // super
 use super::{
     component::Component,
     entity::Entity,
-    system::Systems
+    system::Systems,
+    LOG_SRC
 };
 
 // crate
-use crate::prelude::mesh::Mesh;
+use crate::{
+    prelude::mesh::Mesh,
+    debug
+};
 
 pub type Id    = u32;
 pub type State = u8;
@@ -47,6 +51,8 @@ impl World {
     #[must_use]
     #[allow(clippy::new_without_default)]
     pub(crate) fn new() -> Self {
+        debug!(LOG_SRC, "Creating World");
+
         Self {
             entities:          HashMap::new(),
             components:        HashMap::new(),

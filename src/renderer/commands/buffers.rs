@@ -13,19 +13,16 @@ use {
 use super::{Command, CommandPool};
 
 // crate
-use crate::renderer::{
-    descriptors::DescriptorSet,
-    devices::Device,
-    presentation::Swapchain,
-    rendering::{Pipeline, RenderPass},
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log, log_indent
+    renderer::{
+        descriptors::DescriptorSet,
+        devices::Device,
+        presentation::Swapchain,
+        rendering::{Pipeline, RenderPass},
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct CommandBuffers {
@@ -38,8 +35,7 @@ impl CommandBuffers {
        swapchain:    &Swapchain,
        device:       &Device
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating CommandBuffers");
+        debug!(LOG_SRC, "Creating CommandBuffers");
 
         let raw = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
@@ -62,25 +58,7 @@ impl CommandBuffers {
         pipelines:      &HashMap<String, Pipeline>,
         descriptor_set: &DescriptorSet
     ) -> Result<()> {
-        #[cfg(debug_assertions)] {
-            log!(info, "Recording commands ({} command buffers)", self.raw.len());
-            log_indent!(true);
-        }
-
-        #[cfg(debug_assertions)]
-        let mut draw_calls = 0_u32;
-        #[cfg(debug_assertions)]
-        let mut binds      = 0_u32;
-        #[cfg(debug_assertions)]
-        let mut first_command_buffer;
-        #[cfg(debug_assertions)]
-        let mut just_drew  = false;
-
         for (i, &command_buffer) in self.raw.iter().enumerate() {
-            #[cfg(debug_assertions)] {
-                first_command_buffer = i == 0;
-            }
-
             {
                 let begin_info = vk::CommandBufferBeginInfo::builder();
 
@@ -92,12 +70,6 @@ impl CommandBuffers {
             for command in commands {
                 match command {
                     Command::BeginRenderPass => {
-                        #[cfg(debug_assertions)]
-                        if first_command_buffer {
-                            log!(info, "Beginning RenderPass");
-                            log_indent!(true);
-                        }
-
                         let clear_values = [
                             vk::ClearValue {
                                 color: vk::ClearColorValue {
@@ -137,15 +109,6 @@ impl CommandBuffers {
                         }
                     },
                     Command::BindPipeline(name) => {
-                        #[cfg(debug_assertions)]
-                        if first_command_buffer {
-                            log!(info, "Binding Pipeline `{}`", name);
-                            log_indent!(true);
-
-                            just_drew  = false;
-                            binds     += 1;
-                        }
-
                         let pipeline = pipelines.get(name).unwrap_or_else(|| panic!("failed to get pipeline {name}"));
 
                         last_pipeline = Some(pipeline);
@@ -159,17 +122,6 @@ impl CommandBuffers {
                         }
                     },
                     Command::BindVertexBuffers(vertex_buffer, instance_buffer) => {
-                        #[cfg(debug_assertions)]
-                        if first_command_buffer {
-                            if just_drew {
-                                log_indent!(true);
-                            }
-
-                            log!(info, "Binding VertexBuffers");
-
-                            binds += 1;
-                        }
-
                         unsafe {
                             device.raw().cmd_bind_vertex_buffers(
                                 command_buffer,
@@ -178,13 +130,6 @@ impl CommandBuffers {
                         }
                     },
                     Command::BindIndexBuffer(index_buffer) => {
-                        #[cfg(debug_assertions)]
-                        if first_command_buffer {
-                            log!(info, "Binding IndexBuffer");
-
-                            binds += 1;
-                        }
-
                         unsafe {
                             device.raw().cmd_bind_index_buffer(
                                 command_buffer,
@@ -193,13 +138,6 @@ impl CommandBuffers {
                         }
                     },
                     Command::BindDescriptorSets => {
-                        #[cfg(debug_assertions)]
-                        if first_command_buffer {
-                            log!(info, "Binding DescriptoSet");
-
-                            binds += 1;
-                        }
-
                         unsafe {
                             device.raw().cmd_bind_descriptor_sets(
                                 command_buffer,
@@ -210,15 +148,6 @@ impl CommandBuffers {
                         }
                     },
                     Command::DrawIndexed(index_count, instance_count) => {
-                        #[cfg(debug_assertions)]
-                        if first_command_buffer {
-                            log_indent!(false);
-                            log!(info, "Drawing");
-
-                            just_drew   = true;
-                            draw_calls += 1;
-                        }
-
                         unsafe {
                             device.raw().cmd_draw_indexed(
                                 command_buffer,
@@ -230,21 +159,10 @@ impl CommandBuffers {
                 }
             }
 
-            #[cfg(debug_assertions)]
-            if first_command_buffer {
-                log_indent!(false);
-                log!(info, "Ending RenderPass");
-            }
-
             unsafe {
                 device.raw().cmd_end_render_pass(command_buffer);
                 device.raw().end_command_buffer(command_buffer)?;
             }
-        }
-
-        #[cfg(debug_assertions)] {
-            log_indent!(false);
-            log!(info, "Recorded {draw_calls} draw calls and {binds} binds (per command buffer)");
         }
 
         Ok(())

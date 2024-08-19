@@ -10,19 +10,16 @@ use {
 use super::Surface;
 
 // crate
-use crate::renderer::{
-    devices::{Device, PhysicalDevice},
-    images::{Image, ImageView},
-    setup::Instance,
-    rendering::RenderPass,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        devices::{Device, PhysicalDevice},
+        images::{Image, ImageView},
+        setup::Instance,
+        rendering::RenderPass,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct Swapchain {
@@ -53,8 +50,7 @@ impl Swapchain {
         width:            u16,
         height:           u16
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating Swapchain");
+        debug!(LOG_SRC, "Creating Swapchain");
 
         let loader = khr::Swapchain::new(instance.raw(), device.raw());
 
@@ -217,8 +213,7 @@ impl VulkanObject for Swapchain {
     }
 
     fn device_destroy(&self, device: &Device) {
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying Swapchain");
+        debug!(LOG_SRC, "Destroying Swapchain");
 
         for fence in &self.may_begin_drawing {
             unsafe { device.raw().destroy_fence(*fence, None); }

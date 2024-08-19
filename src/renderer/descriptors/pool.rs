@@ -7,16 +7,13 @@ use {
 };
 
 // crate
-use crate::renderer::{
-    devices::Device,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        devices::Device,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct DescriptorPool {
@@ -25,8 +22,7 @@ pub struct DescriptorPool {
 
 impl DescriptorPool {
     pub fn new(device: &Device) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating DescriptorPool");
+        debug!(LOG_SRC, "Creating DescriptorPool");
 
         let raw = {
             let pool_sizes = [
@@ -55,8 +51,7 @@ impl VulkanObject for DescriptorPool {
     }
 
     fn device_destroy(&self, device: &Device) {
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying DescriptorPool");
+        debug!(LOG_SRC, "Destroying DescriptorPool");
 
         unsafe { device.raw().destroy_descriptor_pool(self.raw, None); }
     }

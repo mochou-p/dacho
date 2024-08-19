@@ -15,18 +15,15 @@ use {
 };
 
 // crate
-use crate::renderer::{
-    buffers::Buffer,
-    devices::{Device, PhysicalDevice},
-    setup::Instance,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        buffers::Buffer,
+        devices::{Device, PhysicalDevice},
+        setup::Instance,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct UniformBufferObject {
@@ -42,8 +39,7 @@ impl UniformBufferObject {
         physical_device: &PhysicalDevice,
         device:          &Device
     ) -> Result<(Buffer, *mut c_void)> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating UniformBuffer");
+        debug!(LOG_SRC, "Creating UniformBufferObject");
 
         let buffer_size = size_of::<Self>() as u64;
 

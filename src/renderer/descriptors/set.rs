@@ -13,17 +13,14 @@ use {
 use super::{DescriptorPool, DescriptorSetLayout, UniformBufferObject};
 
 // crate
-use crate::renderer::{
-    buffers::Buffer,
-    devices::Device,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        buffers::Buffer,
+        devices::Device,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct DescriptorSet {
@@ -38,8 +35,7 @@ impl DescriptorSet {
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating DescriptorSet");
+        debug!(LOG_SRC, "Creating DescriptorSet");
 
         let raw = {
             let set_layouts = [*descriptor_set_layout.raw()];

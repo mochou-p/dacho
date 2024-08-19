@@ -17,9 +17,8 @@ use super::{Entry, Instance};
 
 // crate
 use crate::{
-    app::logger::Logger,
-    renderer::VulkanObject,
-    log
+    renderer::{VulkanObject, LOG_SRC},
+    debug, info, warning, error
 };
 
 type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
@@ -36,7 +35,7 @@ impl Debug {
         entry:    &Entry,
         instance: &Instance
     ) -> Result<Self> {
-        log!(info, "Creating Debug messenger for Validation Layers");
+        debug!(LOG_SRC, "Creating Debug");
 
         let loader = ext::DebugUtils::new(entry.raw(), instance.raw());
 
@@ -50,7 +49,7 @@ impl Debug {
     }
 
     pub fn destroy(&self) {
-        log!(info, "Destroying Debug messenger");
+        debug!(LOG_SRC, "Destroying Debug");
 
         unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None); }
     }
@@ -62,37 +61,22 @@ unsafe extern "system" fn validation_layers_callback(
     p_callback_data:  *const CallbackData,
     _p_user_data:     *mut   c_void
 ) -> vk::Bool32 {
-    static mut NUMBER: usize = 0;
-    NUMBER += 1;
-
-    let severity = match message_severity {
-        MessageSeverity::VERBOSE => "\x1b[36;1m[Verbose]",
-        MessageSeverity::INFO    => "\x1b[36;1m[Info]",
-        MessageSeverity::WARNING => "\x1b[33;1m[Warning]",
-        MessageSeverity::ERROR   => "\x1b[31;1m[Error]",
-        _                        => "\x1b[35;1m[Unknown]"
-    };
-
-    let kind = match message_type {
-        MessageType::GENERAL     => "\x1b[36;1m[General]",
-        MessageType::PERFORMANCE => "\x1b[33;1m[Performance]",
-        MessageType::VALIDATION  => "\x1b[31;1m[Validation]",
-        _                        => "\x1b[35;1m[Unknown]"
+    let source = match message_type {
+        MessageType::GENERAL                => "vulkan::general",
+        MessageType::PERFORMANCE            => "vulkan::performance",
+        MessageType::VALIDATION             => "vulkan::validation",
+        MessageType::DEVICE_ADDRESS_BINDING => "vulkan::DAB",
+        _                                   => "vulkan"
     };
 
     let message = CStr::from_ptr((*p_callback_data).p_message);
 
-    #[allow(clippy::uninlined_format_args)] // false positive
-    let mut msg = format!(
-        "\n\x1b[33m({NUMBER}) \x1b[1m{kind} \x1b[1m{severity}\x1b[0m\n{:?}\n",
-        message
-    );
-
-    if let Some(index) = msg.find("The Vulkan spec states:") {
-        msg.insert_str(index, "\n\x1b[35;1m->\x1b[0m ");
-    }
-
-    println!("{msg}");
+    match message_severity {
+        MessageSeverity::VERBOSE =>   debug!(source, "{:?}", message),
+        MessageSeverity::INFO    =>    info!(source, "{:?}", message),
+        MessageSeverity::WARNING => warning!(source, "{:?}", message),
+        _                        =>   error!(source, "{:?}", message)
+    };
 
     vk::FALSE
 }

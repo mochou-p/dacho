@@ -3,12 +3,11 @@
 // std
 use std::time::Instant;
 
-// debug
-#[cfg(debug_assertions)]
-use {
-    super::logger::Logger,
-    crate::log
-};
+// super
+use super::LOG_SRC;
+
+// crate
+use crate::debug;
 
 pub struct Timer {
     start_time:  Instant,
@@ -29,8 +28,7 @@ impl Timer {
         #[cfg(debug_assertions)]
         rate: u16
     ) -> Self {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating Timer");
+        debug!(LOG_SRC, "Creating Timer");
 
         let start_time = Instant::now();
 
@@ -63,15 +61,11 @@ impl Timer {
                 let fps = (f32::from(self.rate) / elapsed).round();
 
                 if (fps - self.last_fps).abs() >= 1.0 {
-                    log!(info_r, "{fps} FPS{}", " ".repeat(27));
-
                     self.last_fps = fps;
                 }
             },
             _ => {
                 if self.first_frame {
-                    log!(info_r, "Waiting for the first Timer tick");
-
                     self.first_frame = false;
                 }
 

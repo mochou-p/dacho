@@ -9,6 +9,12 @@ use std::{
     path::Path
 };
 
+// super
+use super::LOG_SRC;
+
+// crate
+use crate::{debug, info, error, fatal};
+
 // crates
 use {
     anyhow::{Context, Result, bail},
@@ -20,16 +26,6 @@ use {
     },
     tokio::spawn
 };
-
-// crate
-use crate::{
-    app::logger::Logger,
-    log
-};
-
-// debug
-#[cfg(debug_assertions)]
-use crate::log_indent;
 
 fn compile_shader(filepath: &Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
@@ -45,13 +41,13 @@ fn compile_shader(filepath: &Path) -> Result<()> {
     let code     = from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
-    if module.clone().map_err(|error| log!(error, "`{wgsl_in}`: {error}")).is_err() {
+    if module.clone().map_err(|error| error!("naga::wgsl", "`{wgsl_in}`: {error}")).is_err() {
         bail!("");
     }
 
     let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
     
-    if info.clone().map_err(|error| log!(error, "`{wgsl_in}`: {error}")).is_err() {
+    if info.clone().map_err(|error| error!("naga::validation", "`{wgsl_in}`: {error}")).is_err() {
         bail!("");
     }
 
@@ -63,51 +59,34 @@ fn compile_shader(filepath: &Path) -> Result<()> {
 
     write(spv_out, bytes_out)?;
 
-    #[cfg(debug_assertions)]
-    log!(info, "Compiled `{wgsl_in}`");
+    debug!(LOG_SRC, "Compiled `{}`", filename);
 
     Ok(())
 }
 
 pub async fn compile_shaders() -> Result<()> {
-    #[cfg(debug_assertions)] {
-        log!(info, "Compiling shaders");
-        log_indent!(true);
-    }
+    info!(LOG_SRC, "Compiling shaders");
 
-    let mut filenames = vec![];
-    let mut futures   = vec![];
+    let mut futures = vec![];
 
     for shader in read_dir("assets/shaders").expect("please move your shaders to `assets/shaders/*.wgsl") {
         let path = shader?.path();
 
-        filenames.push(path.display().to_string());
         futures.push(spawn(async move { compile_shader(&path) }));
     }
 
     let results = join_all(futures).await;
 
-    let (mut i, mut j) = (0_usize, 0_usize);
+    let mut error_count = 0_usize;
 
     for result in results {
-        if let Err(error) = result? {
-            if error.to_string() != "" {
-                let filename = &filenames[i][filenames[i].rfind('/').context("Error parsing shader path")?+1..];
-
-                log!(error, "`{filename}`: {error}");
-            }
-
-            j += 1;
+        if result.is_err() {
+            error_count += 1;
         }
-
-        i += 1;
     }
 
-    #[cfg(debug_assertions)]
-    log_indent!(false);
-
-    if j != 0 {
-        log!(panic, "Failed to compile all shaders");
+    if error_count != 0 {
+        fatal!(LOG_SRC, "Failed to compile all shaders");
     }
 
     Ok(())

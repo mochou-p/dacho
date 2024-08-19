@@ -38,20 +38,17 @@ use {
 use super::{
     app::window::Window,
     ecs::world::Id,
-    prelude::mesh::Mesh
+    prelude::mesh::Mesh,
+    debug, info
 };
 
 // debug
 #[cfg(debug_assertions)]
-use {
-    setup::Debug,
-    super::{
-        app::logger::Logger,
-        log, log_indent
-    }
-};
+use setup::Debug;
 
-pub trait VulkanObject {
+const LOG_SRC: &str = "dacho::renderer";
+
+trait VulkanObject {
     type RawType;
 
     fn raw(&self) -> &Self::RawType;
@@ -86,10 +83,7 @@ impl Renderer {
         window:         &Window,
         mesh_instances:  Vec<(Id, Vec<f32>)>
     ) -> Result<Self> {
-        #[cfg(debug_assertions)] {
-            log!(info, "Creating Renderer");
-            log_indent!(true);
-        }
+        info!(LOG_SRC, "Creating Renderer");
 
         let entry                 = Entry               ::new()?;
         let instance              = Instance            ::new(event_loop, &entry)?;
@@ -119,6 +113,8 @@ impl Renderer {
             mesh_instances
         )?;
 
+        debug!(LOG_SRC, "Recording Commands");
+
         command_buffers.record(
             &device,
             &Pipeline::commands_multiple(&pipelines),
@@ -127,9 +123,6 @@ impl Renderer {
             &pipelines,
             &descriptor_set
         )?;
-
-        #[cfg(debug_assertions)]
-        log_indent!(false);
 
         Ok(
             Self {
@@ -166,17 +159,14 @@ impl Renderer {
         height:                 u16,
         mesh_instances:         Vec<(Id, Vec<f32>)>
     ) -> Result<HashMap::<String, Pipeline>> {
+        info!(LOG_SRC, "Preparing Meshes");
+
         if mesh_instances.is_empty() {
             return Ok(HashMap::new());
         }
 
-        #[cfg(debug_assertions)] {
-            log!(info, "Processing GeometryData");
-            log_indent!(true);
-        }
-
         let mut geometries        = HashMap::new();
-        let mut shader_info_cache = HashMap::with_capacity(1);
+        let mut shader_info_cache = HashMap::new();
 
         for mi in mesh_instances {
             let mut data   = Mesh::BUILDERS[mi.0 as usize]();
@@ -187,8 +177,7 @@ impl Renderer {
             geometries.insert(mi.0, geometry);
         }
 
-        #[cfg(debug_assertions)]
-        log_indent!(false); 
+        debug!(LOG_SRC, "Creating Pipelines");
 
         let     shader_info = shader_info_cache.get("default").expect("failed to find the default shader");
         let mut pipeline    = Pipeline::new(device, descriptor_set_layout, width, height, render_pass, shader_info)?;
@@ -318,19 +307,13 @@ impl Renderer {
 
 impl Drop for Renderer {
     fn drop(&mut self) {
-        #[cfg(debug_assertions)] {
-            log_indent!(false);
-            println!("\n");
-            log!(info, "Destroying Renderer");
-            log_indent!(true);
-        }
+        info!(LOG_SRC, "Destroying Renderer");
 
         self.device.wait();
 
         self.command_pool.device_destroy(&self.device);
 
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying Pipelines");
+        debug!(LOG_SRC, "Destroying Pipelines");
 
         for pipeline in self.pipelines.values() {
             pipeline.device_destroy(&self.device);
@@ -339,11 +322,7 @@ impl Drop for Renderer {
         self.render_pass .device_destroy(&self.device);
         self.swapchain   .device_destroy(&self.device);
 
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying Textures and Samplers");
-
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying UniformBuffer");
+        debug!(LOG_SRC, "Destroying UniformBufferObject");
 
         self.ubo                   .device_destroy(&self.device);
         self.descriptor_pool       .device_destroy(&self.device);
@@ -354,9 +333,6 @@ impl Drop for Renderer {
         #[cfg(debug_assertions)]
         self.debug    .destroy();
         self.instance .destroy();
-
-        #[cfg(debug_assertions)]
-        log_indent!(false);
     }
 }
 

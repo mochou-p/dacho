@@ -1,98 +1,95 @@
 // dacho/src/game/logger.rs
 
-// core
-use core::fmt::Display;
-
-// std
-use std::io::{Write, stdout};
-
-struct Color;
-
 #[macro_export]
-macro_rules! log_indent {
-    ($i:expr) => {
-        Logger::indent($i)
+macro_rules! debug {
+    ($source:expr, $($args:expr),*) => {
+        $crate::app::logger::Logger::debug($source, &format!($($args),*))
     };
 }
 
 #[macro_export]
-macro_rules! log {
-    ($f:ident, $($arg:expr),*) => {
-        Logger::$f(&format!($($arg),*))
+macro_rules! info {
+    ($source:expr, $($args:expr),*) => {
+        $crate::app::logger::Logger::info($source, &format!($($args),*))
     };
 }
 
-static mut INDENTATION:      usize = 0;
-static     INDENTATION_SIZE: usize = 5;
+#[macro_export]
+macro_rules! warning {
+    ($source:expr, $($args:expr),*) => {
+        $crate::app::logger::Logger::warning($source, &format!($($args),*))
+    };
+}
 
-impl Color {
-    const RED:    &'static str = "\x1b[31;1m";
-    const YELLOW: &'static str = "\x1b[33;1m";
-    const CYAN:   &'static str = "\x1b[36;1m";
-    const RESET:  &'static str = "\x1b[0m";
+#[macro_export]
+macro_rules! error {
+    ($source:expr, $($args:expr),*) => {
+        $crate::app::logger::Logger::error($source, &format!($($args),*))
+    };
+}
+
+#[macro_export]
+macro_rules! fatal {
+    ($source:expr, $($arg:expr),*) => {
+        use $crate::app::logger::Logger;
+
+        panic!("{}[{}]{} {}", Logger::RED, $source, Logger::RESET, format!($($arg),*))
+    };
 }
 
 #[allow(clippy::exhaustive_structs)]
 pub struct Logger;
 
 impl Logger {
-    fn info_str<T: Into<String> + Display>(string: &T) -> String {
-        format!(
-            "{}{}Info{} {}",
-            " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
-            Color::CYAN, Color::RESET,
-            string
-        )
-    }
+    pub const RED:    &'static str = "\x1b[31;1m";
+    pub const YELLOW: &'static str = "\x1b[33;1m";
+    pub const CYAN:   &'static str = "\x1b[36;1m";
+    pub const WHITE:  &'static str = "\x1b[0;1m";
+    pub const BLACK:  &'static str = "\x1b[90m";
+    pub const RESET:  &'static str = "\x1b[0m";
 
-    fn warning_str<T: Into<String> + Display>(string: &T) -> String {
-        format!(
-            "{}{}Warning{} {}",
-            " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
-            Color::YELLOW, Color::RESET,
-            string
-        )
-    }
-
-    fn error_str<T: Into<String> + Display>(string: &T) -> String {
-        format!(
-            "{}{}Error{} {}",
-            " ".repeat(unsafe { INDENTATION } * INDENTATION_SIZE),
-            Color::RED, Color::RESET,
-            string
-        )
-    }
-
-    pub fn indent(delta: bool) {
-        if delta {
-            unsafe { INDENTATION += 1; }
-        } else if unsafe { INDENTATION } > 0 {
-            unsafe { INDENTATION -= 1; }
+    #[inline]
+    #[allow(dead_code, clippy::print_stdout)]
+    fn stdout(source: &str, message: &str, color: &str, is_everything_colored: bool) {
+        if is_everything_colored {
+            println!("{color}[{source}] {message}{}", Self::RESET);
+        } else {
+            println!("{color}[{source}]{} {message}", Self::RESET);
         }
     }
 
-    pub fn info<T: Into<String> + Display>(message: &T) {
-        println!("{}", Self::info_str(message));
+    #[inline]
+    #[allow(dead_code, clippy::print_stderr)]
+    fn stderr(source: &str, message: &str, color: &str) {
+        eprintln!("{color}[{source}]{} {message}", Self::RESET);
     }
 
-    #[allow(clippy::missing_panics_doc)]
-    pub fn info_r<T: Into<String> + Display>(message: &T) {
-        print!("{}\r", Self::info_str(message));
-
-        stdout().flush().expect("failed to flush stdout");
+    #[inline]
+    #[allow(unused_variables)]
+    pub fn debug(source: &str, message: &str) {
+        #[cfg(debug_assertions)]
+        Self::stdout(source, message, Self::BLACK, true);
     }
 
-    pub fn warning<T: Into<String> + Display>(message: &T) {
-        println!("{}", Self::warning_str(message));
+    #[inline]
+    #[allow(unused_variables)]
+    pub fn info(source: &str, message: &str) {
+        #[cfg(debug_assertions)]
+        Self::stdout(source, message, Self::CYAN, false);
     }
 
-    pub fn error<T: Into<String> + Display>(message: &T) {
-        println!("{}", Self::error_str(message));
+    #[inline]
+    #[allow(unused_variables)]
+    pub fn warning(source: &str, message: &str) {
+        #[cfg(debug_assertions)]
+        Self::stderr(source, message, Self::YELLOW);
     }
 
-    #[allow(clippy::missing_panics_doc)]
-    pub fn panic<T: Into<String> + Display>(message: &T) {
-        panic!("{}", Self::error_str(message));
+    #[inline]
+    #[allow(unused_variables)]
+    pub fn error(source: &str, message: &str) {
+        #[cfg(debug_assertions)]
+        Self::stderr(source, message, Self::RED);
     }
 }
 

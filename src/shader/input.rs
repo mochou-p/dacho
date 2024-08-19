@@ -9,12 +9,6 @@ use {
     ash::vk
 };
 
-// crate
-use crate::{
-    app::logger::Logger,
-    log
-};
-
 type LastLocation         = u32;
 type VertexDescriptions   = (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, LastLocation);
 type InstanceDescriptions = (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>);
@@ -74,7 +68,7 @@ pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
         "vec3<f32>"   => Type::Vec3,
         "vec4<f32>"   => Type::Vec4,
         "mat4x4<f32>" => Type::Mat4x4,
-        _             => { log!(panic, "Unknown glsl type `{wgsl_type}`"); panic!(); }
+        _             => { panic!("Unknown glsl type `{wgsl_type}`"); }
     };
 
     Ok(kind)

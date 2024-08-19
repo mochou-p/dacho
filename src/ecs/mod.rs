@@ -12,3 +12,5 @@ pub use {
     world::{Id, State, World}
 };
 
+const LOG_SRC: &str = "dacho::ecs";
+

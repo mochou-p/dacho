@@ -10,11 +10,11 @@ use {
     }
 };
 
-#[cfg(debug_assertions)]
-use {
-    super::logger::Logger,
-    crate::log
-};
+// super
+use super::LOG_SRC;
+
+// crate
+use crate::debug;
 
 pub struct Window {
         raw:    winit_Window,
@@ -30,8 +30,7 @@ impl Window {
         height:      u16,
         event_loop: &ActiveEventLoop
     ) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating Window");
+        debug!(LOG_SRC, "Creating Window");
 
         let window_attributes = winit_Window::default_attributes()
             .with_title(title)

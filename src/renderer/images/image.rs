@@ -8,14 +8,14 @@ use {
 
 // crate
 use crate::{
-    app::logger::Logger,
     renderer::{
         commands::CommandPool,
         devices::{Device, PhysicalDevice},
         setup::Instance,
-        VulkanObject
+        VulkanObject,
+        LOG_SRC
     },
-    log
+    fatal
 };
 
 pub struct Image {
@@ -72,9 +72,9 @@ impl Image {
                     break;
                 }
             }
-
+            
             if !found {
-                log!(panic, "Failed to find a suitable memory type"); panic!();
+                fatal!(LOG_SRC, "Failed to find a suitable memory type");
             }
 
             result
@@ -118,7 +118,7 @@ impl Image {
                     vk::PipelineStageFlags::FRAGMENT_SHADER
                 )
             },
-            _ => { log!(panic, "Invalid layout transition"); panic!(); }
+            _ => { panic!("Invalid layout transition"); }
         };
 
         let subresource_range = vk::ImageSubresourceRange::builder()

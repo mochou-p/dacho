@@ -4,13 +4,9 @@
 use anyhow::Result;
 
 // crate
-use crate::renderer::VulkanObject;
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{VulkanObject, LOG_SRC},
+    debug
 };
 
 pub struct Entry {
@@ -19,8 +15,7 @@ pub struct Entry {
 
 impl Entry {
     pub fn new() -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating Entry");
+        debug!(LOG_SRC, "Creating Entry");
 
         let raw = unsafe { ash::Entry::load() }?;
 

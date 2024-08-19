@@ -29,24 +29,20 @@ use super::{
 
 // crate
 use crate::{
-    app::logger::Logger,
     ecs::world::Id,
     renderer::{
         commands::Command,
         descriptors::DescriptorSetLayout,
         devices::Device,
-        VulkanObject
+        VulkanObject,
+        LOG_SRC
     },
     shader::{
         ShaderInfo, Type,
         compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
     },
-    log
+    debug, warning, fatal
 };
-
-// debug
-#[cfg(debug_assertions)]
-use crate::log_indent;
 
 pub struct Pipeline {
         raw:        vk::Pipeline,
@@ -66,10 +62,7 @@ impl Pipeline {
         render_pass:           &RenderPass,
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
-        #[cfg(debug_assertions)] {
-            log!(info, "Creating Pipeline `{}`", shader_info.name);
-            log_indent!(true);
-        }
+        debug!(LOG_SRC, "Creating Pipeline `{}`", shader_info.name);
 
         let layout = {
             let set_layouts = [*descriptor_set_layout.raw()];
@@ -227,9 +220,6 @@ impl Pipeline {
 
         unsafe { device.raw().destroy_shader_module(module, None); }
 
-        #[cfg(debug_assertions)]
-        log_indent!(false);
-
         let name = shader_info.name.clone();
 
         Ok(Self { raw, name, layout, geometries: HashMap::new() })
@@ -267,9 +257,6 @@ impl VulkanObject for Pipeline {
     }
 
     fn device_destroy(&self, device: &Device) {
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying Pipeline {} and it's Buffers", self.name);
-
         for geometry in self.geometries.values() {
             geometry.device_destroy(device);
         }
@@ -282,21 +269,22 @@ impl VulkanObject for Pipeline {
 }
 
 fn read_spirv(filename: &str) -> Result<Vec<u32>> {
-    #[cfg(debug_assertions)]
-    log!(info, "Reading `{filename}` SPIR-V");
+    debug!(LOG_SRC, "Reading `{filename}.wgsl` SPIR-V");
 
     let spv = &format!("target/dacho/shaders/{filename}.wgsl.spv");
 
     let bytes_res = read(spv);
 
     let bytes = if bytes_res.is_ok() { bytes_res? } else {
+        warning!(LOG_SRC, "Shader `{filename}.wgsl` SPIR-V not found");
+
         if !Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
-            log!(panic, "Shader `{filename}.wgsl` not found");
+            fatal!(LOG_SRC, "Shader `{filename}.wgsl` does not exist");
         }
 
         block_on(compile_shaders())?;
 
-        read(spv).expect("could not read {spv}")
+        read(spv).expect("unexpected Shader error")
     };
 
     #[allow(clippy::cast_ptr_alignment)]
@@ -317,8 +305,7 @@ enum ParseState {
 pub fn shader_input_types(
     filename: &String
 ) -> Result<(Vec<Type>, Vec<Type>)> {
-    #[cfg(debug_assertions)]
-    log!(info, "Parsing `{filename}` for input types");
+    debug!(LOG_SRC, "Parsing `{filename}.wgsl` for VertexInput");
 
     let bytes = &read(format!("assets/shaders/{filename}.wgsl"))?;
     let code  = from_utf8(bytes)?;
@@ -355,7 +342,7 @@ pub fn shader_input_types(
     }
 
     if parse_state != ParseState::Finished {
-        log!(panic, "Failed to parse `{filename}` for input types");
+        fatal!(LOG_SRC, "Failed to parse `{filename}.wgsl`");
     }
 
     Ok((vertex_types, instance_types))

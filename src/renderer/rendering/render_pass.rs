@@ -7,16 +7,13 @@ use {
 };
 
 // crate
-use crate::renderer::{
-    devices::Device,
-    VulkanObject
-};
-
-// debug
-#[cfg(debug_assertions)]
 use crate::{
-    app::logger::Logger,
-    log
+    renderer::{
+        devices::Device,
+        VulkanObject,
+        LOG_SRC
+    },
+    debug
 };
 
 pub struct RenderPass {
@@ -25,8 +22,7 @@ pub struct RenderPass {
 
 impl RenderPass {
     pub fn new(device: &Device) -> Result<Self> {
-        #[cfg(debug_assertions)]
-        log!(info, "Creating RenderPass");
+        debug!(LOG_SRC, "Creating RenderPass");
 
         let raw = {
             let attachments = [
@@ -131,8 +127,7 @@ impl VulkanObject for RenderPass {
     }
 
     fn device_destroy(&self, device: &Device) {
-        #[cfg(debug_assertions)]
-        log!(info, "Destroying RenderPass");
+        debug!(LOG_SRC, "Destroying RenderPass");
 
         unsafe { device.raw().destroy_render_pass(self.raw, None); }
     }

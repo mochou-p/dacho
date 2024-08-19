@@ -20,14 +20,12 @@ use super::{
     devices::{Device, PhysicalDevice},
     images::Image,
     setup::Instance,
-    VulkanObject
+    VulkanObject,
+    LOG_SRC
 };
 
 // crate
-use crate::{
-    app::logger::Logger,
-    log
-};
+use crate::fatal;
 
 #[derive(Hash)]
 pub struct Buffer {
@@ -73,7 +71,7 @@ impl Buffer {
                 }
 
                 if !found {
-                    log!(panic, "Failed to find a suitable memory type");
+                    fatal!(LOG_SRC, "Failed to find a suitable memory type");
                 }
 
                 result
