@@ -23,6 +23,9 @@ use super::{
     VulkanObject
 };
 
+// crate
+use crate::fatal;
+
 #[derive(Hash)]
 pub struct Buffer {
         raw:    vk::Buffer,
@@ -66,7 +69,9 @@ impl Buffer {
                     }
                 }
 
-                assert!(found, "Failed to find a suitable memory type");
+                if !found {
+                    fatal!("Failed to find a suitable memory type");
+                }
 
                 result
             };

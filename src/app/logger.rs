@@ -3,18 +3,16 @@
 #[macro_export]
 macro_rules! log {
     ($fn:ident, $($args:expr),*) => {
-        #[cfg(debug_assertions)] {
-            $crate::app::logger::Logger::$fn(&$crate::path_to_log_source(file!()), &format!($($args),*))
-        }
+        #[cfg(debug_assertions)]
+        $crate::app::logger::Logger::$fn(&$crate::path_to_log_source(file!()), &format!($($args),*));
     };
 }
 
 #[macro_export]
 macro_rules! log_from {
     ($fn:ident, $source:expr, $($args:expr),*) => {
-        #[cfg(debug_assertions)] {
-            $crate::app::logger::Logger::$fn($source, &format!($($args),*))
-        }
+        #[cfg(debug_assertions)]
+        $crate::app::logger::Logger::$fn($source, &format!($($args),*));
     };
 }
 
@@ -22,7 +20,7 @@ macro_rules! log_from {
 macro_rules! self_log {
     ($fn:ident, $prefix:expr) => {
         #[cfg(debug_assertions)]
-        $crate::log!($fn, "{} {}", $prefix, $crate::type_name_tail::<Self>())
+        $crate::log!($fn, "{} {}", $prefix, $crate::type_name_tail::<Self>());
     };
 }
 
@@ -30,7 +28,7 @@ macro_rules! self_log {
 macro_rules! create_log {
     ($severity:ident) => {
         #[cfg(debug_assertions)]
-        $crate::self_log!($severity, "Creating")
+        $crate::self_log!($severity, "Creating");
     };
 }
 
@@ -38,7 +36,17 @@ macro_rules! create_log {
 macro_rules! destroy_log {
     ($severity:ident) => {
         #[cfg(debug_assertions)]
-        $crate::self_log!($severity, "Destroying")
+        $crate::self_log!($severity, "Destroying");
+    };
+}
+
+#[macro_export]
+macro_rules! fatal {
+    ($($args:expr),*) => {
+        $crate::app::logger::Logger::error(&$crate::path_to_log_source(file!()), &format!($($args),*));
+
+        #[allow(clippy::exit)]
+        std::process::exit(1_i32);
     };
 }
 

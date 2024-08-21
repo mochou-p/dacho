@@ -22,7 +22,7 @@ use {
 };
 
 // crate
-use crate::{log, log_from};
+use crate::{log, log_from, fatal};
 
 fn compile_shader(filepath: &Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
@@ -84,7 +84,9 @@ pub async fn compile_shaders() -> Result<()> {
         }
     }
 
-    assert!(error_count == 0, "Failed to compile all shaders");
+    if error_count != 0 {
+        fatal!("Failed to compile all shaders");
+    }
 
     Ok(())
 }

@@ -21,7 +21,7 @@ use crate::{
         rendering::{Pipeline, RenderPass},
         VulkanObject
     },
-    create_log
+    create_log, fatal
 };
 
 pub struct CommandBuffers {
@@ -108,7 +108,9 @@ impl CommandBuffers {
                         }
                     },
                     Command::BindPipeline(name) => {
-                        let pipeline = pipelines.get(name).unwrap_or_else(|| panic!("failed to get pipeline {name}"));
+                        let Some(pipeline) = pipelines.get(name) else {
+                            fatal!("Failed to get Pipeline {name}");
+                        };
 
                         last_pipeline = Some(pipeline);
 

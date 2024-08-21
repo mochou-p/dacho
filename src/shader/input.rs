@@ -9,6 +9,9 @@ use {
     ash::vk
 };
 
+// crate
+use crate::fatal;
+
 type LastLocation         = u32;
 type VertexDescriptions   = (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, LastLocation);
 type InstanceDescriptions = (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>);
@@ -41,13 +44,13 @@ const fn type_to_size(kind: Type) -> usize {
     }
 }
 
-const fn type_to_format(kind: Type) -> vk::Format {
+fn type_to_format(kind: Type) -> vk::Format {
     match kind {
         Type::Float  => vk::Format::R32_SFLOAT,
         Type::Vec2   => vk::Format::R32G32_SFLOAT,
         Type::Vec3   => vk::Format::R32G32B32_SFLOAT,
         Type::Vec4   => vk::Format::R32G32B32A32_SFLOAT,
-        Type::Mat4x4 => panic!("Mat4x4 is not a supported vk::Format")
+        Type::Mat4x4 => { fatal!("Mat4x4 is not a supported vk::Format"); }
     }
 }
 
@@ -68,7 +71,7 @@ pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
         "vec3<f32>"   => Type::Vec3,
         "vec4<f32>"   => Type::Vec4,
         "mat4x4<f32>" => Type::Mat4x4,
-        _             => { panic!("Unknown glsl type `{wgsl_type}`"); }
+        _             => { fatal!("Unknown glsl type `{wgsl_type}`"); }
     };
 
     Ok(kind)

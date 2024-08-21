@@ -40,7 +40,7 @@ use crate::{
         ShaderInfo, Type,
         compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
     },
-    log
+    log, fatal
 };
 
 pub struct Pipeline {
@@ -277,10 +277,9 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
     let bytes = if bytes_res.is_ok() { bytes_res? } else {
         log!(warning, "Shader `{filename}.wgsl` SPIR-V not found");
 
-        assert!(
-            Path::new(&format!("assets/shaders/{filename}.wgsl")).exists(),
-            "Shader `{filename}.wgsl` does not exist"
-        );
+        if !Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
+            fatal!("Shader `{filename}.wgsl` does not exist");
+        }
 
         block_on(compile_shaders())?;
 
@@ -305,10 +304,13 @@ enum ParseState {
 pub fn shader_input_types(
     filename: &String
 ) -> Result<(Vec<Type>, Vec<Type>)> {
+    let Ok(bytes) = read(format!("assets/shaders/{filename}.wgsl")) else {
+        fatal!("Shader `{filename}.wgsl` does not exist");
+    };
+
     log!(debug, "Parsing `{filename}.wgsl` for VertexInput");
 
-    let bytes = &read(format!("assets/shaders/{filename}.wgsl"))?;
-    let code  = from_utf8(bytes)?;
+    let code = from_utf8(&bytes)?;
 
     let (mut vertex_types, mut instance_types) = (vec![], vec![]);
 
@@ -341,7 +343,9 @@ pub fn shader_input_types(
         }
     }
 
-    assert!(parse_state == ParseState::Finished, "Failed to parse `{filename}.wgsl`");
+    if parse_state != ParseState::Finished {
+        fatal!("Failed to parse `{filename}.wgsl`");
+    }
 
     Ok((vertex_types, instance_types))
 }

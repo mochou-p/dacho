@@ -25,7 +25,6 @@ fn type_name_tail<T>() -> String {
     tail.to_owned()
 }
 
-#[cfg(debug_assertions)]
 fn path_to_log_source(path: &str) -> String {
     let src_path   = &path[path.rfind("/src/").expect("path error") + 5..];
     let src_crate  = &src_path[..src_path.find('/').expect("path error")];
