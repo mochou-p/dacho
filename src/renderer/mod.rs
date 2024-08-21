@@ -39,14 +39,12 @@ use super::{
     app::window::Window,
     ecs::world::Id,
     prelude::mesh::Mesh,
-    debug, info
+    log, create_log, destroy_log
 };
 
 // debug
 #[cfg(debug_assertions)]
 use setup::Debug;
-
-const LOG_SRC: &str = "dacho::renderer";
 
 trait VulkanObject {
     type RawType;
@@ -83,7 +81,7 @@ impl Renderer {
         window:         &Window,
         mesh_instances:  Vec<(Id, Vec<f32>)>
     ) -> Result<Self> {
-        info!(LOG_SRC, "Creating Renderer");
+        create_log!(info);
 
         let entry                 = Entry               ::new()?;
         let instance              = Instance            ::new(event_loop, &entry)?;
@@ -113,7 +111,7 @@ impl Renderer {
             mesh_instances
         )?;
 
-        debug!(LOG_SRC, "Recording Commands");
+        log!(debug, "Recording Commands");
 
         command_buffers.record(
             &device,
@@ -159,7 +157,7 @@ impl Renderer {
         height:                 u16,
         mesh_instances:         Vec<(Id, Vec<f32>)>
     ) -> Result<HashMap::<String, Pipeline>> {
-        info!(LOG_SRC, "Preparing Meshes");
+        log!(info, "Preparing Meshes");
 
         if mesh_instances.is_empty() {
             return Ok(HashMap::new());
@@ -177,7 +175,7 @@ impl Renderer {
             geometries.insert(mi.0, geometry);
         }
 
-        debug!(LOG_SRC, "Creating Pipelines");
+        log!(info, "Creating Pipelines");
 
         let     shader_info = shader_info_cache.get("default").expect("failed to find the default shader");
         let mut pipeline    = Pipeline::new(device, descriptor_set_layout, width, height, render_pass, shader_info)?;
@@ -307,13 +305,13 @@ impl Renderer {
 
 impl Drop for Renderer {
     fn drop(&mut self) {
-        info!(LOG_SRC, "Destroying Renderer");
+        destroy_log!(info);
 
         self.device.wait();
 
         self.command_pool.device_destroy(&self.device);
 
-        debug!(LOG_SRC, "Destroying Pipelines");
+        log!(debug, "Destroying Pipelines");
 
         for pipeline in self.pipelines.values() {
             pipeline.device_destroy(&self.device);
@@ -322,7 +320,7 @@ impl Drop for Renderer {
         self.render_pass .device_destroy(&self.device);
         self.swapchain   .device_destroy(&self.device);
 
-        debug!(LOG_SRC, "Destroying UniformBufferObject");
+        log!(debug, "Destroying UniformBufferObject");
 
         self.ubo                   .device_destroy(&self.device);
         self.descriptor_pool       .device_destroy(&self.device);

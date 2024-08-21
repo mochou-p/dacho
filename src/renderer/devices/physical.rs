@@ -10,10 +10,9 @@ use {
 use crate::{
     renderer::{
         setup::Instance,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log
 };
 
 pub struct PhysicalDevice {
@@ -22,7 +21,7 @@ pub struct PhysicalDevice {
 
 impl PhysicalDevice {
     pub fn new(instance: &Instance) -> Result<Self> {
-        debug!(LOG_SRC, "Creating PhysicalDevice");
+        create_log!(debug);
 
         let raw = unsafe { instance.raw().enumerate_physical_devices() }?
             .into_iter()

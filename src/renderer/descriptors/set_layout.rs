@@ -10,10 +10,9 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log, destroy_log
 };
 
 pub struct DescriptorSetLayout {
@@ -22,7 +21,7 @@ pub struct DescriptorSetLayout {
 
 impl DescriptorSetLayout {
     pub fn new(device: &Device) -> Result<Self> {
-        debug!(LOG_SRC, "Creating DescriptorSetLayout");
+        create_log!(debug);
 
         let raw = {
             let ubo_bindings = [
@@ -52,7 +51,7 @@ impl VulkanObject for DescriptorSetLayout {
     }
 
     fn device_destroy(&self, device: &Device) {
-        debug!(LOG_SRC, "Destroying DescriptorSetLayout");
+        destroy_log!(debug);
 
         unsafe { device.raw().destroy_descriptor_set_layout(self.raw, None); }
     }

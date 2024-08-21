@@ -30,10 +30,8 @@ pub use winit::{
 use super::{
     ecs::world::{State, World},
     renderer::Renderer,
-    debug, info
+    log, create_log
 };
-
-const LOG_SRC: &str = "dacho::app";
 
 pub struct App {
         title:    String,
@@ -46,7 +44,7 @@ pub struct App {
 impl App {
     #[must_use]
     pub fn new(title: &str) -> Self {
-        info!(LOG_SRC, "Creating App");
+        create_log!(info);
 
         let world = World::new();
 
@@ -70,7 +68,7 @@ impl App {
         default: State,
         state_system: impl Fn(&mut World, State, State) + 'static
     ) {
-        debug!(LOG_SRC, "Adding StateSystem to World");
+        log!(debug, "Adding StateSystem to World");
 
         self.world.systems.state = Some((default, Box::new(state_system)));
     }
@@ -80,7 +78,7 @@ impl App {
         &mut self,
         start_system: impl FnOnce(&mut World) + 'static
     ) {
-        debug!(LOG_SRC, "Adding StartSystem to World");
+        log!(debug, "Adding StartSystem to World");
 
         self.world.systems.start.push(Box::new(start_system));
     }
@@ -90,7 +88,7 @@ impl App {
         &mut self,
         update_system: impl Fn(&mut World) + 'static
     ) {
-        debug!(LOG_SRC, "Adding UpdateSystem to World");
+        log!(debug, "Adding UpdateSystem to World");
 
         self.world.systems.update.push(Box::new(update_system));
     }
@@ -100,7 +98,7 @@ impl App {
         &mut self,
         keyboard_system: impl Fn(&mut World, Key, bool) + 'static
     ) {
-        debug!(LOG_SRC, "Adding KeyboardSystem to World");
+        log!(debug, "Adding KeyboardSystem to World");
 
         self.world.systems.keyboard.push(Box::new(keyboard_system));
     }
@@ -110,7 +108,7 @@ impl App {
         &mut self,
         mouse_position_system: impl Fn(&mut World, PhysicalPosition<f64>) + 'static
     ) {
-        debug!(LOG_SRC, "Adding MousePositionSystem to World");
+        log!(debug, "Adding MousePositionSystem to World");
 
         self.world.systems.mouse_position.push(Box::new(mouse_position_system));
     }
@@ -120,7 +118,7 @@ impl App {
         &mut self,
         mouse_button_system: impl Fn(&mut World, MouseButton, bool) + 'static
     ) {
-        debug!(LOG_SRC, "Adding MouseButtonSystem to World");
+        log!(debug, "Adding MouseButtonSystem to World");
 
         self.world.systems.mouse_button.push(Box::new(mouse_button_system));
     }
@@ -130,7 +128,7 @@ impl App {
         &mut self,
         mouse_wheel_system: impl Fn(&mut World, f32, f32) + 'static
     ) {
-        debug!(LOG_SRC, "Adding MouseWheelSystem to World");
+        log!(debug, "Adding MouseWheelSystem to World");
 
         self.world.systems.mouse_wheel.push(Box::new(mouse_wheel_system));
     }
@@ -140,7 +138,7 @@ impl App {
         &mut self,
         event_system: impl Fn(&mut World, WindowEvent) + 'static
     ) {
-        debug!(LOG_SRC, "Adding EventSystem to World");
+        log!(debug, "Adding EventSystem to World");
 
         self.world.systems.event.push(Box::new(event_system));
     }
@@ -148,7 +146,7 @@ impl App {
     #[tokio::main]
     #[allow(clippy::missing_panics_doc)]
     pub async fn run(mut self) {
-        info!(LOG_SRC, "Running App");
+        log!(info, "Running App");
 
         let event_loop = EventLoop::new()
             .expect("failed to create an EventLoop");
@@ -164,7 +162,7 @@ impl App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        debug!(LOG_SRC, "Resuming ActiveEventLoop");
+        log!(debug, "Resuming ActiveEventLoop");
 
         if self.window.is_some() {
             return;
@@ -192,7 +190,9 @@ impl ApplicationHandler for App {
         self.world.update();
 
         if let Some(renderer) = &mut self.renderer {
-            renderer.update_meshes(self.world.get_updated_mesh_instances()).expect("failed to update meshes in the renderer");
+            renderer.update_meshes(self.world.get_updated_mesh_instances())
+                .expect("failed to update meshes in the renderer");
+
             renderer.wait_for_device();
         }
 

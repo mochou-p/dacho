@@ -17,8 +17,8 @@ use super::{Entry, Instance};
 
 // crate
 use crate::{
-    renderer::{VulkanObject, LOG_SRC},
-    debug, info, warning, error
+    renderer::VulkanObject,
+    log_from, create_log, destroy_log
 };
 
 type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
@@ -35,7 +35,7 @@ impl Debug {
         entry:    &Entry,
         instance: &Instance
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating Debug");
+        create_log!(debug);
 
         let loader = ext::DebugUtils::new(entry.raw(), instance.raw());
 
@@ -49,7 +49,7 @@ impl Debug {
     }
 
     pub fn destroy(&self) {
-        debug!(LOG_SRC, "Destroying Debug");
+        destroy_log!(debug);
 
         unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None); }
     }
@@ -66,16 +66,16 @@ unsafe extern "system" fn validation_layers_callback(
         MessageType::PERFORMANCE            => "vulkan::performance",
         MessageType::VALIDATION             => "vulkan::validation",
         MessageType::DEVICE_ADDRESS_BINDING => "vulkan::DAB",
-        _                                   => "vulkan"
+        _                                   => "vulkan::unknown"
     };
 
     let message = CStr::from_ptr((*p_callback_data).p_message);
 
     match message_severity {
-        MessageSeverity::VERBOSE =>   debug!(source, "{:?}", message),
-        MessageSeverity::INFO    =>    info!(source, "{:?}", message),
-        MessageSeverity::WARNING => warning!(source, "{:?}", message),
-        _                        =>   error!(source, "{:?}", message)
+        MessageSeverity::VERBOSE => { log_from!(debug,   source, "{:?}", message);   },
+        MessageSeverity::INFO    => { log_from!(info,    source, "{:?}", message);   },
+        MessageSeverity::WARNING => { log_from!(warning, source, "{:?}", message);   },
+        _                        => { log_from!(error,   source, "{:?}", message);   }
     };
 
     vk::FALSE

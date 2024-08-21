@@ -1,39 +1,44 @@
 // dacho/src/game/logger.rs
 
 #[macro_export]
-macro_rules! debug {
-    ($source:expr, $($args:expr),*) => {
-        $crate::app::logger::Logger::debug($source, &format!($($args),*))
+macro_rules! log {
+    ($fn:ident, $($args:expr),*) => {
+        #[cfg(debug_assertions)] {
+            $crate::app::logger::Logger::$fn(&$crate::path_to_log_source(file!()), &format!($($args),*))
+        }
     };
 }
 
 #[macro_export]
-macro_rules! info {
-    ($source:expr, $($args:expr),*) => {
-        $crate::app::logger::Logger::info($source, &format!($($args),*))
+macro_rules! log_from {
+    ($fn:ident, $source:expr, $($args:expr),*) => {
+        #[cfg(debug_assertions)] {
+            $crate::app::logger::Logger::$fn($source, &format!($($args),*))
+        }
     };
 }
 
 #[macro_export]
-macro_rules! warning {
-    ($source:expr, $($args:expr),*) => {
-        $crate::app::logger::Logger::warning($source, &format!($($args),*))
+macro_rules! self_log {
+    ($fn:ident, $prefix:expr) => {
+        #[cfg(debug_assertions)]
+        $crate::log!($fn, "{} {}", $prefix, $crate::type_name_tail::<Self>())
     };
 }
 
 #[macro_export]
-macro_rules! error {
-    ($source:expr, $($args:expr),*) => {
-        $crate::app::logger::Logger::error($source, &format!($($args),*))
+macro_rules! create_log {
+    ($severity:ident) => {
+        #[cfg(debug_assertions)]
+        $crate::self_log!($severity, "Creating")
     };
 }
 
 #[macro_export]
-macro_rules! fatal {
-    ($source:expr, $($arg:expr),*) => {
-        use $crate::app::logger::Logger;
-
-        panic!("{}[{}]{} {}", Logger::RED, $source, Logger::RESET, format!($($arg),*))
+macro_rules! destroy_log {
+    ($severity:ident) => {
+        #[cfg(debug_assertions)]
+        $crate::self_log!($severity, "Destroying")
     };
 }
 
@@ -49,7 +54,7 @@ impl Logger {
     pub const RESET:  &'static str = "\x1b[0m";
 
     #[inline]
-    #[allow(dead_code, clippy::print_stdout)]
+    #[allow(clippy::print_stdout)]
     fn stdout(source: &str, message: &str, color: &str, is_everything_colored: bool) {
         if is_everything_colored {
             println!("{color}[{source}] {message}{}", Self::RESET);
@@ -59,36 +64,28 @@ impl Logger {
     }
 
     #[inline]
-    #[allow(dead_code, clippy::print_stderr)]
+    #[allow(clippy::print_stderr)]
     fn stderr(source: &str, message: &str, color: &str) {
         eprintln!("{color}[{source}]{} {message}", Self::RESET);
     }
 
     #[inline]
-    #[allow(unused_variables)]
     pub fn debug(source: &str, message: &str) {
-        #[cfg(debug_assertions)]
         Self::stdout(source, message, Self::BLACK, true);
     }
 
     #[inline]
-    #[allow(unused_variables)]
     pub fn info(source: &str, message: &str) {
-        #[cfg(debug_assertions)]
         Self::stdout(source, message, Self::CYAN, false);
     }
 
     #[inline]
-    #[allow(unused_variables)]
     pub fn warning(source: &str, message: &str) {
-        #[cfg(debug_assertions)]
         Self::stderr(source, message, Self::YELLOW);
     }
 
     #[inline]
-    #[allow(unused_variables)]
     pub fn error(source: &str, message: &str) {
-        #[cfg(debug_assertions)]
         Self::stderr(source, message, Self::RED);
     }
 }

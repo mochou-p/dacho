@@ -19,10 +19,9 @@ use crate::{
         devices::Device,
         presentation::Swapchain,
         rendering::{Pipeline, RenderPass},
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log
 };
 
 pub struct CommandBuffers {
@@ -35,7 +34,7 @@ impl CommandBuffers {
        swapchain:    &Swapchain,
        device:       &Device
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating CommandBuffers");
+        create_log!(debug);
 
         let raw = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()

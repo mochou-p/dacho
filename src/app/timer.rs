@@ -3,11 +3,8 @@
 // std
 use std::time::Instant;
 
-// super
-use super::LOG_SRC;
-
 // crate
-use crate::debug;
+use crate::create_log;
 
 pub struct Timer {
     start_time:  Instant,
@@ -28,7 +25,7 @@ impl Timer {
         #[cfg(debug_assertions)]
         rate: u16
     ) -> Self {
-        debug!(LOG_SRC, "Creating Timer");
+        create_log!(debug);
 
         let start_time = Instant::now();
 

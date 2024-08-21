@@ -13,8 +13,8 @@ use super::Entry;
 
 // crate
 use crate::{
-    renderer::{VulkanObject, LOG_SRC},
-    debug
+    renderer::VulkanObject,
+    create_log, destroy_log
 };
 
 // debug
@@ -25,7 +25,8 @@ use {
         ptr::from_ref
     },
     std::ffi::CString,
-    super::debug::messenger_create_info
+    super::debug::messenger_create_info,
+    crate::log
 };
 
 #[cfg(debug_assertions)]
@@ -40,7 +41,7 @@ impl Instance {
         event_loop: &ActiveEventLoop,
         entry:      &Entry
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating Instance");
+        create_log!(debug);
 
         let raw = {
             let application_info = vk::ApplicationInfo::builder()
@@ -51,7 +52,7 @@ impl Instance {
             )?;
 
             #[cfg(debug_assertions)] {
-                debug!(LOG_SRC, "Adding Vulkan Validation Layers to Instance");
+                log!(debug, "Enabling Vulkan Validation Layers");
 
                 let mut extension_names = required_extensions.to_vec();
 
@@ -106,7 +107,7 @@ impl VulkanObject for Instance {
     }
 
     fn destroy(&self) {
-        debug!(LOG_SRC, "Destroying Instance");
+        destroy_log!(debug);
 
         unsafe { self.raw.destroy_instance(None); }
     }

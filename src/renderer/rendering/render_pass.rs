@@ -10,10 +10,9 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log, destroy_log
 };
 
 pub struct RenderPass {
@@ -22,7 +21,7 @@ pub struct RenderPass {
 
 impl RenderPass {
     pub fn new(device: &Device) -> Result<Self> {
-        debug!(LOG_SRC, "Creating RenderPass");
+        create_log!(debug);
 
         let raw = {
             let attachments = [
@@ -127,7 +126,7 @@ impl VulkanObject for RenderPass {
     }
 
     fn device_destroy(&self, device: &Device) {
-        debug!(LOG_SRC, "Destroying RenderPass");
+        destroy_log!(debug);
 
         unsafe { device.raw().destroy_render_pass(self.raw, None); }
     }

@@ -10,10 +10,9 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log, destroy_log
 };
 
 pub struct CommandPool {
@@ -22,7 +21,7 @@ pub struct CommandPool {
 
 impl CommandPool {
     pub fn new(device: &Device) -> Result<Self> {
-        debug!(LOG_SRC, "Creating CommandPool");
+        create_log!(debug);
 
         let raw = {
             let create_info = vk::CommandPoolCreateInfo::builder()
@@ -84,7 +83,7 @@ impl VulkanObject for CommandPool {
     }
 
     fn device_destroy(&self, device: &Device) {
-        debug!(LOG_SRC, "Destroying CommandPool");
+        destroy_log!(debug);
 
         unsafe { device.raw().destroy_command_pool(self.raw, None); }
     }

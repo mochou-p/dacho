@@ -34,14 +34,13 @@ use crate::{
         commands::Command,
         descriptors::DescriptorSetLayout,
         devices::Device,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
     shader::{
         ShaderInfo, Type,
         compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
     },
-    debug, warning, fatal
+    log
 };
 
 pub struct Pipeline {
@@ -62,7 +61,7 @@ impl Pipeline {
         render_pass:           &RenderPass,
         shader_info:           &ShaderInfo
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating Pipeline `{}`", shader_info.name);
+        log!(debug, "Creating Pipeline `{}`", shader_info.name);
 
         let layout = {
             let set_layouts = [*descriptor_set_layout.raw()];
@@ -269,18 +268,19 @@ impl VulkanObject for Pipeline {
 }
 
 fn read_spirv(filename: &str) -> Result<Vec<u32>> {
-    debug!(LOG_SRC, "Reading `{filename}.wgsl` SPIR-V");
+    log!(debug, "Reading `{filename}.wgsl` SPIR-V");
 
     let spv = &format!("target/dacho/shaders/{filename}.wgsl.spv");
 
     let bytes_res = read(spv);
 
     let bytes = if bytes_res.is_ok() { bytes_res? } else {
-        warning!(LOG_SRC, "Shader `{filename}.wgsl` SPIR-V not found");
+        log!(warning, "Shader `{filename}.wgsl` SPIR-V not found");
 
-        if !Path::new(&format!("assets/shaders/{filename}.wgsl")).exists() {
-            fatal!(LOG_SRC, "Shader `{filename}.wgsl` does not exist");
-        }
+        assert!(
+            Path::new(&format!("assets/shaders/{filename}.wgsl")).exists(),
+            "Shader `{filename}.wgsl` does not exist"
+        );
 
         block_on(compile_shaders())?;
 
@@ -305,7 +305,7 @@ enum ParseState {
 pub fn shader_input_types(
     filename: &String
 ) -> Result<(Vec<Type>, Vec<Type>)> {
-    debug!(LOG_SRC, "Parsing `{filename}.wgsl` for VertexInput");
+    log!(debug, "Parsing `{filename}.wgsl` for VertexInput");
 
     let bytes = &read(format!("assets/shaders/{filename}.wgsl"))?;
     let code  = from_utf8(bytes)?;
@@ -341,9 +341,7 @@ pub fn shader_input_types(
         }
     }
 
-    if parse_state != ParseState::Finished {
-        fatal!(LOG_SRC, "Failed to parse `{filename}.wgsl`");
-    }
+    assert!(parse_state == ParseState::Finished, "Failed to parse `{filename}.wgsl`");
 
     Ok((vertex_types, instance_types))
 }

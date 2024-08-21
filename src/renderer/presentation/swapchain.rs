@@ -16,10 +16,9 @@ use crate::{
         images::{Image, ImageView},
         setup::Instance,
         rendering::RenderPass,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log, destroy_log
 };
 
 pub struct Swapchain {
@@ -50,7 +49,7 @@ impl Swapchain {
         width:            u16,
         height:           u16
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating Swapchain");
+        create_log!(debug);
 
         let loader = khr::Swapchain::new(instance.raw(), device.raw());
 
@@ -213,7 +212,7 @@ impl VulkanObject for Swapchain {
     }
 
     fn device_destroy(&self, device: &Device) {
-        debug!(LOG_SRC, "Destroying Swapchain");
+        destroy_log!(debug);
 
         for fence in &self.may_begin_drawing {
             unsafe { device.raw().destroy_fence(*fence, None); }

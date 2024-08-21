@@ -23,14 +23,13 @@ use winit::{
 use super::{
     component::Component,
     entity::Entity,
-    system::Systems,
-    LOG_SRC
+    system::Systems
 };
 
 // crate
 use crate::{
     prelude::mesh::Mesh,
-    debug
+    create_log
 };
 
 pub type Id    = u32;
@@ -51,7 +50,7 @@ impl World {
     #[must_use]
     #[allow(clippy::new_without_default)]
     pub(crate) fn new() -> Self {
-        debug!(LOG_SRC, "Creating World");
+        create_log!(debug);
 
         Self {
             entities:          HashMap::new(),

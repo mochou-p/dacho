@@ -13,10 +13,9 @@ use super::PhysicalDevice;
 use crate::{
     renderer::{
         setup::Instance,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log, destroy_log
 };
 
 pub struct Device {
@@ -29,7 +28,7 @@ impl Device {
         instance:        &Instance,
         physical_device: &PhysicalDevice
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating Device");
+        create_log!(debug);
 
         let raw = {
             let extension_names = [khr::Swapchain::name().as_ptr()];
@@ -76,7 +75,7 @@ impl VulkanObject for Device {
     }
 
     fn destroy(&self) {
-        debug!(LOG_SRC, "Destroying Device");
+        destroy_log!(debug);
 
         unsafe { self.raw.destroy_device(None); }
     }

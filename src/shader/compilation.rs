@@ -9,12 +9,6 @@ use std::{
     path::Path
 };
 
-// super
-use super::LOG_SRC;
-
-// crate
-use crate::{debug, info, error, fatal};
-
 // crates
 use {
     anyhow::{Context, Result, bail},
@@ -26,6 +20,9 @@ use {
     },
     tokio::spawn
 };
+
+// crate
+use crate::{log, log_from};
 
 fn compile_shader(filepath: &Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
@@ -41,13 +38,15 @@ fn compile_shader(filepath: &Path) -> Result<()> {
     let code     = from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
-    if module.clone().map_err(|error| error!("naga::wgsl", "`{wgsl_in}`: {error}")).is_err() {
+    #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding)]
+    if module.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
         bail!("");
     }
 
     let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
     
-    if info.clone().map_err(|error| error!("naga::validation", "`{wgsl_in}`: {error}")).is_err() {
+    #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding)]
+    if info.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
         bail!("");
     }
 
@@ -59,13 +58,13 @@ fn compile_shader(filepath: &Path) -> Result<()> {
 
     write(spv_out, bytes_out)?;
 
-    debug!(LOG_SRC, "Compiled `{}`", filename);
+    log!(debug, "Compiled `{filename}`");
 
     Ok(())
 }
 
 pub async fn compile_shaders() -> Result<()> {
-    info!(LOG_SRC, "Compiling shaders");
+    log!(info, "Compiling shaders");
 
     let mut futures = vec![];
 
@@ -85,9 +84,7 @@ pub async fn compile_shaders() -> Result<()> {
         }
     }
 
-    if error_count != 0 {
-        fatal!(LOG_SRC, "Failed to compile all shaders");
-    }
+    assert!(error_count == 0, "Failed to compile all shaders");
 
     Ok(())
 }

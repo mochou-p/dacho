@@ -12,10 +12,9 @@ use {
 use crate::{
     renderer::{
         setup::{Entry, Instance},
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log, destroy_log
 };
 
 pub struct Surface {
@@ -29,7 +28,7 @@ impl Surface {
         instance: &Instance,
         window:   &Window
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating Surface");
+        create_log!(debug);
 
         let loader = khr::Surface::new(entry.raw(), instance.raw());
 
@@ -55,7 +54,7 @@ impl VulkanObject for Surface {
     }
 
     fn destroy(&self) {
-        debug!(LOG_SRC, "Destroying Surface");
+        destroy_log!(debug);
 
         unsafe { self.loader.destroy_surface(self.raw, None); }
     }

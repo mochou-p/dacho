@@ -20,10 +20,9 @@ use crate::{
         buffers::Buffer,
         devices::{Device, PhysicalDevice},
         setup::Instance,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log
 };
 
 pub struct UniformBufferObject {
@@ -39,7 +38,7 @@ impl UniformBufferObject {
         physical_device: &PhysicalDevice,
         device:          &Device
     ) -> Result<(Buffer, *mut c_void)> {
-        debug!(LOG_SRC, "Creating UniformBufferObject");
+        create_log!(debug);
 
         let buffer_size = size_of::<Self>() as u64;
 

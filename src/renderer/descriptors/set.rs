@@ -17,10 +17,9 @@ use crate::{
     renderer::{
         buffers::Buffer,
         devices::Device,
-        VulkanObject,
-        LOG_SRC
+        VulkanObject
     },
-    debug
+    create_log
 };
 
 pub struct DescriptorSet {
@@ -35,7 +34,7 @@ impl DescriptorSet {
         descriptor_set_layout: &DescriptorSetLayout,
         ubo:                   &Buffer
     ) -> Result<Self> {
-        debug!(LOG_SRC, "Creating DescriptorSet");
+        create_log!(debug);
 
         let raw = {
             let set_layouts = [*descriptor_set_layout.raw()];
