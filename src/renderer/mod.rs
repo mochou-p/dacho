@@ -200,6 +200,14 @@ impl Renderer {
         let pipeline = self.pipelines.get_mut("default").expect("failed to get the default pipeline");
 
         for (mesh_id, instances) in updated_meshes {
+            if instances.is_empty() {
+                if let Some(geometry) = pipeline.geometries.remove(&mesh_id) {
+                    geometry.device_destroy(&self.device);
+                }
+
+                continue;
+            }
+
             let geometry_option = pipeline.geometries.get_mut(&mesh_id);
 
             if let Some(geometry) = geometry_option {

@@ -299,8 +299,18 @@ impl World {
             self.remove_entity_(*child_id);
         }
 
-        for components_ids in components_id_map.values() {
+        let mesh_type_id = &TypeId::of::<Mesh>();
+
+        for (type_id, components_ids) in &components_id_map {
             for component_id in components_ids {
+                if type_id == mesh_type_id {
+                    if let Some(component) = self.components.get(component_id) {
+                        if let Some(mesh) = component.downcast_ref::<Mesh>() {
+                            self.update_mesh(mesh.id);
+                        }
+                    }
+                }
+
                 self.components.remove(component_id);
             }
         }
@@ -346,7 +356,17 @@ impl World {
             }
         };
 
+        let mesh_type_id = &TypeId::of::<Mesh>();
+
         for component_id in &components_ids {
+            if user_type == mesh_type_id {
+                if let Some(component) = self.components.get(component_id) {
+                    if let Some(mesh) = component.downcast_ref::<Mesh>() {
+                        self.update_mesh(mesh.id);
+                    }
+                }
+            }
+
             self.components.remove(component_id);
 
             if !recursive {

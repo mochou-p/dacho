@@ -26,7 +26,8 @@ fn type_name_tail<T>() -> String {
 }
 
 fn path_to_log_source(path: &str) -> String {
-    let src_path   = &path[path.rfind("/src/").expect("path error") + 5..];
+    let pattern    = "src/";
+    let src_path   = &path[path.rfind(pattern).expect("path error") + pattern.len()..];
     let src_crate  = &src_path[..src_path.find('/').expect("path error")];
 
     ["dacho", src_crate].join("::")
