@@ -9,11 +9,11 @@ use {
 // crate
 use crate::renderer::{
     devices::Device,
-    VulkanObject
+    VulkanDrop
 };
 
 pub struct ImageView {
-    raw: vk::ImageView
+    pub raw: vk::ImageView
 }
 
 impl ImageView {
@@ -37,21 +37,15 @@ impl ImageView {
             .format(format)
             .subresource_range(subresource_range);
 
-        let raw = unsafe { device.raw().create_image_view(&create_info, None) }?;
+        let raw = unsafe { device.raw.create_image_view(&create_info, None) }?;
 
         Ok(Self { raw })
     }
 }
 
-impl VulkanObject for ImageView {
-    type RawType = vk::ImageView;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
-        unsafe { device.raw().destroy_image_view(self.raw, None); }
+impl VulkanDrop for ImageView {
+    fn drop(&self, device: &Device) {
+        unsafe { device.raw.destroy_image_view(self.raw, None); }
     }
 }
 

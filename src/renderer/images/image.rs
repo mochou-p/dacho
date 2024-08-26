@@ -12,14 +12,14 @@ use crate::{
         commands::CommandPool,
         devices::{Device, PhysicalDevice},
         setup::Instance,
-        VulkanObject
+        VulkanDrop
     },
     fatal
 };
 
 pub struct Image {
-    raw:    vk::Image,
-    memory: vk::DeviceMemory
+    pub raw:    vk::Image,
+        memory: vk::DeviceMemory
 }
 
 impl Image {
@@ -52,10 +52,10 @@ impl Image {
             .samples(samples)
             .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
-        let raw = unsafe { device.raw().create_image(&create_info, None) }?;
+        let raw = unsafe { device.raw.create_image(&create_info, None) }?;
 
-        let memory_requirements = unsafe { device.raw().get_image_memory_requirements(raw) };
-        let memory_properties   = unsafe { instance.raw().get_physical_device_memory_properties(*physical_device.raw()) };
+        let memory_requirements = unsafe { device.raw.get_image_memory_requirements(raw) };
+        let memory_properties   = unsafe { instance.raw.get_physical_device_memory_properties(physical_device.raw) };
 
         let memory_type_index = {
             let mut found  = false;
@@ -83,9 +83,9 @@ impl Image {
             .allocation_size(memory_requirements.size)
             .memory_type_index(memory_type_index);
 
-        let memory = unsafe { device.raw().allocate_memory(&allocate_info, None) }?;
+        let memory = unsafe { device.raw.allocate_memory(&allocate_info, None) }?;
 
-        unsafe { device.raw().bind_image_memory(raw, memory, 0) }?;
+        unsafe { device.raw.bind_image_memory(raw, memory, 0) }?;
 
         Ok(Self { raw, memory })
     }
@@ -139,7 +139,7 @@ impl Image {
             .dst_access_mask(dst_am);
 
         unsafe {
-            device.raw().cmd_pipeline_barrier(
+            device.raw.cmd_pipeline_barrier(
                 command_buffer,
                 src_stage,
                 dst_stage,
@@ -156,17 +156,11 @@ impl Image {
     }
 }
 
-impl VulkanObject for Image {
-    type RawType = vk::Image;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for Image {
+    fn drop(&self, device: &Device) {
         unsafe {
-            device.raw().destroy_image(self.raw, None);
-            device.raw().free_memory(self.memory, None);
+            device.raw.destroy_image(self.raw, None);
+            device.raw.free_memory(self.memory, None);
         }
     }
 }

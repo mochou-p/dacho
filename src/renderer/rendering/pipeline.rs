@@ -34,7 +34,7 @@ use crate::{
         commands::Command,
         descriptors::DescriptorSetLayout,
         devices::Device,
-        VulkanObject
+        VulkanDrop
     },
     shader::{
         ShaderInfo, Type,
@@ -44,7 +44,7 @@ use crate::{
 };
 
 pub struct Pipeline {
-        raw:        vk::Pipeline,
+    pub raw:        vk::Pipeline,
     #[allow(dead_code)]
     pub name:       String,
     pub layout:     vk::PipelineLayout,
@@ -64,14 +64,14 @@ impl Pipeline {
         log!(debug, "Creating Pipeline `{}`", shader_info.name);
 
         let layout = {
-            let set_layouts = [*descriptor_set_layout.raw()];
+            let set_layouts = [descriptor_set_layout.raw];
 
             let create_info = {
                 vk::PipelineLayoutCreateInfo::builder()
                     .set_layouts(&set_layouts)
             };
 
-            unsafe { device.raw().create_pipeline_layout(&create_info, None) }?
+            unsafe { device.raw.create_pipeline_layout(&create_info, None) }?
         };
 
         let module = {
@@ -80,7 +80,7 @@ impl Pipeline {
             let create_info = vk::ShaderModuleCreateInfo::builder()
                 .code(&code);
 
-            unsafe { device.raw().create_shader_module(&create_info, None) }?
+            unsafe { device.raw.create_shader_module(&create_info, None) }?
         };
 
         let raw = {
@@ -204,11 +204,11 @@ impl Pipeline {
                 .color_blend_state(&color_blend_state)
                 .depth_stencil_state(&depth_stencil_state)
                 .layout(layout)
-                .render_pass(*render_pass.raw())
+                .render_pass(render_pass.raw)
                 .subpass(0);
 
             unsafe {
-                device.raw().create_graphics_pipelines(
+                device.raw.create_graphics_pipelines(
                     vk::PipelineCache::null(),
                     &[*pipeline_info],
                     None
@@ -217,7 +217,7 @@ impl Pipeline {
                 .expect("Error creating pipelines")[0]
         };
 
-        unsafe { device.raw().destroy_shader_module(module, None); }
+        unsafe { device.raw.destroy_shader_module(module, None); }
 
         let name = shader_info.name.clone();
 
@@ -248,21 +248,15 @@ impl Pipeline {
     }
 }
 
-impl VulkanObject for Pipeline {
-    type RawType = vk::Pipeline;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for Pipeline {
+    fn drop(&self, device: &Device) {
         for geometry in self.geometries.values() {
-            geometry.device_destroy(device);
+            geometry.drop(device);
         }
 
         unsafe {
-            device.raw().destroy_pipeline(self.raw, None);
-            device.raw().destroy_pipeline_layout(self.layout, None);
+            device.raw.destroy_pipeline(self.raw, None);
+            device.raw.destroy_pipeline_layout(self.layout, None);
         }
     }
 }

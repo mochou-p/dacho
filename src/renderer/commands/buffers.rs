@@ -18,14 +18,13 @@ use crate::{
         descriptors::DescriptorSet,
         devices::Device,
         presentation::Swapchain,
-        rendering::{Pipeline, RenderPass},
-        VulkanObject
+        rendering::{Pipeline, RenderPass}
     },
     create_log, fatal
 };
 
 pub struct CommandBuffers {
-    raw: Vec<vk::CommandBuffer>
+    pub raw: Vec<vk::CommandBuffer>
 }
 
 impl CommandBuffers {
@@ -38,10 +37,10 @@ impl CommandBuffers {
 
         let raw = {
             let allocate_info = vk::CommandBufferAllocateInfo::builder()
-                .command_pool(*command_pool.raw())
+                .command_pool(command_pool.raw)
                 .command_buffer_count(u32::try_from(swapchain.image_count)?);
 
-            unsafe { device.raw().allocate_command_buffers(&allocate_info) }?
+            unsafe { device.raw.allocate_command_buffers(&allocate_info) }?
         };
 
         Ok(Self { raw })
@@ -61,7 +60,7 @@ impl CommandBuffers {
             {
                 let begin_info = vk::CommandBufferBeginInfo::builder();
 
-                unsafe { device.raw().begin_command_buffer(command_buffer, &begin_info) }?;
+                unsafe { device.raw.begin_command_buffer(command_buffer, &begin_info) }?;
             }
 
             let mut last_pipeline: Option<&Pipeline> = None;
@@ -84,7 +83,7 @@ impl CommandBuffers {
                         ];
 
                         let begin_info = vk::RenderPassBeginInfo::builder()
-                            .render_pass(*render_pass.raw())
+                            .render_pass(render_pass.raw)
                             .framebuffer(swapchain.framebuffers[i])
                             .render_area(
                                 vk::Rect2D::builder()
@@ -100,7 +99,7 @@ impl CommandBuffers {
                             .clear_values(&clear_values);
 
                         unsafe {
-                            device.raw().cmd_begin_render_pass(
+                            device.raw.cmd_begin_render_pass(
                                 command_buffer,
                                 &begin_info,
                                 vk::SubpassContents::INLINE
@@ -115,16 +114,16 @@ impl CommandBuffers {
                         last_pipeline = Some(pipeline);
 
                         unsafe {
-                            device.raw().cmd_bind_pipeline(
+                            device.raw.cmd_bind_pipeline(
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
-                                *pipeline.raw()
+                                pipeline.raw
                             );
                         }
                     },
                     Command::BindVertexBuffers(vertex_buffer, instance_buffer) => {
                         unsafe {
-                            device.raw().cmd_bind_vertex_buffers(
+                            device.raw.cmd_bind_vertex_buffers(
                                 command_buffer,
                                 0, &[*vertex_buffer, *instance_buffer], &[0, 0]
                             );
@@ -132,7 +131,7 @@ impl CommandBuffers {
                     },
                     Command::BindIndexBuffer(index_buffer) => {
                         unsafe {
-                            device.raw().cmd_bind_index_buffer(
+                            device.raw.cmd_bind_index_buffer(
                                 command_buffer,
                                 *index_buffer, 0, vk::IndexType::UINT32
                             );
@@ -140,17 +139,17 @@ impl CommandBuffers {
                     },
                     Command::BindDescriptorSets => {
                         unsafe {
-                            device.raw().cmd_bind_descriptor_sets(
+                            device.raw.cmd_bind_descriptor_sets(
                                 command_buffer,
                                 vk::PipelineBindPoint::GRAPHICS,
                                 last_pipeline.context("No last pipeline")?.layout,
-                                0, &[*descriptor_set.raw()], &[]
+                                0, &[descriptor_set.raw], &[]
                             );
                         }
                     },
                     Command::DrawIndexed(index_count, instance_count) => {
                         unsafe {
-                            device.raw().cmd_draw_indexed(
+                            device.raw.cmd_draw_indexed(
                                 command_buffer,
                                 *index_count, *instance_count,
                                 0, 0, 0
@@ -161,20 +160,12 @@ impl CommandBuffers {
             }
 
             unsafe {
-                device.raw().cmd_end_render_pass(command_buffer);
-                device.raw().end_command_buffer(command_buffer)?;
+                device.raw.cmd_end_render_pass(command_buffer);
+                device.raw.end_command_buffer(command_buffer)?;
             }
         }
 
         Ok(())
-    }
-}
-
-impl VulkanObject for CommandBuffers {
-    type RawType = Vec<vk::CommandBuffer>;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
     }
 }
 

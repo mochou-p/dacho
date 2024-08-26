@@ -23,7 +23,7 @@ use crate::{
         commands::{Command, CommandPool},
         devices::{Device, PhysicalDevice},
         setup::Instance,
-        VulkanObject
+        VulkanDrop
     },
     shader::{ShaderInfo, size_of_types}
 };
@@ -121,16 +121,18 @@ impl Geometry {
 
     pub fn draw(&self) -> Vec<Command> {
         vec![
-            Command::BindVertexBuffers(*self.vertex_buffer.raw(), *self.instance_buffer.raw()),
-            Command::BindIndexBuffer(*self.index_buffer.raw()),
+            Command::BindVertexBuffers(self.vertex_buffer.raw, self.instance_buffer.raw),
+            Command::BindIndexBuffer(self.index_buffer.raw),
             Command::DrawIndexed(self.index_count, self.instance_count)
         ]
     }
+}
 
-    pub fn device_destroy(&self, device: &Device) {
-        self.   vertex_buffer.device_destroy(device);
-        self. instance_buffer.device_destroy(device);
-        self.    index_buffer.device_destroy(device);
+impl VulkanDrop for Geometry {
+    fn drop(&self, device: &Device) {
+        self.   vertex_buffer.drop(device);
+        self. instance_buffer.drop(device);
+        self.    index_buffer.drop(device);
     }
 }
 

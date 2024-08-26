@@ -154,7 +154,7 @@ impl App {
         event_loop.set_control_flow(Poll);
         event_loop.run_app(&mut self).expect("failed to run the app in event loop");
 
-        log!(info, "<<< dacho is shuting down >>>");
+        log!(info, "<<< dacho is shutting down >>>");
 
         if let Some(renderer) = self.renderer {
             drop(renderer);

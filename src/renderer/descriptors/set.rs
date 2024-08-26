@@ -16,14 +16,13 @@ use super::{DescriptorPool, DescriptorSetLayout, UniformBufferObject};
 use crate::{
     renderer::{
         buffers::Buffer,
-        devices::Device,
-        VulkanObject
+        devices::Device
     },
     create_log
 };
 
 pub struct DescriptorSet {
-    raw: vk::DescriptorSet
+    pub raw: vk::DescriptorSet
 }
 
 impl DescriptorSet {
@@ -37,18 +36,18 @@ impl DescriptorSet {
         create_log!(debug);
 
         let raw = {
-            let set_layouts = [*descriptor_set_layout.raw()];
+            let set_layouts = [descriptor_set_layout.raw];
 
             let allocate_info = vk::DescriptorSetAllocateInfo::builder()
-                .descriptor_pool(*descriptor_pool.raw())
+                .descriptor_pool(descriptor_pool.raw)
                 .set_layouts(&set_layouts);
 
-            unsafe { device.raw().allocate_descriptor_sets(&allocate_info) }?[0]
+            unsafe { device.raw.allocate_descriptor_sets(&allocate_info) }?[0]
         };
 
         let buffer_infos = [
             vk::DescriptorBufferInfo::builder()
-                .buffer(*ubo.raw())
+                .buffer(ubo.raw)
                 .offset(0)
                 .range(size_of::<UniformBufferObject>() as u64)
                 .build()
@@ -64,17 +63,9 @@ impl DescriptorSet {
                 .build()
         ];
 
-        unsafe { device.raw().update_descriptor_sets(&writes, &[]); }
+        unsafe { device.raw.update_descriptor_sets(&writes, &[]); }
 
         Ok(Self { raw })
-    }
-}
-
-impl VulkanObject for DescriptorSet {
-    type RawType = vk::DescriptorSet;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
     }
 }
 

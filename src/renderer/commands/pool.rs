@@ -10,13 +10,13 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject
+        VulkanDrop
     },
     create_log, destroy_log
 };
 
 pub struct CommandPool {
-    raw: vk::CommandPool
+    pub raw: vk::CommandPool
 }
 
 impl CommandPool {
@@ -28,7 +28,7 @@ impl CommandPool {
                 .queue_family_index(0)
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
 
-            unsafe { device.raw().create_command_pool(&create_info, None) }?
+            unsafe { device.raw.create_command_pool(&create_info, None) }?
         };
 
         Ok(Self { raw })
@@ -41,14 +41,14 @@ impl CommandPool {
                 .command_pool(self.raw)
                 .command_buffer_count(1);
 
-            unsafe { device.raw().allocate_command_buffers(&allocate_info) }?[0]
+            unsafe { device.raw.allocate_command_buffers(&allocate_info) }?[0]
         };
 
         {
             let begin_info = vk::CommandBufferBeginInfo::builder()
                 .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
 
-            unsafe { device.raw().begin_command_buffer(command_buffer, &begin_info) }?;
+            unsafe { device.raw.begin_command_buffer(command_buffer, &begin_info) }?;
         }
 
         Ok(command_buffer)
@@ -59,33 +59,27 @@ impl CommandPool {
         device:         &Device,
         command_buffer:  vk::CommandBuffer
     ) -> Result<()> {
-        unsafe { device.raw().end_command_buffer(command_buffer) }?;
+        unsafe { device.raw.end_command_buffer(command_buffer) }?;
 
         let command_buffers = [command_buffer];
 
         let submit_info = vk::SubmitInfo::builder()
             .command_buffers(&command_buffers);
 
-        unsafe { device.raw().queue_submit(device.queue, &[*submit_info], vk::Fence::null()) }?;
+        unsafe { device.raw.queue_submit(device.queue, &[*submit_info], vk::Fence::null()) }?;
 
-        unsafe { device.raw().queue_wait_idle(device.queue) }?;
-        unsafe { device.raw().free_command_buffers(self.raw, &command_buffers); }
+        unsafe { device.raw.queue_wait_idle(device.queue) }?;
+        unsafe { device.raw.free_command_buffers(self.raw, &command_buffers); }
 
         Ok(())
     }
 }
 
-impl VulkanObject for CommandPool {
-    type RawType = vk::CommandPool;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for CommandPool {
+    fn drop(&self, device: &Device) {
         destroy_log!(debug);
 
-        unsafe { device.raw().destroy_command_pool(self.raw, None); }
+        unsafe { device.raw.destroy_command_pool(self.raw, None); }
     }
 }
 

@@ -10,13 +10,13 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject
+        VulkanDrop
     },
     create_log, destroy_log
 };
 
 pub struct DescriptorSetLayout {
-    raw: vk::DescriptorSetLayout
+    pub raw: vk::DescriptorSetLayout
 }
 
 impl DescriptorSetLayout {
@@ -36,24 +36,18 @@ impl DescriptorSetLayout {
             let create_info = vk::DescriptorSetLayoutCreateInfo::builder()
                 .bindings(&ubo_bindings);
 
-            unsafe { device.raw().create_descriptor_set_layout(&create_info, None) }?
+            unsafe { device.raw.create_descriptor_set_layout(&create_info, None) }?
         };
 
         Ok(Self { raw })
     }
 }
 
-impl VulkanObject for DescriptorSetLayout {
-    type RawType = vk::DescriptorSetLayout;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for DescriptorSetLayout {
+    fn drop(&self, device: &Device) {
         destroy_log!(debug);
 
-        unsafe { device.raw().destroy_descriptor_set_layout(self.raw, None); }
+        unsafe { device.raw.destroy_descriptor_set_layout(self.raw, None); }
     }
 }
 

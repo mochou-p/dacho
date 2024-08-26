@@ -10,16 +10,13 @@ use {
 
 // crate
 use crate::{
-    renderer::{
-        setup::{Entry, Instance},
-        VulkanObject
-    },
+    renderer::setup::{Entry, Instance},
     create_log, destroy_log
 };
 
 pub struct Surface {
     pub loader: khr::Surface,
-        raw:    vk::SurfaceKHR
+    pub raw:    vk::SurfaceKHR
 }
 
 impl Surface {
@@ -30,12 +27,12 @@ impl Surface {
     ) -> Result<Self> {
         create_log!(debug);
 
-        let loader = khr::Surface::new(entry.raw(), instance.raw());
+        let loader = khr::Surface::new(&entry.raw, &instance.raw);
 
         let raw = unsafe {
             ash_window::create_surface(
-                entry.raw(),
-                instance.raw(),
+                &entry.raw,
+                &instance.raw,
                 window.raw_display_handle(),
                 window.raw_window_handle(),
                 None
@@ -44,16 +41,8 @@ impl Surface {
 
         Ok(Self { loader, raw })
     }
-}
 
-impl VulkanObject for Surface {
-    type RawType = vk::SurfaceKHR;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn destroy(&self) {
+    pub fn drop(&self) {
         destroy_log!(debug);
 
         unsafe { self.loader.destroy_surface(self.raw, None); }

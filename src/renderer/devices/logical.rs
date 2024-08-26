@@ -11,15 +11,12 @@ use super::PhysicalDevice;
 
 // crate
 use crate::{
-    renderer::{
-        setup::Instance,
-        VulkanObject
-    },
+    renderer::setup::Instance,
     create_log, destroy_log
 };
 
 pub struct Device {
-        raw:   ash::Device,
+    pub raw:   ash::Device,
     pub queue: vk::Queue
 }
 
@@ -53,7 +50,7 @@ impl Device {
                 .enabled_extension_names(&extension_names)
                 .enabled_features(&features);
 
-            unsafe { instance.raw().create_device(*physical_device.raw(), &create_info, None) }?
+            unsafe { instance.raw.create_device(physical_device.raw, &create_info, None) }?
         };
 
         let queue = unsafe { raw.get_device_queue(0, 0) };
@@ -65,16 +62,8 @@ impl Device {
         unsafe { self.raw.device_wait_idle() }
             .expect("Device wait idle failed");
     }
-}
 
-impl VulkanObject for Device {
-    type RawType = ash::Device;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn destroy(&self) {
+    pub fn drop(&self) {
         destroy_log!(debug);
 
         unsafe { self.raw.destroy_device(None); }

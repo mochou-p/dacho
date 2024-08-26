@@ -46,13 +46,8 @@ use super::{
 #[cfg(feature = "vulkan-validation-layers")]
 use setup::Debug;
 
-trait VulkanObject {
-    type RawType;
-
-    fn raw(&self) -> &Self::RawType;
-
-    fn device_destroy(&self, _device: &Device) {}
-    fn        destroy(&self)                   {}
+trait VulkanDrop {
+    fn drop(&self, _device: &Device) {}
 }
 
 pub struct Renderer {
@@ -202,7 +197,7 @@ impl Renderer {
         for (mesh_id, instances) in updated_meshes {
             if instances.is_empty() {
                 if let Some(geometry) = pipeline.geometries.remove(&mesh_id) {
-                    geometry.device_destroy(&self.device);
+                    geometry.drop(&self.device);
                 }
 
                 continue;
@@ -211,7 +206,7 @@ impl Renderer {
             let geometry_option = pipeline.geometries.get_mut(&mesh_id);
 
             if let Some(geometry) = geometry_option {
-                geometry.instance_buffer.device_destroy(&self.device);
+                geometry.instance_buffer.drop(&self.device);
                 geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &instances)?;
                 geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 => temp for the default shader
             } else {
@@ -240,7 +235,7 @@ impl Renderer {
         let (image_index, _) = unsafe {
             self.swapchain.loader
                 .acquire_next_image(
-                    *self.swapchain.raw(),
+                    self.swapchain.raw,
                     u64::MAX,
                     self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
@@ -254,7 +249,7 @@ impl Renderer {
         );
 
         unsafe {
-            self.device.raw().wait_for_fences(
+            self.device.raw.wait_for_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]],
                 true,
                 u64::MAX
@@ -263,7 +258,7 @@ impl Renderer {
             .expect("Waiting for fences failed");
 
         unsafe {
-            self.device.raw().reset_fences(
+            self.device.raw.reset_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]]
             )
         }
@@ -271,7 +266,7 @@ impl Renderer {
 
         let semaphores_available = [self.swapchain.images_available[self.swapchain.current_image]];
         let waiting_stages       = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT              ];
-        let command_buffers      = [self.command_buffers.raw()[image_index as usize]             ];
+        let command_buffers      = [self.command_buffers.raw[image_index as usize]               ];
         let semaphores_finished  = [self.swapchain.images_finished[self.swapchain.current_image] ];
 
         let submit_info = vk::SubmitInfo::builder()
@@ -281,7 +276,7 @@ impl Renderer {
             .signal_semaphores(&semaphores_finished);
 
         unsafe {
-            self.device.raw().queue_submit(
+            self.device.raw.queue_submit(
                 self.device.queue,
                 &[*submit_info],
                 self.swapchain.may_begin_drawing[self.swapchain.current_image]
@@ -289,7 +284,7 @@ impl Renderer {
         }
             .expect("Submitting queue failed");
 
-        let swapchains    = [*self.swapchain.raw()];
+        let swapchains    = [self.swapchain.raw];
         let image_indices = [image_index];
 
         let present_info = vk::PresentInfoKHR::builder()
@@ -317,30 +312,30 @@ impl Drop for Renderer {
 
         self.device.wait();
 
-        self.command_pool.device_destroy(&self.device);
+        self.command_pool.drop(&self.device);
 
         log!(debug, "Destroying Pipelines");
 
         for pipeline in self.pipelines.values() {
-            pipeline.device_destroy(&self.device);
+            pipeline.drop(&self.device);
         }
 
-        self.render_pass .device_destroy(&self.device);
-        self.swapchain   .device_destroy(&self.device);
+        self.render_pass .drop(&self.device);
+        self.swapchain   .drop(&self.device);
 
         log!(debug, "Destroying UniformBufferObject");
 
-        self.ubo                   .device_destroy(&self.device);
-        self.descriptor_pool       .device_destroy(&self.device);
-        self.descriptor_set_layout .device_destroy(&self.device);
+        self.ubo                   .drop(&self.device);
+        self.descriptor_pool       .drop(&self.device);
+        self.descriptor_set_layout .drop(&self.device);
 
-        self.device.destroy();
-        self.surface.destroy();
+        self.device.drop();
+        self.surface.drop();
 
         #[cfg(feature = "vulkan-validation-layers")]
-        self.debug.destroy();
+        self.debug.drop();
 
-        self.instance.destroy();
+        self.instance.drop();
     }
 }
 

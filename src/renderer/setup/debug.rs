@@ -16,10 +16,7 @@ use {
 use super::{Entry, Instance};
 
 // crate
-use crate::{
-    renderer::VulkanObject,
-    log_from, create_log, destroy_log
-};
+use crate::{log_from, create_log, destroy_log};
 
 type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
 type MessageType     = vk::DebugUtilsMessageTypeFlagsEXT;
@@ -37,7 +34,7 @@ impl Debug {
     ) -> Result<Self> {
         create_log!(debug);
 
-        let loader = ext::DebugUtils::new(entry.raw(), instance.raw());
+        let loader = ext::DebugUtils::new(&entry.raw, &instance.raw);
 
         let messenger = {
             let create_info = messenger_create_info();
@@ -48,7 +45,7 @@ impl Debug {
         Ok(Self { loader, messenger })
     }
 
-    pub fn destroy(&self) {
+    pub fn drop(&self) {
         destroy_log!(debug);
 
         unsafe { self.loader.destroy_debug_utils_messenger(self.messenger, None); }

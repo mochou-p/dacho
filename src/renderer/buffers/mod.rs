@@ -20,7 +20,7 @@ use super::{
     devices::{Device, PhysicalDevice},
     images::Image,
     setup::Instance,
-    VulkanObject
+    VulkanDrop
 };
 
 // crate
@@ -28,7 +28,7 @@ use crate::fatal;
 
 #[derive(Hash)]
 pub struct Buffer {
-        raw:    vk::Buffer,
+    pub raw:    vk::Buffer,
     pub memory: vk::DeviceMemory
 }
 
@@ -47,12 +47,12 @@ impl Buffer {
                 .usage(usage)
                 .sharing_mode(vk::SharingMode::EXCLUSIVE);
 
-            unsafe { device.raw().create_buffer(&create_info, None) }?
+            unsafe { device.raw.create_buffer(&create_info, None) }?
         };
 
         let memory = {
-            let memory_requirements = unsafe { device.raw().get_buffer_memory_requirements(raw) };
-            let memory_properties   = unsafe { instance.raw().get_physical_device_memory_properties(*physical_device.raw()) };
+            let memory_requirements = unsafe { device.raw.get_buffer_memory_requirements(raw) };
+            let memory_properties   = unsafe { instance.raw.get_physical_device_memory_properties(physical_device.raw) };
 
             let memory_type_index = {
                 let mut found  = false;
@@ -80,10 +80,10 @@ impl Buffer {
                 .allocation_size(memory_requirements.size)
                 .memory_type_index(memory_type_index);
 
-            unsafe { device.raw().allocate_memory(&allocate_info, None) }?
+            unsafe { device.raw.allocate_memory(&allocate_info, None) }?
         };
 
-        unsafe { device.raw().bind_buffer_memory(raw, memory, 0) }?;
+        unsafe { device.raw.bind_buffer_memory(raw, memory, 0) }?;
 
         Ok(Self { raw, memory })
     }
@@ -100,7 +100,7 @@ impl Buffer {
         {
             let copy_region = vk::BufferCopy::builder().size(size);
 
-            unsafe { device.raw().cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &[*copy_region]); }
+            unsafe { device.raw.cmd_copy_buffer(command_buffer, src_buffer.raw, dst_buffer.raw, &[*copy_region]); }
         }
 
         command_pool.end_single_time_commands(device, command_buffer)?;
@@ -135,10 +135,10 @@ impl Buffer {
             .image_extent(vk::Extent3D { width, height, depth: 1 });
 
         unsafe {
-            device.raw().cmd_copy_buffer_to_image(
+            device.raw.cmd_copy_buffer_to_image(
                 command_buffer,
                 self.raw,
-                *image.raw(),
+                image.raw,
                 vk::ImageLayout::TRANSFER_DST_OPTIMAL,
                 &[*region]
             );
@@ -150,17 +150,11 @@ impl Buffer {
     }
 }
 
-impl VulkanObject for Buffer {
-    type RawType = vk::Buffer;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for Buffer {
+    fn drop(&self, device: &Device) {
         unsafe {
-            device.raw().destroy_buffer(self.raw, None);
-            device.raw().free_memory(self.memory, None);
+            device.raw.destroy_buffer(self.raw, None);
+            device.raw.free_memory(self.memory, None);
         }
     }
 }

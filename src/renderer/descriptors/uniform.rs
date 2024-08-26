@@ -19,8 +19,7 @@ use crate::{
     renderer::{
         buffers::Buffer,
         devices::{Device, PhysicalDevice},
-        setup::Instance,
-        VulkanObject
+        setup::Instance
     },
     create_log
 };
@@ -57,7 +56,7 @@ impl UniformBufferObject {
         };
 
         let uniform_buffer_mapped = unsafe {
-            device.raw().map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
+            device.raw.map_memory(uniform_buffer.memory, 0, buffer_size, vk::MemoryMapFlags::empty())
         }?;
 
         Ok((uniform_buffer, uniform_buffer_mapped))

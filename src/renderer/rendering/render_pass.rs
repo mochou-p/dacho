@@ -10,13 +10,13 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject
+        VulkanDrop
     },
     create_log, destroy_log
 };
 
 pub struct RenderPass {
-    raw: vk::RenderPass
+    pub(crate) raw: vk::RenderPass
 }
 
 impl RenderPass {
@@ -111,24 +111,18 @@ impl RenderPass {
                     .subpasses(&subpasses)
                     .dependencies(&subpass_dependencies);
 
-            unsafe { device.raw().create_render_pass(&create_info, None) }?
+            unsafe { device.raw.create_render_pass(&create_info, None) }?
         };
 
         Ok(Self { raw })
     }
 }
 
-impl VulkanObject for RenderPass {
-    type RawType = vk::RenderPass;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for RenderPass {
+    fn drop(&self, device: &Device) {
         destroy_log!(debug);
 
-        unsafe { device.raw().destroy_render_pass(self.raw, None); }
+        unsafe { device.raw.destroy_render_pass(self.raw, None); }
     }
 }
 

@@ -20,7 +20,7 @@ use crate::renderer::{
     commands::CommandPool,
     devices::{Device, PhysicalDevice},
     setup::Instance,
-    VulkanObject
+    VulkanDrop
 };
 
 pub struct StagingBuffer;
@@ -50,7 +50,7 @@ impl StagingBuffer {
         };
 
         let memory = unsafe {
-            device.raw().map_memory(
+            device.raw.map_memory(
                 staging_buffer.memory,
                 0,
                 buffer_size,
@@ -61,7 +61,7 @@ impl StagingBuffer {
         unsafe {
             #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
             copy_nonoverlapping(unsafe { data }, memory, usize::try_from(buffer_size)?);
-            device.raw().unmap_memory(staging_buffer.memory);
+            device.raw.unmap_memory(staging_buffer.memory);
         }
 
         let buffer = {
@@ -86,7 +86,7 @@ impl StagingBuffer {
             buffer_size
         )?;
 
-        staging_buffer.device_destroy(device);
+        staging_buffer.drop(device);
 
         Ok(buffer)
     }

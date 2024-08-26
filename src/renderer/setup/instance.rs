@@ -12,10 +12,7 @@ use {
 use super::Entry;
 
 // crate
-use crate::{
-    renderer::VulkanObject,
-    create_log, destroy_log
-};
+use crate::{create_log, destroy_log};
 
 // vvl
 #[cfg(feature = "vulkan-validation-layers")]
@@ -33,7 +30,7 @@ use {
 const VALIDATION_LAYERS: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];
 
 pub struct Instance {
-    raw: ash::Instance
+    pub raw: ash::Instance
 }
 
 impl Instance {
@@ -83,7 +80,7 @@ impl Instance {
                     &debug_utils_create_info
                 ).cast::<c_void>();
 
-                unsafe { entry.raw().create_instance(&create_info, None) }?
+                unsafe { entry.raw.create_instance(&create_info, None) }?
             }
 
             #[cfg(not(feature = "vulkan-validation-layers"))] {
@@ -91,22 +88,14 @@ impl Instance {
                     .application_info(&application_info)
                     .enabled_extension_names(required_extensions);
 
-                unsafe { entry.raw().create_instance(&create_info, None) }?
+                unsafe { entry.raw.create_instance(&create_info, None) }?
             }
         };
 
         Ok(Self { raw })
     }
-}
 
-impl VulkanObject for Instance {
-    type RawType = ash::Instance;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn destroy(&self) {
+    pub fn drop(&self) {
         destroy_log!(debug);
 
         unsafe { self.raw.destroy_instance(None); }

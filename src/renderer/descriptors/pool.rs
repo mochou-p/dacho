@@ -10,13 +10,13 @@ use {
 use crate::{
     renderer::{
         devices::Device,
-        VulkanObject
+        VulkanDrop
     },
     create_log, destroy_log
 };
 
 pub struct DescriptorPool {
-    raw: vk::DescriptorPool
+    pub raw: vk::DescriptorPool
 }
 
 impl DescriptorPool {
@@ -35,24 +35,18 @@ impl DescriptorPool {
                 .pool_sizes(&pool_sizes)
                 .max_sets(1);
 
-            unsafe { device.raw().create_descriptor_pool(&create_info, None) }?
+            unsafe { device.raw.create_descriptor_pool(&create_info, None) }?
         };
 
         Ok(Self { raw })
     }
 }
 
-impl VulkanObject for DescriptorPool {
-    type RawType = vk::DescriptorPool;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
-    }
-
-    fn device_destroy(&self, device: &Device) {
+impl VulkanDrop for DescriptorPool {
+    fn drop(&self, device: &Device) {
         destroy_log!(debug);
 
-        unsafe { device.raw().destroy_descriptor_pool(self.raw, None); }
+        unsafe { device.raw.destroy_descriptor_pool(self.raw, None); }
     }
 }
 

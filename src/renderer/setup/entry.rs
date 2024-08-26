@@ -4,13 +4,10 @@
 use anyhow::Result;
 
 // crate
-use crate::{
-    renderer::VulkanObject,
-    create_log
-};
+use crate::create_log;
 
 pub struct Entry {
-    raw: ash::Entry
+    pub raw: ash::Entry
 }
 
 impl Entry {
@@ -20,14 +17,6 @@ impl Entry {
         let raw = unsafe { ash::Entry::load() }?;
 
         Ok(Self { raw })
-    }
-}
-
-impl VulkanObject for Entry {
-    type RawType = ash::Entry;
-
-    fn raw(&self) -> &Self::RawType {
-        &self.raw
     }
 }
 
