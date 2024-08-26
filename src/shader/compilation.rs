@@ -11,7 +11,7 @@ use std::{
 
 // crates
 use {
-    anyhow::{Context, Result, bail},
+    anyhow::{Context, Result},
     futures::future::join_all,
     naga::{
         back::spv::{Options as SpvOptions, write_vec},
@@ -40,14 +40,14 @@ fn compile_shader(filepath: &Path) -> Result<()> {
 
     #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding)]
     if module.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
-        bail!("");
+        fatal!("Some shaders failed naga parsing");
     }
 
     let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
     
     #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding)]
     if info.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
-        bail!("");
+        fatal!("Some shaders failed naga validation");
     }
 
     let words = write_vec(&module?, &info?, &options, None)?;

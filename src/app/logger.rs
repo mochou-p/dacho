@@ -11,7 +11,6 @@ macro_rules! log {
 #[macro_export]
 macro_rules! log_from {
     ($fn:ident, $source:expr, $($args:expr),*) => {
-        #[cfg(debug_assertions)]
         $crate::app::logger::Logger::$fn($source, &format!($($args),*));
     };
 }

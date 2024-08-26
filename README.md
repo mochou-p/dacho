@@ -2,30 +2,44 @@
 
 # dacho
 
+## What is it
+An ECS game engine, written in pure Rust
+
 ## Disclaimer
-This project is in an early stage of development  
-README is usually only up-to-date for releases/tags
+This project is in it's early stage  
+A lot of features are still WIP or TODO  
+Expect breaking changes at each release  
+There is no documentation yet  
+The current [ECS implementation](src/ecs/world.rs) is temporary
 
 ## Usage
-In dacho, you insert your functions into schedules (Start, Update, Keyboard/Mouse input, State change, or custom)  
+In dacho, you insert Systems into schedules  
 ```rust
-// dacho hello world
+// A simple usage example
 
 use dacho::prelude::*;
 
 fn main() {
     let mut app = App::new("My game");
 
-    app.start(|_| println!("hello!"))
+    app.start(|_| println!("Hello, World!"));
+
+    app.keyboard(|_, key, is_pressed| {
+        if is_pressed && key == Key::Space {
+            println!("jump!");
+        }
+    });
 
     app.run();
 }
 ```
 See the [dacho example](https://github.com/mochou-p/dacho-example) for more
 
+## Cargo features
+- [ ] [vulkan-validation-layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers) (requires the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed on your system)
+###### A checked box means the feature is on by default
+
 ## Notes
-- the `dev` profile requires [Vulkan Validation Layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers)
-(use `--release` otherwise)
 - If you are using a tiling WM, it is currently recommended that you make a rule to open dacho as floating
 
 ## License

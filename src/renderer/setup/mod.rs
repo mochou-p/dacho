@@ -1,12 +1,12 @@
 // dacho/src/renderer/setup/mod.rs
 
 // modules
-#[cfg(debug_assertions)]
+#[cfg(feature = "vulkan-validation-layers")]
 mod debug;
 mod entry;
 mod instance;
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "vulkan-validation-layers")]
 #[allow(clippy::wildcard_imports)]
 #[allow(unused_imports)]
 pub(super) use debug::*;

@@ -42,8 +42,8 @@ use super::{
     log, create_log, destroy_log
 };
 
-// debug
-#[cfg(debug_assertions)]
+// vvl
+#[cfg(feature = "vulkan-validation-layers")]
 use setup::Debug;
 
 trait VulkanObject {
@@ -58,7 +58,7 @@ trait VulkanObject {
 pub struct Renderer {
     _entry:                     Entry,
     instance:                   Instance,
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "vulkan-validation-layers")]
     debug:                      Debug,
     physical_device:            PhysicalDevice,
     device:                     Device,
@@ -85,7 +85,7 @@ impl Renderer {
 
         let entry                 = Entry               ::new()?;
         let instance              = Instance            ::new(event_loop, &entry)?;
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "vulkan-validation-layers")]
         let debug                 = Debug               ::new(&entry, &instance)?;
         let physical_device       = PhysicalDevice      ::new(&instance)?;
         let device                = Device              ::new(&instance, &physical_device)?;
@@ -126,7 +126,7 @@ impl Renderer {
             Self {
                 _entry: entry,
                 instance,
-                #[cfg(debug_assertions)]
+                #[cfg(feature = "vulkan-validation-layers")]
                 debug,
                 physical_device,
                 device,
@@ -334,11 +334,13 @@ impl Drop for Renderer {
         self.descriptor_pool       .device_destroy(&self.device);
         self.descriptor_set_layout .device_destroy(&self.device);
 
-        self.device   .destroy();
-        self.surface  .destroy();
-        #[cfg(debug_assertions)]
-        self.debug    .destroy();
-        self.instance .destroy();
+        self.device.destroy();
+        self.surface.destroy();
+
+        #[cfg(feature = "vulkan-validation-layers")]
+        self.debug.destroy();
+
+        self.instance.destroy();
     }
 }
 

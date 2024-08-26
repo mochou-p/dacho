@@ -17,8 +17,8 @@ use crate::{
     create_log, destroy_log
 };
 
-// debug
-#[cfg(debug_assertions)]
+// vvl
+#[cfg(feature = "vulkan-validation-layers")]
 use {
     core::{
         ffi::c_void,
@@ -29,7 +29,7 @@ use {
     crate::log
 };
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "vulkan-validation-layers")]
 const VALIDATION_LAYERS: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];
 
 pub struct Instance {
@@ -51,7 +51,7 @@ impl Instance {
                 event_loop.raw_display_handle()
             )?;
 
-            #[cfg(debug_assertions)] {
+            #[cfg(feature = "vulkan-validation-layers")] {
                 log!(debug, "Enabling Vulkan Validation Layers");
 
                 let mut extension_names = required_extensions.to_vec();
@@ -86,7 +86,7 @@ impl Instance {
                 unsafe { entry.raw().create_instance(&create_info, None) }?
             }
 
-            #[cfg(not(debug_assertions))] {
+            #[cfg(not(feature = "vulkan-validation-layers"))] {
                 let create_info = vk::InstanceCreateInfo::builder()
                     .application_info(&application_info)
                     .enabled_extension_names(required_extensions);

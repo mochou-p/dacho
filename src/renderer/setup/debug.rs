@@ -72,10 +72,10 @@ unsafe extern "system" fn validation_layers_callback(
     let message = CStr::from_ptr((*p_callback_data).p_message);
 
     match message_severity {
-        MessageSeverity::VERBOSE => { log_from!(debug,   source, "{:?}", message);   },
-        MessageSeverity::INFO    => { log_from!(info,    source, "{:?}", message);   },
-        MessageSeverity::WARNING => { log_from!(warning, source, "{:?}", message);   },
-        _                        => { log_from!(error,   source, "{:?}", message);   }
+        MessageSeverity::VERBOSE => { log_from!(debug,   source, "{:?}", message); },
+        MessageSeverity::INFO    => { log_from!(info,    source, "{:?}", message); },
+        MessageSeverity::WARNING => { log_from!(warning, source, "{:?}", message); },
+        _                        => { log_from!(error,   source, "{:?}", message); }
     };
 
     vk::FALSE

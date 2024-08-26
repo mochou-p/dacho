@@ -154,6 +154,8 @@ impl App {
         event_loop.set_control_flow(Poll);
         event_loop.run_app(&mut self).expect("failed to run the app in event loop");
 
+        log!(info, "<<< dacho is shuting down >>>");
+
         if let Some(renderer) = self.renderer {
             drop(renderer);
         }
@@ -183,6 +185,8 @@ impl ApplicationHandler for App {
                     self.world.get_updated_mesh_instances()
                 ).expect("failed to create a Renderer")
             );
+
+            log!(info, "<<< dacho is initialized >>>");
         } 
     }
 
