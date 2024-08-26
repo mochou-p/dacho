@@ -11,7 +11,7 @@ use super::types::{V2, V3};
 
 // crate
 use crate::{
-    ecs::{component::Component, world::Id},
+    ecs::{component::Component, world::{Id, World}},
     renderer::rendering::GeometryData
 };
 
@@ -19,9 +19,12 @@ type MeshBuilder = dyn Fn() -> GeometryData;
 
 #[non_exhaustive]
 pub struct Mesh {
-    pub shader:       String,
-    pub id:           Id, // for instancing
-    pub model_matrix: Mat4
+    pub(crate) children_ids:     Vec<Id>,
+    pub(crate) parent_id_option: Option<Id>,
+    #[allow(dead_code)]
+    pub(crate) shader:           String,
+    pub        id:               Id, // for instancing
+    pub        model_matrix:     Mat4
 }
 
 impl Component for Mesh {}
@@ -31,6 +34,18 @@ impl Mesh {
         &planar::quad   ::mesh,
         &planar::circle ::mesh
     ];
+
+    pub(crate) fn get_transform(&self, world: &World) -> Mat4 {
+        if let Some(parent_id) = self.parent_id_option {
+            if let Some(component) = world.components.get(&parent_id) {
+                if let Some(downcasted_component) = component.downcast_ref::<Self>() {
+                    return downcasted_component.get_transform(world) * self.model_matrix;
+                }
+            }
+        }
+
+        self.model_matrix
+    }
 
     pub fn move_by(&mut self, rhs: V3) {
         let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
@@ -111,7 +126,7 @@ impl Mesh {
             position.reverse_y().to_glam()
         );
 
-        Self { shader: String::from("default"), id, model_matrix }
+        Self { children_ids: vec![], parent_id_option: None, shader: String::from("default"), id, model_matrix }
     }
 
     #[must_use]
@@ -124,7 +139,7 @@ impl Mesh {
             position.reverse_y().to_glam()
         );
 
-        Self { shader: String::from("default"), id, model_matrix }
+        Self { children_ids: vec![], parent_id_option: None, shader: String::from("default"), id, model_matrix }
     }
 }
 

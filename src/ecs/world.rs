@@ -36,14 +36,14 @@ pub type Id    = u32;
 pub type State = u8;
 
 pub struct World {
-    entities:          HashMap<Id, Entity>,
-    components:        HashMap<Id, Box<dyn Any>>,
-    entity_counter:    Id,
-    component_counter: Id,
-    mesh_instances:    HashMap<Id, Vec<Id>>,
+               entities:          HashMap<Id, Entity>,
+    pub(crate) components:        HashMap<Id, Box<dyn Any>>,
+               entity_counter:    Id,
+               component_counter: Id,
+               mesh_instances:    HashMap<Id, Vec<Id>>,
 
-    pub(crate) meshes_updated: HashSet<Id>,
-    pub(crate) systems:        Systems
+    pub(crate) meshes_updated:    HashSet<Id>,
+    pub(crate) systems:           Systems
 }
 
 impl World {
@@ -89,6 +89,28 @@ impl World {
         self.entities.insert(id, Entity::new_child(id, parent_id));
 
         Some(id)
+    }
+
+    pub fn spawn_child_mesh(&mut self, parent_component_id: Id, mut child: Mesh) {
+        let id = self.component_counter;
+        self.component_counter += 1;
+
+        self.mesh_instances
+            .entry(child.id)
+            .or_insert_with(|| Vec::with_capacity(1))
+            .push(id);
+
+        child.parent_id_option = Some(parent_component_id);
+
+        self.update_mesh(child.id);
+
+        self.components.insert(id, Box::new(child));
+
+        if let Some(component) = self.components.get_mut(&parent_component_id) {
+            if let Some(downcasted_component) = component.downcast_mut::<Mesh>() {
+                downcasted_component.children_ids.push(id);
+            }
+        }
     }
 
     pub fn spawn_component<T>(&mut self, entity_id: Id, component: T)
@@ -260,6 +282,20 @@ impl World {
         None
     }
 
+    #[must_use]
+    pub fn get_entity_component_id<T>(&self, entity_id: Id) -> Option<Id>
+    where
+        T: Component
+    {
+        if let Some(entity) = self.get_entity(entity_id) {
+            if let Some(components_ids) = entity.components_id_map.get(&TypeId::of::<T>()) {
+                return components_ids.first().copied()
+            }
+        }
+
+        None
+    }
+
     pub fn remove_entity(&mut self, id: Id) {
         let parent_id_option = {
             match self.get_entity(id) {
@@ -309,6 +345,8 @@ impl World {
                             self.update_mesh(mesh.id);
                         }
                     }
+
+                    self.remove_mesh_component(*component_id);
                 }
 
                 self.components.remove(component_id);
@@ -365,6 +403,8 @@ impl World {
                         self.update_mesh(mesh.id);
                     }
                 }
+
+                self.remove_mesh_component(*component_id);
             }
 
             self.components.remove(component_id);
@@ -377,6 +417,23 @@ impl World {
         if let Some(entity) = self.get_mut_entity(entity_id) {
             entity.components_id_map.remove(user_type);
         }
+    }
+
+    fn remove_mesh_component(&mut self, component_id: Id) {
+        let mut children_ids = vec![];
+
+        if let Some(component) = self.components.get(&component_id) {
+            if let Some(downcasted_component) = component.downcast_ref::<Mesh>() {
+                children_ids.clone_from(&downcasted_component.children_ids);
+                self.update_mesh(downcasted_component.id);
+            }
+        }
+
+        for id in &children_ids {
+            self.remove_mesh_component(*id);
+        }
+
+        self.components.remove(&component_id);
     }
 
     pub fn get_state(&self, closure: impl FnOnce(State)) {
@@ -492,8 +549,24 @@ impl World {
     }
 
     #[inline]
-    pub fn update_mesh(&mut self, mesh_id: Id) {
+    pub(crate) fn update_mesh(&mut self, mesh_id: Id) {
         self.meshes_updated.insert(mesh_id);
+    }
+
+    pub fn update_mesh_component(&mut self, component_id: Id) {
+        if let Some(component) = self.components.get(&component_id) {
+            if let Some(downcasted_component) = component.downcast_ref::<Mesh>() {
+                self.meshes_updated.insert(downcasted_component.id);
+
+                for child_id in &downcasted_component.children_ids {
+                    if let Some(child) = self.components.get(child_id) {
+                        if let Some(downcasted_child) = child.downcast_ref::<Mesh>() {
+                            self.meshes_updated.insert(downcasted_child.id);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub(crate) fn get_updated_mesh_instances(&mut self) -> Vec<(Id, Vec<f32>)> {
@@ -510,7 +583,7 @@ impl World {
                 for component_id in components_ids {
                     if let Some(component) = self.components.get(component_id) {
                         if let Some(mesh_component) = component.downcast_ref::<Mesh>() {
-                            instances.extend(mesh_component.model_matrix.to_cols_array());
+                            instances.extend(mesh_component.get_transform(self).to_cols_array());
                         }
                     }
                 }
