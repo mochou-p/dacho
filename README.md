@@ -13,7 +13,7 @@ There is no documentation yet
 The current ECS implementation is temporary
 
 ## Usage
-In dacho, you insert Systems into schedules  
+In dacho, you insert Systems into Schedules
 ```rust
 // A simple usage example
 
@@ -36,11 +36,15 @@ fn main() {
 See the [dacho example](https://github.com/mochou-p/dacho-example) for more
 
 ## Cargo features
-- [ ] [vulkan-validation-layers](https://github.com/KhronosGroup/Vulkan-ValidationLayers) (requires the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) installed on your system)
-###### A checked box means the feature is on by default
+###### A checked box means the feature is enabled by default
+- Graphics APIs
+    - [x] vulkan - Renderer will use [Vulkan API](https://www.vulkan.org)
+        - [ ] vulkan-validation-layers - Ensures the correct use of Vulkan (requires [Vulkan SDK](https://vulkan.lunarg.com/sdk/home))
+- Shader languages
+    - [x] wgsl - Shaders will use [WebGPU Shading Language](https://www.w3.org/TR/WGSL) (.wgsl)
 
 ## Notes
-- If you are using a tiling WM, it is currently recommended that you make a rule to open dacho as floating
+- It is recommended to open dacho projects as floating in tiling WMs
 
 ## License
 Licensed under either of
