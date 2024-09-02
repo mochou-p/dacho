@@ -1,0 +1,20 @@
+# dacho/core/shader/wgsl/Cargo.toml
+
+[package]
+name         = "dacho-wgsl"
+
+edition      = "2021"
+rust-version = "1.80.1"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[dependencies]
+dacho-log = { path = "../../log" }
+
+ash     = { version = "0.37.3"                                                                           }
+anyhow  = { version = "1.0.86", default-features = false, features = ["std"]                             }
+futures = { version = "0.3.30", default-features = false, features = ["std", "async-await", "executor"]  }
+tokio   = { version = "1.38.1", default-features = false, features = ["rt", "rt-multi-thread", "macros"] }
+naga    = { version = "22.0.0", default-features = false, features = ["wgsl-in", "spv-out"]              }
+

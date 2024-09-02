@@ -1,0 +1,14 @@
+# dacho/core/types/Cargo.toml
+
+[package]
+name         = "dacho-types"
+
+edition      = "2021"
+rust-version = "1.80.1"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[dependencies]
+glam = { version = "0.29.0", default-features = false, features = ["std"] }
+

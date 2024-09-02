@@ -1,0 +1,14 @@
+# dacho/core/components/Cargo.toml
+
+[package]
+name         = "dacho-components"
+
+edition      = "2021"
+rust-version = "1.80.1"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[dependencies]
+dacho-mesh = { path = "mesh" }
+

@@ -3,44 +3,58 @@
 [package]
 name         = "dacho"
 version      = "0.2.0"
-rust-version = "1.80.1"
-authors      = ["mochou-p"]
+
 edition      = "2021"
+rust-version = "1.80.1"
+
+authors      = ["mochou-p"]
 description  = "ECS Game Engine"
-repository   = "https://github.com/mochou-p/dacho"
 license      = "MIT OR Apache-2.0"
-# crates.io
+repository   = "https://github.com/mochou-p/dacho"
+
 keywords     = ["vulkan", "engine", "renderer", "ash", "winit"]
 categories   = ["game-development", "game-engines", "graphics", "rendering", "rendering::engine"]
 
+[workspace]
+members = [
+    "core/app",
+    "core/components",
+    "core/components/mesh",
+    "core/ecs",
+    "core/log",
+    "core/renderer",
+    "core/renderer/vulkan/backend",
+    "core/renderer/vulkan/validation",
+    "core/shader",
+    "core/shader/wgsl",
+    "core/types",
+    "core/window"
+]
+
 [features]
-vulkan-validation-layers = []
+default           = ["vulkan", "wgsl"]
+
+vulkan            = ["dacho-renderer/vulkan"]
+vulkan-validation = ["dacho-renderer/vulkan-validation"]
+wgsl              = ["dacho-shader/wgsl"]
 
 [dependencies]
-anyhow            = { version = "1.0.86",  default-features = false, features = ["std"]                             }
-# vulkan
-ash               = { version = "0.37.3"                                                                            }
-# math
-glam              = { version = "0.29.0",  default-features = false, features = ["std"]                             }
-# async
-futures           = { version = "0.3.30",  default-features = false, features = ["std", "async-await", "executor"]  }
-tokio             = { version = "1.38.1",  default-features = false, features = ["rt", "rt-multi-thread", "macros"] }
-# windowing
-winit             = { version = "0.30.4",                            features = ["rwh_05"]                          }
-raw-window-handle = { version = "0.5.0",   default-features = false                                                 }
-ash-window        = { version = "0.12.0",  default-features = false                                                 }
-# shader compilation
-naga              = { version = "22.0.0",  default-features = false, features = ["wgsl-in", "spv-out"]              }
+dacho-app        = { path = "core/app"        }
+dacho-components = { path = "core/components" }
+dacho-ecs        = { path = "core/ecs"        }
+dacho-renderer   = { path = "core/renderer"   }
+dacho-shader     = { path = "core/shader"     }
+dacho-types      = { path = "core/types"      }
 
-[profile.dev]
-opt-level = 0
-
-[profile.dev.package."*"]
-opt-level = 3
+[profile.release]
+strip         = "symbols"
+lto           = "fat"
+panic         = "abort"
+codegen-units = 1
 
 [lints.clippy]
-all         = "deny"
-pedantic    = "deny"
-nursery     = "deny"
-cargo       = "deny"
+all      = "deny"
+pedantic = "deny"
+nursery  = "deny"
+cargo    = "deny"
 

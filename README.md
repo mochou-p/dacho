@@ -10,7 +10,7 @@ This project is in it's early stage
 A lot of features are still WIP or TODO  
 Expect breaking changes at each release  
 There is no documentation yet  
-The current [ECS implementation](src/ecs/world.rs) is temporary
+The current ECS implementation is temporary
 
 ## Usage
 In dacho, you insert Systems into schedules  

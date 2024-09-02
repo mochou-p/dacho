@@ -1,0 +1,17 @@
+# dacho/core/window/Cargo.toml
+
+[package]
+name         = "dacho-window"
+
+edition      = "2021"
+rust-version = "1.80.1"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[dependencies]
+dacho-log = { path = "../log" }
+
+anyhow = { version = "1.0.86", default-features = false, features = ["std"]    }
+winit  = { version = "0.30.4",                           features = ["rwh_05"] }
+
