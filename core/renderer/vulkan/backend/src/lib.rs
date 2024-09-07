@@ -36,7 +36,6 @@ use {
 
 // super
 use dacho_window::Window;
-use dacho_ecs::world::Id;
 use dacho_mesh::Mesh;
 use dacho_log::{log, create_log, destroy_log};
 
@@ -72,7 +71,7 @@ impl Renderer {
     pub fn new(
         event_loop:     &ActiveEventLoop,
         window:         &Window,
-        mesh_instances:  Vec<(Id, Vec<f32>)>
+        mesh_instances:  Vec<(u32, Vec<f32>)>
     ) -> Result<Self> {
         create_log!(info);
 
@@ -148,7 +147,7 @@ impl Renderer {
         render_pass:           &RenderPass,
         width:                  u16,
         height:                 u16,
-        mesh_instances:         Vec<(Id, Vec<f32>)>
+        mesh_instances:         Vec<(u32, Vec<f32>)>
     ) -> Result<HashMap::<String, Pipeline>> {
         log!(info, "Preparing Meshes");
 
@@ -185,7 +184,7 @@ impl Renderer {
         self.device.wait();
     }
 
-    pub fn update_meshes(&mut self, updated_meshes: Vec<(Id, Vec<f32>)>) -> Result<()> {
+    pub fn update_meshes(&mut self, updated_meshes: Vec<(u32, Vec<f32>)>) -> Result<()> {
         if updated_meshes.is_empty() {
             return Ok(());
         }

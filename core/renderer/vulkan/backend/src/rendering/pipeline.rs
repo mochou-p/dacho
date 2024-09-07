@@ -35,7 +35,6 @@ use crate::{
     VulkanDrop
 };
 
-use dacho_ecs::world::Id;
 use dacho_shader::{
     ShaderInfo, Type,
     compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
@@ -47,7 +46,7 @@ pub struct Pipeline {
     #[allow(dead_code)]
     pub name:       String,
     pub layout:     vk::PipelineLayout,
-    pub geometries: HashMap<Id, Geometry>
+    pub geometries: HashMap<u32, Geometry>
 }
 
 impl Pipeline {

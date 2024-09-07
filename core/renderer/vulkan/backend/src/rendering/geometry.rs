@@ -24,7 +24,6 @@ use crate::{
     VulkanDrop
 };
 
-use dacho_ecs::world::Id;
 use dacho_mesh::GeometryData;
 use dacho_shader::{ShaderInfo, size_of_types};
 
@@ -32,7 +31,7 @@ use dacho_shader::{ShaderInfo, size_of_types};
 #[non_exhaustive]
 pub struct Geometry {
     pub shader:          String,
-    pub id:              Id,
+    pub id:              u32,
     pub vertex_buffer:   Buffer,
     pub instance_buffer: Buffer,
     pub index_buffer:    Buffer,

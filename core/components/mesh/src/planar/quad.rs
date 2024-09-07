@@ -15,11 +15,11 @@ pub fn mesh() -> GeometryData {
     let hs = V2::ONE * 0.5;
 
     let vertices = vec![
-        // position                    normal
-        p.x - hs.x, -p.y - hs.y, p.z,  0.0,  0.0,  1.0,
-        p.x + hs.x, -p.y - hs.y, p.z,  0.0,  0.0,  1.0,
-        p.x + hs.x, -p.y + hs.y, p.z,  0.0,  0.0,  1.0,
-        p.x - hs.x, -p.y + hs.y, p.z,  0.0,  0.0,  1.0,
+        // position                   normal
+        p.x - hs.x, -p.y - hs.y, p.z, 0.0, 0.0, 1.0,
+        p.x + hs.x, -p.y - hs.y, p.z, 0.0, 0.0, 1.0,
+        p.x + hs.x, -p.y + hs.y, p.z, 0.0, 0.0, 1.0,
+        p.x - hs.x, -p.y + hs.y, p.z, 0.0, 0.0, 1.0,
     ];
 
     let indices = vec![2, 1, 0,  0, 3, 2];

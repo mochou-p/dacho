@@ -9,8 +9,7 @@ An ECS game engine, written in pure Rust
 This project is in it's early stage  
 A lot of features are still WIP or TODO  
 Expect breaking changes at each release  
-There is no documentation yet  
-The current ECS implementation is temporary
+There is no documentation yet (other than the [example](https://github.com/mochou-p/dacho-example))
 
 ## Usage
 In dacho, you insert Systems into Schedules
@@ -33,7 +32,7 @@ fn main() {
     app.run();
 }
 ```
-See the [dacho example](https://github.com/mochou-p/dacho-example) for more
+See the [example](https://github.com/mochou-p/dacho-example) for more
 
 ## Cargo features
 ###### A checked box means the feature is enabled by default

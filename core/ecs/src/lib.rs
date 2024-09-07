@@ -2,9 +2,9 @@
 
 // modules
 pub mod entity;
-pub mod system;
+pub mod query;
 pub mod world;
 
 // pub use
-pub use world::{Id, State, World};
+pub use world::World;
 

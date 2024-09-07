@@ -4,14 +4,13 @@
 name         = "dacho-ecs"
 
 edition      = "2021"
-rust-version = "1.80.1"
+rust-version = "1.81.0"
 
 authors      = ["mochou-p"]
 license      = "MIT OR Apache-2.0"
 
 [dependencies]
-dacho-log  = { path = "../log"             }
-dacho-mesh = { path = "../components/mesh" }
-
-winit = { version = "0.30.4", features = ["rwh_05"] }
+dacho-log   = { path = "../log"             }
+dacho-mesh  = { path = "../components/mesh" }
+dacho-types = { path = "../types"           }
 
