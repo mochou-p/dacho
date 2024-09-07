@@ -6,5 +6,5 @@ pub mod query;
 pub mod world;
 
 // pub use
-pub use world::World;
+pub use {query::Query, world::World};
 

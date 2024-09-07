@@ -1,45 +1,57 @@
 // dacho/core/ecs/src/query.rs
 
 use core::any::TypeId;
+use std::marker::PhantomData;
 
-use super::entity::EntityComponents;
+use super::entity::{Entity, EntityComponents};
 
-pub trait Query: Sized {
-    const ERR: &'static str = "guard Query::get with Query::check";
-
-    fn check(map: &EntityComponents) -> bool;
-    fn get(map: &mut EntityComponents) -> Self;
-    fn return_to(self, map: &mut EntityComponents);
+pub struct Query<'entity, T: QueryT> {
+    pub(crate) entities: Vec<&'entity Entity>,
+               pd:       PhantomData<T>
 }
 
-macro_rules! impl_query {
-    ($($i:tt $t:tt),+) => {
-        impl<$($t: 'static,)+> Query for ($($t,)+) {
+impl<'entity, T: QueryT> Query<'entity, T> {
+    pub(crate) fn new() -> Self {
+        Self { entities: vec![], pd: PhantomData }
+    }
+
+    pub(crate) fn add(&mut self, entity: &'entity Entity) {
+        self.entities.push(entity);
+    }
+
+    pub fn single(self) -> &'entity Entity {
+        self.entities[0]
+    }
+
+    pub fn all(self) -> Vec<&'entity Entity> {
+        self.entities
+    }
+}
+
+pub trait QueryT: Sized {
+    fn check(map: &EntityComponents) -> bool;
+}
+
+macro_rules! impl_query_t {
+    ($($t:tt),+) => {
+        impl<$($t: 'static,)+> QueryT for ($($t,)+) {
             fn check(map: &EntityComponents) -> bool {
                 $(map.contains_key(&TypeId::of::<$t>()) &&)+ true
-            }
-
-            fn get(map: &mut EntityComponents) -> Self {
-                ($(*map.remove(&TypeId::of::<$t>()).unwrap().downcast::<$t>().unwrap(),)+)
-            }
-
-            fn return_to(self, map: &mut EntityComponents) {
-                $(map.insert(TypeId::of::<$t>(), Box::new(self.$i));)+
             }
         }
     };
 }
 
-impl_query!(0 A);
-impl_query!(0 A, 1 B);
-impl_query!(0 A, 1 B, 2 C);
-impl_query!(0 A, 1 B, 2 C, 3 D);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J, 10 K);
-impl_query!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J, 10 K, 11 L);
+impl_query_t!(A);
+impl_query_t!(A, B);
+impl_query_t!(A, B, C);
+impl_query_t!(A, B, C, D);
+impl_query_t!(A, B, C, D, E);
+impl_query_t!(A, B, C, D, E, F);
+impl_query_t!(A, B, C, D, E, F, G);
+impl_query_t!(A, B, C, D, E, F, G, H);
+impl_query_t!(A, B, C, D, E, F, G, H, I);
+impl_query_t!(A, B, C, D, E, F, G, H, I, J);
+impl_query_t!(A, B, C, D, E, F, G, H, I, J, K);
+impl_query_t!(A, B, C, D, E, F, G, H, I, J, K, L);
 

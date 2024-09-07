@@ -2,10 +2,10 @@
 
 use super::{
     entity::{Entity, Tuple},
-    query::Query
+    query::{Query, QueryT}
 };
 
-type System = Box<dyn Fn(&mut Vec<Entity>)>;
+type System = Box<dyn Fn(&Vec<Entity>)>;
 
 pub struct World {
     entities: Vec<Entity>,
@@ -33,26 +33,28 @@ impl World {
         self.entities.push(entity);
     }
 
-    pub fn add_system<T>(&mut self, system: fn(&mut T))
+    pub fn add_system<T>(&mut self, system: fn(Query<T>))
     where
-        T: Query + 'static
+        T: QueryT + 'static
     {
         self.systems.push(Box::new(move |entities| {
+            let mut query = Query::<T>::new();
+
             for entity in entities {
                 if T::check(&entity.components) {
-                    let mut components = T::get(&mut entity.components);
-                    system(&mut components);
-                    components.return_to(&mut entity.components);
-
-                    return;
+                    query.add(entity);
                 }
+            }
+
+            if !query.entities.is_empty() {
+                system(query);
             }
         }));
     }
 
     pub fn run(&mut self) {
         for system in &self.systems {
-            system(&mut self.entities);
+            system(&self.entities);
         }
     }
 
