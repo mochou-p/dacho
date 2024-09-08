@@ -1,14 +1,16 @@
 // dacho/core/ecs/src/world.rs
 
+use std::rc::Rc;
+
 use super::{
     entity::{Entity, Tuple},
-    query::{Query, QueryT}
+    query::QueryFn
 };
 
-type System = Box<dyn Fn(&Vec<Entity>)>;
+type System = Box<dyn Fn(&Vec<Rc<Entity>>)>;
 
 pub struct World {
-    entities: Vec<Entity>,
+    entities: Vec<Rc<Entity>>,
     systems:  Vec<System>,
     temp:     bool
 }
@@ -30,24 +32,14 @@ impl World {
         let mut entity = Entity::new();
         components.insert_into(&mut entity.components);
 
-        self.entities.push(entity);
+        self.entities.push(Rc::new(entity));
     }
 
-    pub fn add_system<T>(&mut self, system: fn(Query<T>))
-    where
-        T: QueryT + 'static
+    pub fn add_system<T>(&mut self, system: impl QueryFn<T> + 'static)
     {
         self.systems.push(Box::new(move |entities| {
-            let mut query = Query::<T>::new();
-
-            for entity in entities {
-                if T::check(&entity.components) {
-                    query.add(entity);
-                }
-            }
-
-            if !query.entities.is_empty() {
-                system(query);
+            if let Some(queries) = system.get_queries(entities) {
+                system.call(queries);
             }
         }));
     }

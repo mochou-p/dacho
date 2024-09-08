@@ -59,7 +59,10 @@ pub trait Tuple {
 
 macro_rules! impl_t {
     ($($i:tt $t:tt),+) => {
-        impl<$($t: 'static,)+> Tuple for ($($t,)+) {
+        impl<$($t,)+> Tuple for ($($t,)+)
+        where
+            $($t: 'static,)+
+        {
             fn insert_into(self, map: &mut EntityComponents) {
                 $(
                     map
