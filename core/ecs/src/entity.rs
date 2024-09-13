@@ -1,7 +1,7 @@
 // dacho/core/ecs/src/entity.rs
 
-use core::any::{Any, TypeId};
-use std::collections::HashMap;
+use core::{any::{Any, TypeId}, cell::RefCell};
+use std::{collections::HashMap, rc::Rc};
 
 pub type EntityComponents = HashMap<TypeId, Vec<Box<dyn Any>>>;
 
@@ -15,20 +15,22 @@ impl Entity {
         Self { components: HashMap::new() }
     }
 
-    pub fn get_component<T>(&self) -> Option<&T>
+    pub fn get_component<T>(&self) -> Option<Rc<RefCell<T>>>
     where
         T: 'static
     {
         if let Some(any_components) = self.components.get(&TypeId::of::<T>()) {
             if let Some(any_component) = any_components.first() {
-                return any_component.downcast_ref::<T>();
+                if let Some(component) = any_component.downcast_ref::<Rc<RefCell<T>>>() {
+                    return Some(Rc::clone(component));
+                }
             }
         }
 
         None
     }
 
-    pub fn get_components<T>(&self) -> Option<Vec<&T>>
+    pub fn get_components<T>(&self) -> Option<Vec<Rc<RefCell<T>>>>
     where
         T: 'static
     {
@@ -36,8 +38,8 @@ impl Entity {
             let mut components = Vec::with_capacity(any_components.len());
 
             for any_component in any_components {
-                if let Some(component) = any_component.downcast_ref::<T>() {
-                    components.push(component);
+                if let Some(component) = any_component.downcast_ref::<Rc<RefCell<T>>>() {
+                    components.push(Rc::clone(component));
                 }
             }
 
@@ -68,7 +70,7 @@ macro_rules! impl_t {
                     map
                         .entry(TypeId::of::<$t>())
                         .or_insert_with(|| Vec::with_capacity(1))
-                        .push(Box::new(self.$i));
+                        .push(Box::new(Rc::new(RefCell::new(self.$i))));
                 )+
             }
         }

@@ -45,7 +45,7 @@ impl Geometry {
         physical_device:   &PhysicalDevice,
         device:            &Device,
         command_pool:      &CommandPool,
-        data:              &GeometryData,
+        data:              &mut GeometryData,
         shader_info_cache: &mut HashMap<String, ShaderInfo>
     ) -> Result<Self> {
         let shader      = data.shader.clone();
@@ -79,9 +79,9 @@ impl Geometry {
                 .instance_size
         )?;
 
-        let   vertex_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &data.vertices )?;
-        let instance_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &data.instances)?;
-        let    index_buffer =  IndexBuffer::new_buffer(instance, physical_device, device, command_pool, &data.indices  )?;
+        let   vertex_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &mut data.vertices )?;
+        let instance_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &mut data.instances)?;
+        let    index_buffer =  IndexBuffer::new_buffer(instance, physical_device, device, command_pool, &mut data.indices  )?;
 
         Ok(Self { shader, id, vertex_buffer, instance_buffer, index_buffer, index_count, instance_count })
     }

@@ -1,11 +1,16 @@
 // dacho/core/ecs/src/query.rs
 
-use core::{any::TypeId, marker::PhantomData};
+use core::{any::TypeId, cell::RefCell, marker::PhantomData};
 use std::rc::{Rc, Weak};
 
 use super::entity::{Entity, EntityComponents};
 
-pub struct Query<T: QueryT> {
+use dacho_log::fatal;
+
+pub struct Query<T>
+where
+    T: QueryT
+{
     entities: Vec<Weak<Entity>>,
     pd:       PhantomData<T>
 }
@@ -23,37 +28,66 @@ where
         self.entities.push(entity);
     }
 
-    pub fn one(self) {
+    pub fn one(&self) -> T::Components {
+        if let Some(strong) = self.entities[0].upgrade() {
+            return T::get(&strong);
+        }
+
+        fatal!("Weak<Entity> error");
     }
 
-    pub fn entity(self) -> Option<Rc<Entity>> {
-        self.entities[0].upgrade()
-    }
+    pub fn all(&self) -> Vec<T::Components> {
+        let mut components = vec![];
 
-    pub fn entities(self) -> Option<Vec<Rc<Entity>>> {
-        let mut entities = Vec::with_capacity(self.entities.len());
-
-        for weak_entity in self.entities {
-            if let Some(entity) = weak_entity.upgrade() {
-                entities.push(entity);
+        for entity in &self.entities {
+            if let Some(strong) = entity.upgrade() {
+                components.push(T::get(&strong));
             } else {
-                return None;
+                fatal!("QueryT::get error");
             }
         }
 
-        Some(entities)
+        components
+    }
+
+    pub fn entity(&self) -> Rc<Entity> {
+        if let Some(strong) = self.entities[0].upgrade() {
+            return strong;
+        }
+
+        fatal!("Weak<Entity> error");
+    }
+
+    pub fn entities(&self) -> Vec<Rc<Entity>> {
+        let mut entities = Vec::with_capacity(self.entities.len());
+
+        for entity in &self.entities {
+            if let Some(strong) = entity.upgrade() {
+                entities.push(strong);
+            } else {
+                fatal!("Weak<Entity> error");
+            }
+        }
+
+        entities
     }
 }
 
-pub trait QueryT {
+pub trait QueryT: Sized {
+    type Components;
+
     fn check(map: &EntityComponents) -> bool;
+    fn get(entity: &Entity) -> Self::Components;
 }
 
 pub trait QueryTuple: Sized {
     fn get_queries(entities: &[Rc<Entity>]) -> Option<Self>;
 }
 
-pub trait QueryFn<T> {
+pub trait QueryFn<T>
+where
+    T: QueryTuple
+{
     fn get_queries(&self, entities: &[Rc<Entity>]) -> Option<T>;
     fn call(&self, queries: T);
 }
@@ -74,9 +108,24 @@ where
 
 macro_rules! impl_query_t {
     ($($t:tt),+) => {
-        impl<$($t: 'static,)+> QueryT for ($($t,)+) {
+        impl<$($t,)+> QueryT for ($($t,)+)
+        where
+            $($t: 'static,)+
+        {
+            type Components = ($(Rc<RefCell<$t>>,)+);
+
             fn check(map: &EntityComponents) -> bool {
                 $(map.contains_key(&TypeId::of::<$t>()) &&)+ true
+            }
+
+            fn get(entity: &Entity) -> Self::Components {
+                ($({
+                    if let Some(component) = entity.get_component::<$t>() {
+                        component
+                    } else {
+                        fatal!("Entity.get_component error");
+                    }
+                },)+)
             }
         }
     };

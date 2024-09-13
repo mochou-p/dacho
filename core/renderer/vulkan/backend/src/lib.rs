@@ -162,7 +162,7 @@ impl Renderer {
             let mut data   = Mesh::BUILDERS[mi.0 as usize]();
             data.instances = mi.1;
 
-            let geometry = Geometry::new(instance, physical_device, device, command_pool, &data, &mut shader_info_cache)?;
+            let geometry = Geometry::new(instance, physical_device, device, command_pool, &mut data, &mut shader_info_cache)?;
 
             geometries.insert(mi.0, geometry);
         }
@@ -191,7 +191,7 @@ impl Renderer {
 
         let pipeline = self.pipelines.get_mut("default").expect("failed to get the default pipeline");
 
-        for (mesh_id, instances) in updated_meshes {
+        for (mesh_id, mut instances) in updated_meshes {
             if instances.is_empty() {
                 if let Some(geometry) = pipeline.geometries.remove(&mesh_id) {
                     geometry.drop(&self.device);
@@ -204,13 +204,14 @@ impl Renderer {
 
             if let Some(geometry) = geometry_option {
                 geometry.instance_buffer.drop(&self.device);
-                geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &instances)?;
+                geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &mut instances)?;
                 geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 => temp for the default shader
             } else {
                 let mut data   = Mesh::BUILDERS[mesh_id as usize]();
                 data.instances = instances;
 
-                let geometry = Geometry::new(&self.instance, &self.physical_device, &self.device, &self.command_pool, &data, &mut HashMap::new())?; // temp
+                //                                                                                                               ~~~~ temp ~~~~~~~~~
+                let geometry = Geometry::new(&self.instance, &self.physical_device, &self.device, &self.command_pool, &mut data, &mut HashMap::new())?;
 
                 pipeline.geometries.insert(mesh_id, geometry);
             }

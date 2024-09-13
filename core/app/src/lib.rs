@@ -18,7 +18,7 @@ use winit::{
 use timer::Timer;
 
 // super
-use dacho_ecs::{entity::Entity, world::World, query::QueryFn};
+use dacho_ecs::{entity::Entity, world::World, query::{QueryFn, QueryTuple}};
 use dacho_renderer::Renderer;
 use dacho_log::{log, fatal, create_log};
 use dacho_window::Window;
@@ -80,6 +80,8 @@ impl App {
     }
 
     pub fn add_system<T>(&mut self, system: impl QueryFn<T> + 'static)
+    where
+        T: QueryTuple
     {
         self.systems.push(Box::new(move |entities| {
             if let Some(queries) = system.get_queries(entities) {
@@ -112,6 +114,8 @@ impl App {
         if let Some(renderer) = self.renderer {
             drop(renderer);
         }
+
+        log!(info, "<<< graceful shutdown >>>");
     }
 }
 

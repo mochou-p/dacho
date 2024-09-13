@@ -24,6 +24,7 @@ use {
 // crate
 use dacho_log::{log, log_from, fatal};
 
+#[expect(clippy::allow_attributes, reason = "same error logging code for all builds")]
 fn compile_shader(filepath: &Path) -> Result<()> {
     let wgsl_in  = &format!("{}", filepath.display());
     let filename = &wgsl_in[wgsl_in.rfind('/').context("Error parsing shader path")?+1..];
@@ -38,14 +39,14 @@ fn compile_shader(filepath: &Path) -> Result<()> {
     let code     = from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
-    #[expect(clippy::blocks_in_conditions, clippy::used_underscore_binding, reason = "logger cfg")]
+    #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding, reason = "logger cfg")]
     if module.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
         fatal!("Some shaders failed naga parsing");
     }
 
     let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
-    
-    #[expect(clippy::blocks_in_conditions, clippy::used_underscore_binding, reason = "logger cfg")]
+
+    #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding, reason = "logger cfg")]
     if info.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
         fatal!("Some shaders failed naga validation");
     }
