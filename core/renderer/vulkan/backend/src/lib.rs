@@ -137,7 +137,7 @@ impl Renderer {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "stuff around renderer is bulky rn")]
     fn geometry(
         instance:              &Instance,
         physical_device:       &PhysicalDevice,

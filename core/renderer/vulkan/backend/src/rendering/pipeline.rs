@@ -43,14 +43,13 @@ use dacho_log::{log, fatal};
 
 pub struct Pipeline {
     pub raw:        vk::Pipeline,
-    #[allow(dead_code)]
     pub name:       String,
     pub layout:     vk::PipelineLayout,
     pub geometries: HashMap<u32, Geometry>
 }
 
 impl Pipeline {
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines, reason = "vk::Pipeline is complex")]
     pub fn new(
         device:                &Device,
         descriptor_set_layout: &DescriptorSetLayout,
@@ -278,7 +277,7 @@ fn read_spirv(filename: &str) -> Result<Vec<u32>> {
         read(spv).expect("unexpected Shader error")
     };
 
-    #[allow(clippy::cast_ptr_alignment)]
+    #[expect(clippy::cast_ptr_alignment, reason = "byte -> `word`")]
     let words = unsafe { from_raw_parts(bytes.as_ptr().cast::<u32>(), bytes.len() / 4) };
 
     Ok(words.to_vec())

@@ -10,7 +10,7 @@ pub struct Entity {
 }
 
 impl Entity {
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default, reason = "default would just be empty")]
     pub fn new() -> Self {
         Self { components: HashMap::new() }
     }

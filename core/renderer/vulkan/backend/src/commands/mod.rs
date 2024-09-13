@@ -4,7 +4,6 @@
 mod buffers;
 mod pool;
 
-#[allow(clippy::wildcard_imports)]
 pub(super) use {buffers::*, pool::*};
 
 // crates

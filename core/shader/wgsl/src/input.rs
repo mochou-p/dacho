@@ -26,7 +26,7 @@ pub enum Type {
     Mat4x4
 }
 
-#[allow(clippy::exhaustive_structs)]
+#[expect(clippy::exhaustive_structs, reason = "created by struct expression")]
 pub struct ShaderInfo {
     pub name:          String,
     pub cull_mode:     vk::CullModeFlags,
@@ -57,7 +57,6 @@ fn type_to_format(kind: Type) -> vk::Format {
 }
 
 pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
-    #[allow(clippy::cast_sign_loss)]
     let wgsl_type = &field[
         field
             .rfind(' ')

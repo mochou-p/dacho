@@ -5,7 +5,6 @@ mod index;
 mod staging;
 mod vertex;
 
-#[allow(clippy::wildcard_imports)]
 pub(super) use {index::*, staging::*, vertex::*};
 
 // crates
@@ -108,7 +107,6 @@ impl Buffer {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub fn copy_to_image(
         &self,
         device:       &Device,

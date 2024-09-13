@@ -38,7 +38,7 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines, reason = "vk::SwapchainKHR is complex")]
     pub fn new(
         instance:        &Instance,
         device:          &Device,

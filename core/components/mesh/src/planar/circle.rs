@@ -10,7 +10,7 @@ use crate::GeometryData;
 pub fn mesh() -> GeometryData {
     let id     = 1;
 
-    #[allow(clippy::min_ident_chars)]
+    #[expect(clippy::min_ident_chars, reason = "save chars")]
     let p      = V3::ZERO;
     let radius = 0.5;
     let points = 50_u16;

@@ -25,7 +25,6 @@ pub struct DescriptorSet {
 }
 
 impl DescriptorSet {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         device:                &Device,
         descriptor_pool:       &DescriptorPool,

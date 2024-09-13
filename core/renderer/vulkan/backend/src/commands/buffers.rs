@@ -45,7 +45,7 @@ impl CommandBuffers {
         Ok(Self { raw })
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines, reason = "whitespace style")]
     pub fn record(
         &self,
         device:         &Device,

@@ -2,25 +2,18 @@
 
 use std::rc::Rc;
 
-use super::{
-    entity::{Entity, Tuple},
-    query::QueryFn
-};
-
-type System = Box<dyn Fn(&Vec<Rc<Entity>>)>;
+use super::entity::{Entity, Tuple};
 
 pub struct World {
-    entities: Vec<Rc<Entity>>,
-    systems:  Vec<System>,
-    temp:     bool
+    pub entities: Vec<Rc<Entity>>,
+        temp:     bool
 }
 
 impl World {
-    #[allow(clippy::new_without_default)]
+    #[expect(clippy::new_without_default, reason = "default would just be empty")]
     pub fn new() -> Self {
         Self {
             entities: vec![],
-            systems:  vec![],
             temp:     true
         }
     }
@@ -33,21 +26,6 @@ impl World {
         components.insert_into(&mut entity.components);
 
         self.entities.push(Rc::new(entity));
-    }
-
-    pub fn add_system<T>(&mut self, system: impl QueryFn<T> + 'static)
-    {
-        self.systems.push(Box::new(move |entities| {
-            if let Some(queries) = system.get_queries(entities) {
-                system.call(queries);
-            }
-        }));
-    }
-
-    pub fn run(&mut self) {
-        for system in &self.systems {
-            system(&self.entities);
-        }
     }
 
     pub fn get_updated_mesh_instances(&mut self) -> Vec<(u32, Vec<f32>)> {

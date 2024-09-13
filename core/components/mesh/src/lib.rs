@@ -58,7 +58,7 @@ impl GeometryData {
 pub struct Mesh {
     pub children_ids:     Vec<u32>,
     pub parent_id_option: Option<u32>,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "currently there is only the default shader")]
     pub(crate) shader:           String,
     pub        id:               u32, // for instancing
     pub        model_matrix:     Mat4

@@ -53,7 +53,7 @@ macro_rules! fatal {
     };
 }
 
-#[allow(clippy::exhaustive_structs)]
+#[non_exhaustive]
 pub struct Logger;
 
 impl Logger {
@@ -65,7 +65,7 @@ impl Logger {
     pub const RESET:  &'static str = "\x1b[0m";
 
     #[inline]
-    #[allow(clippy::print_stdout)]
+    #[expect(clippy::print_stdout, reason = "only print from logger")]
     fn stdout(source: &str, message: &str, color: &str, is_everything_colored: bool) {
         if is_everything_colored {
             println!("{color}[{source}] {message}{}", Self::RESET);
@@ -75,7 +75,7 @@ impl Logger {
     }
 
     #[inline]
-    #[allow(clippy::print_stderr)]
+    #[expect(clippy::print_stderr, reason = "only eprint from logger")]
     fn stderr(source: &str, message: &str, color: &str) {
         eprintln!("{color}[{source}]{} {message}", Self::RESET);
     }

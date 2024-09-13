@@ -88,10 +88,7 @@ impl UniformBufferObject {
         let src  = from_mut::<Self>(&mut ubo).cast::<c_void>();
         let size = size_of::<Self>();
 
-        unsafe {
-            #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
-            copy_nonoverlapping(src, unsafe { ubo_mapped }, size);
-        }
+        unsafe { copy_nonoverlapping(src, ubo_mapped, size); }
     }
 }
 

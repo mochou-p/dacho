@@ -59,8 +59,7 @@ impl StagingBuffer {
         }?;
 
         unsafe {
-            #[allow(unused_unsafe)] // extra unsafe to compile trough a clippy false positive
-            copy_nonoverlapping(unsafe { data }, memory, usize::try_from(buffer_size)?);
+            copy_nonoverlapping(data, memory, usize::try_from(buffer_size)?);
             device.raw.unmap_memory(staging_buffer.memory);
         }
 

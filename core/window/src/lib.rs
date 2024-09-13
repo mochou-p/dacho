@@ -20,7 +20,7 @@ pub struct Window {
 }
 
 impl Window {
-    #[allow(clippy::missing_errors_doc)]
+    #[expect(clippy::missing_errors_doc, reason = "no docs")]
     pub fn new(
         title:      &str,
         width:       u16,

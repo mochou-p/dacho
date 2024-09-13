@@ -1,7 +1,7 @@
 // dacho/core/ecs/src/query.rs
 
-use core::any::TypeId;
-use std::{marker::PhantomData, rc::{Rc, Weak}};
+use core::{any::TypeId, marker::PhantomData};
+use std::rc::{Rc, Weak};
 
 use super::entity::{Entity, EntityComponents};
 
@@ -14,19 +14,23 @@ impl<T> Query<T>
 where
     T: QueryT
 {
-    pub(crate) fn new() -> Self {
+    #[expect(clippy::new_without_default, reason = "Query is explicit")]
+    pub fn new() -> Self {
         Self { entities: vec![], pd: PhantomData }
     }
 
-    pub(crate) fn add(&mut self, entity: Weak<Entity>) {
+    pub fn add(&mut self, entity: Weak<Entity>) {
         self.entities.push(entity);
     }
 
-    pub fn single(self) -> Option<Rc<Entity>> {
+    pub fn one(self) {
+    }
+
+    pub fn entity(self) -> Option<Rc<Entity>> {
         self.entities[0].upgrade()
     }
 
-    pub fn all(self) -> Option<Vec<Rc<Entity>>> {
+    pub fn entities(self) -> Option<Vec<Rc<Entity>>> {
         let mut entities = Vec::with_capacity(self.entities.len());
 
         for weak_entity in self.entities {
@@ -46,11 +50,11 @@ pub trait QueryT {
 }
 
 pub trait QueryTuple: Sized {
-    fn get_queries(entities: &Vec<Rc<Entity>>) -> Option<Self>;
+    fn get_queries(entities: &[Rc<Entity>]) -> Option<Self>;
 }
 
 pub trait QueryFn<T> {
-    fn get_queries(&self, entities: &Vec<Rc<Entity>>) -> Option<T>;
+    fn get_queries(&self, entities: &[Rc<Entity>]) -> Option<T>;
     fn call(&self, queries: T);
 }
 
@@ -59,7 +63,7 @@ where
     T: QueryTuple,
     F: Fn(T)
 {
-    fn get_queries(&self, entities: &Vec<Rc<Entity>>) -> Option<T> {
+    fn get_queries(&self, entities: &[Rc<Entity>]) -> Option<T> {
         T::get_queries(entities)
     }
 
@@ -84,7 +88,7 @@ macro_rules! impl_query_tuple {
         where
             $($t: QueryT,)+
         {
-            fn get_queries(entities: &Vec<Rc<Entity>>) -> Option<Self> {
+            fn get_queries(entities: &[Rc<Entity>]) -> Option<Self> {
                 Some(($({
                     let mut query = Query::<$t>::new();
 

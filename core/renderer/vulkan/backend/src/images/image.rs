@@ -22,7 +22,7 @@ pub struct Image {
 }
 
 impl Image {
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments, reason = "vk::Image is complex")]
     pub fn new(
         device:          &Device,
         instance:        &Instance,
@@ -89,7 +89,6 @@ impl Image {
         Ok(Self { raw, memory })
     }
 
-    #[allow(dead_code)]
     pub fn transition_layout(
         &self,
         device:       &Device,

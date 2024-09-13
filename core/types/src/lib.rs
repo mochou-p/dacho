@@ -6,8 +6,8 @@ use core::ops::{Add, Mul, Neg, Sub};
 // crates
 use glam::f32::{Vec2, Vec3};
 
-#[allow(clippy::exhaustive_structs)]
 #[derive(Copy, Clone, PartialEq)]
+#[non_exhaustive]
 pub struct V2 {
     pub x: f32,
     pub y: f32
@@ -80,7 +80,7 @@ impl Mul<f32> for V2 {
     }
 }
 
-#[allow(clippy::exhaustive_structs)]
+#[non_exhaustive]
 #[derive(Copy, Clone, PartialEq)]
 pub struct V3 {
     pub x: f32,

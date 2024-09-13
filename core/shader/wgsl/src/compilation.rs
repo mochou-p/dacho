@@ -38,14 +38,14 @@ fn compile_shader(filepath: &Path) -> Result<()> {
     let code     = from_utf8(bytes_in)?;
     let module   = Frontend::new().parse(code);
 
-    #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding)]
+    #[expect(clippy::blocks_in_conditions, clippy::used_underscore_binding, reason = "logger cfg")]
     if module.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
         fatal!("Some shaders failed naga parsing");
     }
 
     let info = Validator::new(ValidationFlags::all(), Capabilities::all()).validate(&module.clone()?);
     
-    #[allow(clippy::blocks_in_conditions, clippy::used_underscore_binding)]
+    #[expect(clippy::blocks_in_conditions, clippy::used_underscore_binding, reason = "logger cfg")]
     if info.clone().map_err(|_error| { log_from!(error, "naga", "`{wgsl_in}`: {_error}"); }).is_err() {
         fatal!("Some shaders failed naga validation");
     }
