@@ -10,10 +10,11 @@ authors      = ["mochou-p"]
 license      = "MIT OR Apache-2.0"
 
 [dependencies]
-dacho-ecs      = { path = "../ecs"      }
-dacho-log      = { path = "../log"      }
-dacho-renderer = { path = "../renderer" }
-dacho-window   = { path = "../window"   }
+dacho-components = { path = "../components" }
+dacho-ecs        = { path = "../ecs"        }
+dacho-log        = { path = "../log"        }
+dacho-renderer   = { path = "../renderer"   }
+dacho-window     = { path = "../window"     }
 
 tokio = { version = "1.38.1", default-features = false, features = ["rt", "rt-multi-thread", "macros"] }
 winit = { version = "0.30.4",                           features = ["rwh_05"]                          }

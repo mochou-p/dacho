@@ -4,18 +4,15 @@ use std::rc::Rc;
 
 use super::entity::{Entity, Tuple};
 
+#[non_exhaustive]
 pub struct World {
-    pub entities: Vec<Rc<Entity>>,
-        temp:     bool
+    pub entities: Vec<Rc<Entity>>
 }
 
 impl World {
     #[expect(clippy::new_without_default, reason = "default would just be empty")]
     pub fn new() -> Self {
-        Self {
-            entities: vec![],
-            temp:     true
-        }
+        Self { entities: vec![] }
     }
 
     pub fn spawn<T>(&mut self, components: T)
@@ -26,24 +23,6 @@ impl World {
         components.insert_into(&mut entity.components);
 
         self.entities.push(Rc::new(entity));
-    }
-
-    pub fn get_updated_mesh_instances(&mut self) -> Vec<(u32, Vec<f32>)> {
-        if self.temp {
-            self.temp = false;
-
-            return vec![
-                (
-                    0,
-                    dacho_mesh::Mesh::quad(
-                        dacho_types::V3::ZERO,
-                        dacho_types::V2::ONE
-                    ).model_matrix.to_cols_array().to_vec()
-                )
-            ];
-        }
-
-        vec![]
     }
 }
 

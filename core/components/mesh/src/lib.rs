@@ -45,7 +45,7 @@ impl GeometryData {
         Self {
             shader,
             id,
-            cull_mode:    cull_mode.as_raw(),
+            cull_mode:       cull_mode.as_raw(),
             polygon_mode: polygon_mode.as_raw(),
             vertices,
             instances,
@@ -59,9 +59,9 @@ pub struct Mesh {
     pub children_ids:     Vec<u32>,
     pub parent_id_option: Option<u32>,
     #[expect(dead_code, reason = "currently there is only the default shader")]
-    pub(crate) shader:           String,
-    pub        id:               u32, // for instancing
-    pub        model_matrix:     Mat4
+        shader:           String,
+    pub id:               u32, // for instancing
+    pub model_matrix:     Mat4
 }
 
 impl Mesh {

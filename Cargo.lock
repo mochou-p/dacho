@@ -392,6 +392,7 @@ dependencies = [
 name = "dacho-app"
 version = "0.0.0"
 dependencies = [
+ "dacho-components",
  "dacho-ecs",
  "dacho-log",
  "dacho-renderer",

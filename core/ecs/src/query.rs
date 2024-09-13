@@ -89,19 +89,19 @@ where
     T: QueryTuple
 {
     fn get_queries(&self, entities: &[Rc<Entity>]) -> Option<T>;
-    fn call(&self, queries: T);
+    fn run(&mut self, queries: T);
 }
 
 impl<T, F> QueryFn<T> for F
 where
     T: QueryTuple,
-    F: Fn(T)
+    F: FnMut(T) // FnMut instead of Fn for now, until new built-ins in dacho-app
 {
     fn get_queries(&self, entities: &[Rc<Entity>]) -> Option<T> {
         T::get_queries(entities)
     }
 
-    fn call(&self, queries: T) {
+    fn run(&mut self, queries: T) {
         self(queries);
     }
 }

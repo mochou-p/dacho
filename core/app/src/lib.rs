@@ -4,7 +4,7 @@
 mod timer;
 
 use core::{cell::RefCell, mem::take};
-use std::rc::{Rc, Weak};
+use std::{collections::HashMap, rc::{Rc, Weak}};
 
 // crates
 use winit::{
@@ -18,7 +18,8 @@ use winit::{
 use timer::Timer;
 
 // super
-use dacho_ecs::{entity::Entity, world::World, query::{QueryFn, QueryTuple}};
+use dacho_components::Mesh;
+use dacho_ecs::{entity::Entity, world::World, query::{Query, QueryFn, QueryTuple}};
 use dacho_renderer::Renderer;
 use dacho_log::{log, fatal, create_log};
 use dacho_window::Window;
@@ -30,7 +31,7 @@ pub use winit::{
     keyboard::KeyCode as Key
 };
 
-type System = Box<dyn Fn(&Vec<Rc<Entity>>)>;
+type System = Box<dyn FnMut(&Vec<Rc<Entity>>)>;
 
 #[non_exhaustive]
 pub struct WorldComponent {
@@ -64,6 +65,8 @@ impl App {
         let world = Rc::new(RefCell::new(World::new()));
         world.borrow_mut().spawn((WorldComponent { world: Rc::downgrade(&world) },));
 
+        let systems = vec![];
+
         let timer = Timer::new(
             #[cfg(debug_assertions)]
             50
@@ -72,20 +75,20 @@ impl App {
         Self {
             title:    String::from(title),
             world,
-            systems:  vec![],
+            systems,
             timer,
             window:   None,
             renderer: None
         }
     }
 
-    pub fn add_system<T>(&mut self, system: impl QueryFn<T> + 'static)
+    pub fn add_system<T>(&mut self, mut system: impl QueryFn<T> + 'static)
     where
         T: QueryTuple
     {
         self.systems.push(Box::new(move |entities| {
             if let Some(queries) = system.get_queries(entities) {
-                system.call(queries);
+                system.run(queries);
             }
         }));
     }
@@ -95,12 +98,10 @@ impl App {
     pub async fn run(mut self) {
         log!(info, "Running App");
 
-        for system in &self.systems {
-            // TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP
+        for system in &mut self.systems {
             let taken = take(&mut self.world.borrow_mut().entities);
             system(&taken);
             self.world.borrow_mut().entities.extend(taken);
-            // TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP TEMP
         }
 
         let event_loop = EventLoop::new()
@@ -133,11 +134,38 @@ impl ApplicationHandler for App {
         );
 
         if let Some(window) = &self.window {
+            let mut meshes = vec![];
+
+            let mut get_meshes = |(query,): (Query<(Mesh,)>,)| {
+                let all_components = query.all();
+
+                let mut map = HashMap::new();
+
+                for components in &all_components {
+                    let mesh = components.0.borrow();
+
+                    map
+                        .entry(mesh.id)
+                        .or_insert(Vec::with_capacity(1))
+                        .extend(mesh.model_matrix.to_cols_array());
+                }
+
+                meshes = map.into_iter().collect();
+            };
+
+            let mut meshess = |entities| {
+                if let Some(queries) = get_meshes.get_queries(entities) {
+                    get_meshes.run(queries);
+                }
+            };
+
+            meshess(&self.world.borrow().entities);
+
             self.renderer = Some(
                 Renderer::new(
                     event_loop,
                     window,
-                    self.world.borrow_mut().get_updated_mesh_instances()
+                    meshes
                 ).expect("failed to create a Renderer")
             );
         }
@@ -147,9 +175,6 @@ impl ApplicationHandler for App {
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         if let Some(renderer) = &mut self.renderer {
-            //renderer.update_meshes(self.world.get_updated_mesh_instances())
-                //.expect("failed to update meshes in the renderer");
-
             renderer.wait_for_device();
         }
 
@@ -158,7 +183,7 @@ impl ApplicationHandler for App {
         }
     }
 
-    #[expect(clippy::only_used_in_recursion,  reason = "WindowId")]
+    #[expect(clippy::only_used_in_recursion,  reason = "WindowId, to trigger CloseRequested on [Escape]")]
     #[expect(clippy::renamed_function_params, reason = "winit reuses `event`")]
     fn window_event(
         &mut self,
@@ -172,7 +197,7 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             },
             WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
-                if is_synthetic || event.repeat {
+                if event.repeat || is_synthetic {
                     return;
                 }
 
