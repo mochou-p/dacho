@@ -1,9 +1,9 @@
 // dacho/core/app/src/lib.rs
 
+extern crate alloc;
+
 // modules
 mod timer;
-
-extern crate alloc;
 
 use alloc::rc::{Rc, Weak};
 use core::{cell::{RefCell, RefMut}, mem::take};
@@ -34,7 +34,18 @@ pub use winit::{
     keyboard::KeyCode as Key
 };
 
+#[non_exhaustive]
+pub enum Schedule {
+    Start,
+    Update
+}
+
 type System = Box<dyn FnMut(&[Rc<Entity>])>;
+
+struct Systems {
+    start:  Vec<System>,
+    update: Vec<System>
+}
 
 #[non_exhaustive]
 pub struct WorldComponent {
@@ -54,7 +65,7 @@ impl WorldComponent {
 pub struct App {
     title:    String,
     world:    Rc<RefCell<World>>,
-    systems:  Vec<System>,
+    systems:  Systems,
     timer:    Timer,
     window:   Option<Window>,
     renderer: Option<Renderer>
@@ -68,7 +79,7 @@ impl App {
         let world = Rc::new(RefCell::new(World::new()));
         world.borrow_mut().spawn((WorldComponent { world: Rc::downgrade(&world) },));
 
-        let systems = vec![];
+        let systems = Systems { start: vec![], update: vec![] };
 
         let timer = Timer::new(
             #[cfg(debug_assertions)]
@@ -85,15 +96,37 @@ impl App {
         }
     }
 
-    pub fn add_system<T>(&mut self, mut system: impl QueryFn<T> + 'static)
+    fn get_schedule_systems(&mut self, schedule: Schedule) -> &mut Vec<System> {
+        match schedule {
+            Schedule::Start  => &mut self.systems.start,
+            Schedule::Update => &mut self.systems.update
+        }
+    }
+
+    pub fn add_system<T>(&mut self, schedule: Schedule, mut system: impl QueryFn<T> + 'static)
     where
         T: QueryTuple
     {
-        self.systems.push(Box::new(move |entities| {
-            if let Some(queries) = system.get_queries(entities) {
-                system.run(queries);
-            }
-        }));
+        self.get_schedule_systems(schedule).push(
+            Box::new(
+                move |entities| {
+                    if let Some(queries) = system.get_queries(entities) {
+                        system.run(queries);
+                    }
+                }
+            )
+        );
+    }
+
+    fn run_system_schedule(&mut self, schedule: Schedule) {
+        for system in match schedule {
+            Schedule::Start  => &mut self.systems.start,
+            Schedule::Update => &mut self.systems.update
+        } {
+            let taken = take(&mut self.world.borrow_mut().entities);
+            system(&taken);
+            self.world.borrow_mut().entities.extend(taken);
+        }
     }
 
     #[tokio::main]
@@ -101,11 +134,7 @@ impl App {
     pub async fn run(mut self) {
         log!(info, "Running App");
 
-        for system in &mut self.systems {
-            let taken = take(&mut self.world.borrow_mut().entities);
-            system(&taken);
-            self.world.borrow_mut().entities.extend(taken);
-        }
+        self.run_system_schedule(Schedule::Start);
 
         let event_loop = EventLoop::new()
             .expect("failed to create an EventLoop");
@@ -177,6 +206,8 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        self.run_system_schedule(Schedule::Update);
+
         if let Some(renderer) = &mut self.renderer {
             renderer.wait_for_device();
         }
