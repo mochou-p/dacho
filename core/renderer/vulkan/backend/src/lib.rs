@@ -1,5 +1,7 @@
 // dacho/core/renderer/vulkan/backend/src/lib.rs
 
+extern crate alloc;
+
 // modules
     mod buffers;
     mod commands;

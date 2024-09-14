@@ -1,7 +1,8 @@
 // dacho/core/ecs/src/entity.rs
 
+use alloc::rc::Rc;
 use core::{any::{Any, TypeId}, cell::RefCell};
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
 
 pub type EntityComponents = HashMap<TypeId, Vec<Box<dyn Any>>>;
 

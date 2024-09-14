@@ -1,6 +1,6 @@
 // dacho/core/ecs/src/world.rs
 
-use std::rc::Rc;
+use alloc::rc::Rc;
 
 use super::entity::{Entity, Tuple};
 

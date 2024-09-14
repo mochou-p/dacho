@@ -17,11 +17,11 @@ use crate::{create_log, destroy_log};
 // vvl
 #[cfg(feature = "validation")]
 use {
+    alloc::ffi::CString,
     core::{
         ffi::c_void,
         ptr::from_ref
     },
-    std::ffi::CString,
     dacho_vulkan_validation::messenger_create_info,
     crate::log
 };

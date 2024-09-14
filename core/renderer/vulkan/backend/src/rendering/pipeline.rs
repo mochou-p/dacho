@@ -1,5 +1,7 @@
 // dacho/core/renderer/vulkan/backend/src/rendering/pipeline.rs
 
+use alloc::ffi::CString;
+
 // core
 use core::{
     slice::from_raw_parts,
@@ -9,7 +11,6 @@ use core::{
 // std
 use std::{
     collections::HashMap,
-    ffi::CString,
     fs::read,
     path::Path
 };

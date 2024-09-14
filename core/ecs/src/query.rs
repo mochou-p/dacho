@@ -1,7 +1,7 @@
 // dacho/core/ecs/src/query.rs
 
+use alloc::rc::{Rc, Weak};
 use core::{any::TypeId, cell::RefCell, marker::PhantomData};
-use std::rc::{Rc, Weak};
 
 use super::entity::{Entity, EntityComponents};
 

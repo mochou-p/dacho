@@ -3,8 +3,11 @@
 // modules
 mod timer;
 
-use core::{cell::RefCell, mem::take};
-use std::{collections::HashMap, rc::{Rc, Weak}};
+extern crate alloc;
+
+use alloc::rc::{Rc, Weak};
+use core::{cell::{RefCell, RefMut}, mem::take};
+use std::collections::HashMap;
 
 // crates
 use winit::{
@@ -31,7 +34,7 @@ pub use winit::{
     keyboard::KeyCode as Key
 };
 
-type System = Box<dyn FnMut(&Vec<Rc<Entity>>)>;
+type System = Box<dyn FnMut(&[Rc<Entity>])>;
 
 #[non_exhaustive]
 pub struct WorldComponent {
@@ -39,12 +42,12 @@ pub struct WorldComponent {
 }
 
 impl WorldComponent {
-    pub fn get(&self) -> Rc<RefCell<World>> {
+    pub fn get(&self, closure: impl FnOnce(RefMut<World>)) {
         if let Some(strong) = self.world.upgrade() {
-            return strong;
+            return closure(strong.borrow_mut());
         }
 
-        fatal!("could not get World");
+        fatal!("Weak<World> error");
     }
 }
 
