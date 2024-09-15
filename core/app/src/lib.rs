@@ -103,7 +103,7 @@ impl App {
         }
     }
 
-    pub fn add_system<T>(&mut self, schedule: Schedule, mut system: impl QueryFn<T> + 'static)
+    pub fn add_system<T>(mut self, schedule: Schedule, mut system: impl QueryFn<T> + 'static) -> Self
     where
         T: QueryTuple
     {
@@ -116,6 +116,8 @@ impl App {
                 }
             )
         );
+
+        self
     }
 
     fn run_system_schedule(&mut self, schedule: Schedule) {
