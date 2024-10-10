@@ -31,7 +31,8 @@ members = [
     "core/shader",
     "core/shader/wgsl",
     "core/types",
-    "core/window"
+    "core/window",
+    "proc-macro"
 ]
 
 [features]
@@ -48,6 +49,7 @@ dacho-ecs        = { path = "core/ecs"        }
 dacho-renderer   = { path = "core/renderer"   }
 dacho-shader     = { path = "core/shader"     }
 dacho-types      = { path = "core/types"      }
+dacho-proc-macro = { path = "proc-macro"      }
 
 [profile.release]
 strip         = "symbols"

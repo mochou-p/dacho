@@ -1,0 +1,18 @@
+# dacho/proc-macro/Cargo.toml
+
+[package]
+name         = "dacho-proc-macro"
+
+edition      = "2021"
+rust-version = "1.81.0"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn   = { version = "2.0.79", features = [ "full" ] }
+quote = "1.0.37"
+

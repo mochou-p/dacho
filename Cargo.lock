@@ -383,6 +383,7 @@ dependencies = [
  "dacho-app",
  "dacho-components",
  "dacho-ecs",
+ "dacho-proc-macro",
  "dacho-renderer",
  "dacho-shader",
  "dacho-types",
@@ -438,6 +439,14 @@ dependencies = [
  "ash",
  "dacho-types",
  "glam",
+]
+
+[[package]]
+name = "dacho-proc-macro"
+version = "0.0.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
@@ -1455,9 +1464,9 @@ checksum = "6637bab7722d379c8b41ba849228d680cc12d0a45ba1fa2b48f2a30577a06731"
 
 [[package]]
 name = "syn"
-version = "2.0.76"
+version = "2.0.79"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578e081a14e0cefc3279b0472138c513f37b41a08d5a3cca9b6e4e8ceb6cd525"
+checksum = "89132cd0bf050864e1d38dc3bbc07a0eb8e7530af26344d3d2bbbef83499f590"
 dependencies = [
  "proc-macro2",
  "quote",
