@@ -1,6 +1,5 @@
 // dacho/core/renderer/vulkan/backend/src/setup/instance.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk,
@@ -8,13 +7,9 @@ use {
     winit::event_loop::ActiveEventLoop
 };
 
-// super
 use super::Entry;
-
-// crate
 use crate::{create_log, destroy_log};
 
-// vvl
 #[cfg(feature = "validation")]
 use {
     alloc::ffi::CString,
@@ -25,6 +20,7 @@ use {
     dacho_vulkan_validation::messenger_create_info,
     crate::log
 };
+
 
 #[cfg(feature = "validation")]
 const VALIDATION_LAYERS: [&str; 1] = ["VK_LAYER_KHRONOS_validation"];

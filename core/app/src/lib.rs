@@ -2,64 +2,48 @@
 
 extern crate alloc;
 
-// modules
 mod timer;
 
-use alloc::rc::{Rc, Weak};
-use core::{cell::{RefCell, RefMut}, mem::take};
+use alloc::rc::Rc;
+use core::{cell::RefCell, mem::take};
 use std::collections::HashMap;
 
-// crates
 use winit::{
     application::ApplicationHandler,
+    event::{MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, ControlFlow::Poll},
-    keyboard::{KeyCode::Escape, PhysicalKey::Code},
+    keyboard::{KeyCode, PhysicalKey},
     window::WindowId
 };
 
-// mod
 use timer::Timer;
 
-// super
-use dacho_components::Mesh;
+use dacho_components::*;
 use dacho_ecs::{entity::Entity, world::World, query::{Query, QueryFn, QueryTuple}};
 use dacho_renderer::Renderer;
-use dacho_log::{log, fatal, create_log};
+use dacho_log::{log, create_log};
 use dacho_window::Window;
 
-// pub use
-pub use winit::{
-    dpi::PhysicalPosition,
-    event::{MouseButton, MouseScrollDelta, WindowEvent},
-    keyboard::KeyCode as Key
-};
 
 #[non_exhaustive]
 pub enum Schedule {
     Start,
-    Update
+    Update,
+    Keyboard,
+    MouseMovement,
+    MouseButton,
+    MouseWheel
 }
 
 type System = Box<dyn FnMut(&[Rc<Entity>])>;
 
 struct Systems {
-    start:  Vec<System>,
-    update: Vec<System>
-}
-
-#[non_exhaustive]
-pub struct WorldComponent {
-    world: Weak<RefCell<World>>
-}
-
-impl WorldComponent {
-    pub fn get(&self, closure: impl FnOnce(RefMut<World>)) {
-        if let Some(strong) = self.world.upgrade() {
-            return closure(strong.borrow_mut());
-        }
-
-        fatal!("Weak<World> error");
-    }
+    start:          Vec<System>,
+    update:         Vec<System>,
+    keyboard:       Vec<System>,
+    mouse_movement: Vec<System>,
+    mouse_button:   Vec<System>,
+    mouse_wheel:    Vec<System>
 }
 
 pub struct App {
@@ -79,12 +63,16 @@ impl App {
         let world = Rc::new(RefCell::new(World::new()));
         world.borrow_mut().spawn((WorldComponent { world: Rc::downgrade(&world) },));
 
-        let systems = Systems { start: vec![], update: vec![] };
+        let systems = Systems {
+            start:          vec![],
+            update:         vec![],
+            keyboard:       vec![],
+            mouse_movement: vec![],
+            mouse_button:   vec![],
+            mouse_wheel:    vec![]
+        };
 
-        let timer = Timer::new(
-            #[cfg(debug_assertions)]
-            50
-        );
+        let timer = Timer::new();
 
         Self {
             title:    String::from(title),
@@ -97,9 +85,15 @@ impl App {
     }
 
     fn get_schedule_systems(&mut self, schedule: Schedule) -> &mut Vec<System> {
+        use Schedule::*;
+
         match schedule {
-            Schedule::Start  => &mut self.systems.start,
-            Schedule::Update => &mut self.systems.update
+            Start         => &mut self.systems.start,
+            Update        => &mut self.systems.update,
+            Keyboard      => &mut self.systems.keyboard,
+            MouseMovement => &mut self.systems.mouse_movement,
+            MouseButton   => &mut self.systems.mouse_button,
+            MouseWheel    => &mut self.systems.mouse_wheel
         }
     }
 
@@ -121,9 +115,15 @@ impl App {
     }
 
     fn run_system_schedule(&mut self, schedule: Schedule) {
+        use Schedule::*;
+
         for system in match schedule {
-            Schedule::Start  => &mut self.systems.start,
-            Schedule::Update => &mut self.systems.update
+            Start         => &mut self.systems.start,
+            Update        => &mut self.systems.update,
+            Keyboard      => &mut self.systems.keyboard,
+            MouseMovement => &mut self.systems.mouse_movement,
+            MouseButton   => &mut self.systems.mouse_button,
+            MouseWheel    => &mut self.systems.mouse_wheel
         } {
             let taken = take(&mut self.world.borrow_mut().entities);
             system(&taken);
@@ -170,7 +170,7 @@ impl ApplicationHandler for App {
         if let Some(window) = &self.window {
             let mut meshes = vec![];
 
-            let mut get_meshes = |(query,): (Query<(Mesh,)>,)| {
+            let mut get_meshes = |(query,): (Query<(MeshComponent,)>,)| {
                 let all_components = query.all();
 
                 let mut map = HashMap::new();
@@ -208,7 +208,13 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        self.world.borrow_mut().spawn((self.timer.get_component(),));
         self.run_system_schedule(Schedule::Update);
+
+        let mut w = self.world.borrow_mut();
+        if let Some(i) = w.entities.iter().position(|entity| entity.get_component::<TimeComponent>().is_some()) {
+            w.entities.remove(i);
+        }
 
         if let Some(renderer) = &mut self.renderer {
             renderer.wait_for_device();
@@ -237,21 +243,59 @@ impl ApplicationHandler for App {
                     return;
                 }
 
-                if event.physical_key == Code(Escape) {
-                    self.window_event(
-                        event_loop,
-                        window_id,
-                        WindowEvent::CloseRequested
-                    );
+                if let PhysicalKey::Code(code) = event.physical_key {
+                    if code == KeyCode::Escape {
+                        return self.window_event(
+                            event_loop,
+                            window_id,
+                            WindowEvent::CloseRequested
+                        );
+                    }
+
+                    self.world.borrow_mut().spawn((KeyComponent { code, down: event.state.is_pressed() },));
+                    self.run_system_schedule(Schedule::Keyboard);
+
+                    let mut w = self.world.borrow_mut();
+                    if let Some(i) = w.entities.iter().position(|entity| entity.get_component::<KeyComponent>().is_some()) {
+                        w.entities.remove(i);
+                    }
+                }
+            },
+            WindowEvent::CursorMoved { position, .. } => {
+                self.world.borrow_mut().spawn((MousePositionComponent { x: position.x, y: position.y },));
+                self.run_system_schedule(Schedule::MouseMovement);
+
+                let mut w = self.world.borrow_mut();
+                if let Some(i) = w.entities.iter().position(|entity| entity.get_component::<MousePositionComponent>().is_some()) {
+                    w.entities.remove(i);
+                }
+            },
+            WindowEvent::MouseInput { button, state, .. } => {
+                if let MouseButton::Other(_) = button {
+                    return;
+                }
+
+                self.world.borrow_mut().spawn((MouseButtonComponent { button, down: state.is_pressed() },));
+                self.run_system_schedule(Schedule::MouseButton);
+
+                let mut w = self.world.borrow_mut();
+                if let Some(i) = w.entities.iter().position(|entity| entity.get_component::<MouseButtonComponent>().is_some()) {
+                    w.entities.remove(i);
+                }
+            },
+            WindowEvent::MouseWheel { delta: MouseScrollDelta::LineDelta(x, y), .. } => {
+                self.world.borrow_mut().spawn((MouseWheelComponent { x, y },));
+                self.run_system_schedule(Schedule::MouseWheel);
+
+                let mut w = self.world.borrow_mut();
+                if let Some(i) = w.entities.iter().position(|entity| entity.get_component::<MouseWheelComponent>().is_some()) {
+                    w.entities.remove(i);
                 }
             },
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.redraw(self.timer.elapsed());
                 };
-
-                #[cfg(debug_assertions)]
-                self.timer.fps();
             },
             _ => ()
         }

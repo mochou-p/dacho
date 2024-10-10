@@ -1,11 +1,11 @@
 // dacho/core/components/mesh/src/planar/quad.rs
 
-// crates
 use ash::vk;
 
-// crate
-use dacho_types::{V2, V3};
 use crate::GeometryData;
+
+use dacho_types::{V2, V3};
+
 
 pub fn mesh() -> GeometryData {
     let id = 0;

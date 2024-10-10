@@ -1,7 +1,7 @@
 # dacho/core/components/mesh/Cargo.toml
 
 [package]
-name         = "dacho-mesh"
+name         = "dacho-mesh-c"
 
 edition      = "2021"
 rust-version = "1.81.0"

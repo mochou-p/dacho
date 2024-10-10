@@ -1,34 +1,19 @@
 // dacho/core/renderer/vulkan/backend/src/rendering/pipeline.rs
 
 use alloc::ffi::CString;
+use core::{slice::from_raw_parts, str::from_utf8};
+use std::{collections::HashMap, fs::read, path::Path};
 
-// core
-use core::{
-    slice::from_raw_parts,
-    str::from_utf8
-};
-
-// std
-use std::{
-    collections::HashMap,
-    fs::read,
-    path::Path
-};
-
-// crates
 use {
     anyhow::Result,
     ash::vk,
     futures::executor::block_on
 };
 
-// super
 use super::{
     geometry::Geometry,
     render_pass::RenderPass
 };
-
-// crate
 use crate::{
     commands::Command,
     descriptors::DescriptorSetLayout,
@@ -41,6 +26,7 @@ use dacho_shader::{
     compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
 };
 use dacho_log::{log, fatal};
+
 
 pub struct Pipeline {
     pub raw:        vk::Pipeline,

@@ -1,20 +1,15 @@
 // dacho/core/window/src/lib.rs
 
-// crates
 use {
     anyhow::Result,
-    winit::{
-        dpi::PhysicalSize,
-        event_loop::ActiveEventLoop,
-        window::Window as winit_Window
-    }
+    winit::{dpi::PhysicalSize, event_loop::ActiveEventLoop, window::Window as Raw}
 };
 
-// crate
 use dacho_log::create_log;
 
+
 pub struct Window {
-        raw:    winit_Window,
+        raw:    Raw,
     pub width:  u16,
     pub height: u16
 }
@@ -29,7 +24,7 @@ impl Window {
     ) -> Result<Self> {
         create_log!(debug);
 
-        let window_attributes = winit_Window::default_attributes()
+        let window_attributes = Raw::default_attributes()
             .with_title(title)
             .with_inner_size(PhysicalSize::new(width, height));
 
@@ -39,7 +34,7 @@ impl Window {
     }
 
     #[must_use]
-    pub const fn raw(&self) -> &winit_Window {
+    pub const fn raw(&self) -> &Raw {
         &self.raw
     }
 

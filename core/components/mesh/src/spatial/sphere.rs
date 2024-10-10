@@ -1,15 +1,12 @@
 // dacho/core/components/mesh/src/spatial/sphere.rs
 
-// core
 use core::f32::consts::{FRAC_PI_2, PI};
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// crate
 use crate::{
     game::logger::Logger,
     ecs::component::Component,
@@ -17,6 +14,7 @@ use crate::{
     renderer::rendering::GeometryData,
     log
 };
+
 
 pub fn mesh(position: V3, radius: f32, sectors: usize, stacks: usize) -> Result<GeometryData> {
     // * 3 -> xyz

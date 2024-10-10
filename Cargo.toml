@@ -19,7 +19,10 @@ categories   = ["game-development", "game-engines", "graphics", "rendering", "re
 members = [
     "core/app",
     "core/components",
+    "core/components/input",
     "core/components/mesh",
+    "core/components/time",
+    "core/components/world",
     "core/ecs",
     "core/log",
     "core/renderer",

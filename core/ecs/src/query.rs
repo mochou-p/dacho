@@ -7,6 +7,7 @@ use super::entity::{Entity, EntityComponents};
 
 use dacho_log::fatal;
 
+
 pub struct Query<T>
 where
     T: QueryT

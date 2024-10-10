@@ -1,24 +1,20 @@
 // dacho/core/renderer/vulkan/backend/src/descriptors/set.rs
 
-// core
 use core::mem::size_of;
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// super
 use super::{DescriptorPool, DescriptorSetLayout, UniformBufferObject};
-
-// crate
 use crate::{
     buffers::Buffer,
     devices::Device
 };
 
 use dacho_log::create_log;
+
 
 pub struct DescriptorSet {
     pub raw: vk::DescriptorSet

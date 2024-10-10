@@ -1,20 +1,13 @@
 // dacho/core/renderer/vulkan/backend/src/descriptors/uniform.rs
 
-// core
-use core::{
-    ffi::c_void,
-    mem::size_of,
-    ptr::{copy_nonoverlapping, from_mut}
-};
+use core::{ffi::c_void, mem::size_of, ptr::{copy_nonoverlapping, from_mut}};
 
-// crates
 use {
     anyhow::Result,
     ash::vk,
     glam::f32::{Mat4, Vec3, Vec4}
 };
 
-// crate
 use crate::{
     buffers::Buffer,
     devices::{Device, PhysicalDevice},
@@ -22,6 +15,7 @@ use crate::{
 };
 
 use dacho_log::create_log;
+
 
 pub struct UniformBufferObject {
     _view:       Mat4,

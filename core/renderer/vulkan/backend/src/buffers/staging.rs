@@ -1,27 +1,20 @@
 // dacho/core/renderer/vulkan/backend/src/buffers/staging.rs
 
-// core
-use core::{
-    ffi::c_void,
-    ptr::copy_nonoverlapping
-};
+use core::{ffi::c_void, ptr::copy_nonoverlapping};
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// super
 use super::Buffer;
-
-// crate
 use crate::{
     commands::CommandPool,
     devices::{Device, PhysicalDevice},
     setup::Instance,
     VulkanDrop
 };
+
 
 pub struct StagingBuffer;
 

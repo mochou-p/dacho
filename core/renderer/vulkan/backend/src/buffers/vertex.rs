@@ -1,26 +1,19 @@
 // dacho/core/renderer/vulkan/backend/src/buffers/vertex.rs
 
-// core
-use core::{
-    ffi::c_void,
-    mem::size_of_val
-};
+use core::{ffi::c_void, mem::size_of_val};
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// super
 use super::{Buffer, StagingBuffer};
-
-// crate
 use crate::{
     commands::CommandPool,
     devices::{Device, PhysicalDevice},
     setup::Instance
 };
+
 
 pub struct VertexBuffer;
 

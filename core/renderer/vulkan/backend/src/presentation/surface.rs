@@ -1,6 +1,5 @@
 // dacho/core/renderer/vulkan/backend/src/presentation/surface.rs
 
-// crates
 use {
     anyhow::Result,
     ash::{extensions::khr, vk},
@@ -8,10 +7,10 @@ use {
     winit::window::Window
 };
 
-// crate
 use crate::setup::{Entry, Instance};
 
 use dacho_log::{create_log, destroy_log};
+
 
 pub struct Surface {
     pub loader: khr::Surface,

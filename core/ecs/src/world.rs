@@ -4,6 +4,7 @@ use alloc::rc::Rc;
 
 use super::entity::{Entity, Tuple};
 
+
 #[non_exhaustive]
 pub struct World {
     pub entities: Vec<Rc<Entity>>

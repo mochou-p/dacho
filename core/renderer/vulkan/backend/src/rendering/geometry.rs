@@ -1,21 +1,14 @@
 // dacho/core/renderer/vulkan/backend/src/rendering/geometry.rs
 
-// core
 use core::mem::size_of;
-
-// std
 use std::collections::HashMap;
 
-// crates
 use {
     anyhow::{Context, Result},
     ash::vk
 };
 
-// super
 use super::shader_input_types;
-
-// crate
 use crate::{
     buffers::{Buffer, IndexBuffer, VertexBuffer},
     commands::{Command, CommandPool},
@@ -24,8 +17,9 @@ use crate::{
     VulkanDrop
 };
 
-use dacho_mesh::GeometryData;
+use dacho_mesh_c::GeometryData;
 use dacho_shader::{ShaderInfo, size_of_types};
+
 
 #[derive(Hash)]
 #[non_exhaustive]

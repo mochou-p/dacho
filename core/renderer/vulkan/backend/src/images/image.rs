@@ -1,12 +1,10 @@
 // dacho/core/renderer/vulkan/backend/src/images/image.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// crate
 use crate::{
     commands::CommandPool,
     devices::{Device, PhysicalDevice},
@@ -15,6 +13,7 @@ use crate::{
 };
 
 use dacho_log::fatal;
+
 
 pub struct Image {
     pub raw:    vk::Image,

@@ -1,12 +1,10 @@
 // dacho/core/renderer/vulkan/backend/src/images/sampler.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// crate
 use crate::{
     app::logger::Logger,
     renderer::{
@@ -15,6 +13,7 @@ use crate::{
     },
     log
 };
+
 
 pub struct Sampler {
     raw: vk::Sampler

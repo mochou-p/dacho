@@ -1,19 +1,16 @@
 // dacho/core/renderer/vulkan/backend/src/images/texture_view.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// super
 use super::{Image, ImageView};
-
-// crate
 use crate::renderer::{
     devices::Device,
     VulkanObject
 };
+
 
 pub struct TextureView;
 

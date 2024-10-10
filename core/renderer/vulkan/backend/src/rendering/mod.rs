@@ -1,6 +1,5 @@
 // dacho/core/renderer/vulkan/backend/src/rendering/mod.rs
 
-// modules
 mod geometry;
 mod pipeline;
 mod render_pass;

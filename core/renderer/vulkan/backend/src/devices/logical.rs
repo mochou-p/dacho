@@ -1,18 +1,15 @@
 // dacho/core/renderer/vulkan/backend/src/devices/logical.rs
 
-// crates
 use {
     anyhow::Result,
     ash::{extensions::khr, vk}
 };
 
-// super
 use super::PhysicalDevice;
-
-// crate
 use crate::setup::Instance;
 
 use dacho_log::{create_log, destroy_log};
+
 
 pub struct Device {
     pub raw:   ash::Device,

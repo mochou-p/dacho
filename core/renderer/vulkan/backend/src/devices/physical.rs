@@ -1,15 +1,14 @@
 // dacho/core/renderer/vulkan/backend/src/devices/physical.rs
 
-// crates
 use {
     anyhow::{Context, Result},
     ash::vk
 };
 
-// crate
 use crate::setup::Instance;
 
 use dacho_log::create_log;
+
 
 pub struct PhysicalDevice {
     pub raw: vk::PhysicalDevice

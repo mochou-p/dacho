@@ -1,19 +1,14 @@
 // dacho/core/renderer/vulkan/validation/src/lib.rs
 
-// core
-use core::{
-    ffi::{c_void, CStr},
-    ptr::{null, null_mut}
-};
+use core::{ffi::{c_void, CStr}, ptr::{null, null_mut}};
 
-// crates
 use {
     anyhow::Result,
     ash::{extensions::ext, vk}
 };
 
-// crate
 use dacho_log::{log_from, create_log, destroy_log};
+
 
 type MessageSeverity = vk::DebugUtilsMessageSeverityFlagsEXT;
 type MessageType     = vk::DebugUtilsMessageTypeFlagsEXT;

@@ -1,8 +1,8 @@
 // dacho/core/log/src/lib.rs
 
-// core
 #[cfg(debug_assertions)]
 use core::any::type_name;
+
 
 #[macro_export]
 macro_rules! log {

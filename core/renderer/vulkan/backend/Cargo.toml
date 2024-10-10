@@ -16,7 +16,7 @@ validation = ["dacho-vulkan-validation"]
 dacho-ecs    = { path = "../../../ecs"             }
 dacho-log    = { path = "../../../log"             }
 dacho-shader = { path = "../../../shader"          }
-dacho-mesh   = { path = "../../../components/mesh" }
+dacho-mesh-c = { path = "../../../components/mesh" }
 dacho-window = { path = "../../../window"          }
 
 dacho-vulkan-validation = { path = "../validation", optional = true }

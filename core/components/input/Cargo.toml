@@ -1,0 +1,14 @@
+# dacho/core/components/input/Cargo.toml
+
+[package]
+name         = "dacho-input-c"
+
+edition      = "2021"
+rust-version = "1.81.0"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[dependencies]
+winit = "0.30.4"
+

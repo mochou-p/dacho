@@ -1,6 +1,5 @@
 // dacho/core/renderer/vulkan/backend/src/images/mod.rs
 
-// modules
 mod image;
 mod image_view;
 // mod sampler;

@@ -1,15 +1,11 @@
 // dacho/core/renderer/vulkan/backend/src/images/texture.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// super
 use super::Image;
-
-// crate
 use crate::renderer::{
     buffers::StagingBuffer,
     commands::CommandPool,
@@ -17,6 +13,7 @@ use crate::renderer::{
     setup::Instance,
     VulkanObject
 };
+
 
 pub struct Texture;
 

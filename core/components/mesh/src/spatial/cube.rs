@@ -1,12 +1,10 @@
 // dacho/core/components/mesh/src/spatial/cube.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// crate
 use crate::{
     game::logger::Logger,
     ecs::component::Component,
@@ -14,6 +12,7 @@ use crate::{
     renderer::rendering::GeometryData,
     log
 };
+
 
 pub fn mesh(p: V3, size: V3) -> Result<GeometryData> {
     let hs = size * 0.5;

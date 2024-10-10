@@ -1,16 +1,15 @@
 // dacho/core/renderer/vulkan/backend/src/images/image_view.rs
 
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// crate
 use crate::{
     devices::Device,
     VulkanDrop
 };
+
 
 pub struct ImageView {
     pub raw: vk::ImageView

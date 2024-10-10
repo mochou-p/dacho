@@ -1,10 +1,9 @@
 // dacho/core/renderer/vulkan/backend/src/setup/entry.rs
 
-// crates
 use anyhow::Result;
 
-// crate
 use crate::create_log;
+
 
 pub struct Entry {
     pub raw: ash::Entry

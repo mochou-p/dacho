@@ -1,19 +1,14 @@
 // dacho/core/renderer/vulkan/backend/src/buffers/mod.rs
 
-// modules
 mod index;
 mod staging;
 mod vertex;
 
-pub(super) use {index::*, staging::*, vertex::*};
-
-// crates
 use {
     anyhow::Result,
     ash::vk
 };
 
-// super
 use super::{
     commands::CommandPool,
     devices::{Device, PhysicalDevice},
@@ -22,8 +17,10 @@ use super::{
     VulkanDrop
 };
 
-// crate
 use dacho_log::fatal;
+
+pub(super) use {index::*, staging::*, vertex::*};
+
 
 #[derive(Hash)]
 pub struct Buffer {

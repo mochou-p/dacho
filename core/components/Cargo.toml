@@ -10,5 +10,8 @@ authors      = ["mochou-p"]
 license      = "MIT OR Apache-2.0"
 
 [dependencies]
-dacho-mesh = { path = "mesh" }
+dacho-input-c = { path = "input" }
+dacho-mesh-c  = { path = "mesh"  }
+dacho-time-c  = { path = "time"  }
+dacho-world-c = { path = "world" }
 

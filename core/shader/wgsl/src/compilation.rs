@@ -1,15 +1,8 @@
 // dacho/core/shader/wgsl/src/compilation.rs
 
-// core
 use core::str::from_utf8;
+use std::{fs::{create_dir_all, read, read_dir, write}, path::Path};
 
-// std
-use std::{
-    fs::{create_dir_all, read, read_dir, write},
-    path::Path
-};
-
-// crates
 use {
     anyhow::{Context, Result},
     futures::future::join_all,
@@ -21,8 +14,8 @@ use {
     tokio::spawn
 };
 
-// crate
 use dacho_log::{log, log_from, fatal};
+
 
 #[expect(clippy::allow_attributes, reason = "same error logging code for all builds")]
 fn compile_shader(filepath: &Path) -> Result<()> {

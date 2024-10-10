@@ -4,6 +4,7 @@ use alloc::rc::Rc;
 use core::{any::{Any, TypeId}, cell::RefCell};
 use std::collections::HashMap;
 
+
 pub type EntityComponents = HashMap<TypeId, Vec<Box<dyn Any>>>;
 
 pub struct Entity {

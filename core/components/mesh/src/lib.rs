@@ -1,16 +1,11 @@
 // dacho/core/components/mesh/src/lib.rs
 
-// modules
 mod planar;
 // mod spatial;
 
-// core
 use core::any::Any;
-
-// std
 use std::collections::HashMap;
 
-// crates
 use {
     ash::vk,
     glam::{EulerRot, f32::{Mat4, Quat, Vec3}}
@@ -55,7 +50,7 @@ impl GeometryData {
 }
 
 #[non_exhaustive]
-pub struct Mesh {
+pub struct MeshComponent {
     pub children_ids:     Vec<u32>,
     pub parent_id_option: Option<u32>,
     #[expect(dead_code, reason = "currently there is only the default shader")]
@@ -64,7 +59,7 @@ pub struct Mesh {
     pub model_matrix:     Mat4
 }
 
-impl Mesh {
+impl MeshComponent {
     pub const BUILDERS: [&'static MeshBuilder; 2] = [
         &planar::quad   ::mesh,
         &planar::circle ::mesh
@@ -114,7 +109,6 @@ impl Mesh {
         let rotation = Quat::from_euler(EulerRot::XYZ, euler_xyz.x, euler_xyz.y, euler_xyz.z);
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
-
     }
 
     pub fn mirror(&mut self, axis: V3) {

@@ -1,10 +1,9 @@
 // dacho/core/types/src/lib.rs
 
-// core
 use core::ops::{Add, Mul, Neg, Sub};
 
-// crates
 use glam::f32::{Vec2, Vec3};
+
 
 #[derive(Copy, Clone, PartialEq)]
 #[non_exhaustive]

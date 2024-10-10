@@ -1,0 +1,15 @@
+# dacho/core/components/world/Cargo.toml
+
+[package]
+name         = "dacho-world-c"
+
+edition      = "2021"
+rust-version = "1.81.0"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+
+[dependencies]
+dacho-ecs = { path = "../../ecs" }
+dacho-log = { path = "../../log" }
+

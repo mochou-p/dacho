@@ -2,7 +2,6 @@
 
 extern crate alloc;
 
-// modules
     mod buffers;
     mod commands;
     mod descriptors;
@@ -12,20 +11,15 @@ extern crate alloc;
 pub mod rendering;
     mod setup;
 
-// core
 use core::ffi::c_void;
-
-// std
 use std::collections::HashMap;
 
-// crates
 use {
     anyhow::Result,
     ash::vk,
     winit::event_loop::ActiveEventLoop
 };
 
-// mod
 use {
     buffers::{Buffer, VertexBuffer},
     commands::{CommandBuffers, CommandPool},
@@ -36,14 +30,13 @@ use {
     setup::{Entry, Instance}
 };
 
-// super
 use dacho_window::Window;
-use dacho_mesh::Mesh;
+use dacho_mesh_c::MeshComponent;
 use dacho_log::{log, create_log, destroy_log};
 
-// vvl
 #[cfg(feature = "validation")]
 use dacho_vulkan_validation::Debug;
+
 
 trait VulkanDrop {
     fn drop(&self, device: &Device);
@@ -161,7 +154,7 @@ impl Renderer {
         let mut shader_info_cache = HashMap::new();
 
         for mi in mesh_instances {
-            let mut data   = Mesh::BUILDERS[mi.0 as usize]();
+            let mut data   = MeshComponent::BUILDERS[mi.0 as usize]();
             data.instances = mi.1;
 
             let geometry = Geometry::new(instance, physical_device, device, command_pool, &mut data, &mut shader_info_cache)?;
@@ -209,7 +202,7 @@ impl Renderer {
                 geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &mut instances)?;
                 geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 => temp for the default shader
             } else {
-                let mut data   = Mesh::BUILDERS[mesh_id as usize]();
+                let mut data   = MeshComponent::BUILDERS[mesh_id as usize]();
                 data.instances = instances;
 
                 //                                                                                                               ~~~~ temp ~~~~~~~~~

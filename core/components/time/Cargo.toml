@@ -1,0 +1,11 @@
+# dacho/core/components/time/Cargo.toml
+
+[package]
+name         = "dacho-time-c"
+
+edition      = "2021"
+rust-version = "1.81.0"
+
+authors      = ["mochou-p"]
+license      = "MIT OR Apache-2.0"
+

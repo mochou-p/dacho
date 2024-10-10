@@ -405,7 +405,10 @@ dependencies = [
 name = "dacho-components"
 version = "0.0.0"
 dependencies = [
- "dacho-mesh",
+ "dacho-input-c",
+ "dacho-mesh-c",
+ "dacho-time-c",
+ "dacho-world-c",
 ]
 
 [[package]]
@@ -413,8 +416,15 @@ name = "dacho-ecs"
 version = "0.0.0"
 dependencies = [
  "dacho-log",
- "dacho-mesh",
+ "dacho-mesh-c",
  "dacho-types",
+]
+
+[[package]]
+name = "dacho-input-c"
+version = "0.0.0"
+dependencies = [
+ "winit",
 ]
 
 [[package]]
@@ -422,7 +432,7 @@ name = "dacho-log"
 version = "0.0.0"
 
 [[package]]
-name = "dacho-mesh"
+name = "dacho-mesh-c"
 version = "0.0.0"
 dependencies = [
  "ash",
@@ -445,6 +455,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "dacho-time-c"
+version = "0.0.0"
+
+[[package]]
 name = "dacho-types"
 version = "0.0.0"
 dependencies = [
@@ -460,7 +474,7 @@ dependencies = [
  "ash-window",
  "dacho-ecs",
  "dacho-log",
- "dacho-mesh",
+ "dacho-mesh-c",
  "dacho-shader",
  "dacho-vulkan-validation",
  "dacho-window",
@@ -498,6 +512,14 @@ dependencies = [
  "anyhow",
  "dacho-log",
  "winit",
+]
+
+[[package]]
+name = "dacho-world-c"
+version = "0.0.0"
+dependencies = [
+ "dacho-ecs",
+ "dacho-log",
 ]
 
 [[package]]

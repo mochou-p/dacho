@@ -6,30 +6,22 @@
 An ECS game engine, written in pure Rust
 
 ## Disclaimer
-This project is in it's early stage  
-A lot of features are still WIP or TODO  
-Expect breaking changes at each release  
+This project is in it's early stage, expect breaking changes  
 There is no documentation yet (other than the [example](https://github.com/mochou-p/dacho-example))
 
 ## Usage
 In dacho, you insert Systems into Schedules
 ```rust
-// A simple usage example
+// A simple example
 
-use dacho::prelude::*;
+use dacho::*;
 
 fn main() {
-    let mut app = App::new("My game");
-
-    app.start(|_| println!("Hello, World!"));
-
-    app.keyboard(|_, key, is_pressed| {
-        if is_pressed && key == Key::Space {
-            println!("jump!");
-        }
-    });
-
-    app.run();
+    App::new("My game")
+        .add_system(Schedule::Start,    spawn_player)
+        .add_system(Schedule::Update,   animate_player)
+        .add_system(Schedule::Keyboard, player_movement)
+        .run();
 }
 ```
 See the [example](https://github.com/mochou-p/dacho-example) for more

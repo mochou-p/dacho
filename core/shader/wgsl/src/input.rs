@@ -1,16 +1,14 @@
 // dacho/core/shader/wgsl/src/input.rs
 
-// core
 use core::mem::size_of;
 
-// crates
 use {
     anyhow::{Context, Result},
     ash::vk
 };
 
-// crate
 use dacho_log::fatal;
+
 
 type LastLocation         = u32;
 type VertexDescriptions   = (vk::VertexInputBindingDescription, Vec<vk::VertexInputAttributeDescription>, LastLocation);
