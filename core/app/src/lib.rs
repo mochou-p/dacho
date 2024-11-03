@@ -12,7 +12,7 @@ use winit::{
     application::ApplicationHandler,
     event::{MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, ControlFlow::Poll},
-    keyboard::{KeyCode, PhysicalKey},
+    keyboard::PhysicalKey,
     window::WindowId
 };
 
@@ -23,6 +23,8 @@ use dacho_ecs::{entity::Entity, world::World, query::{Query, QueryFn, QueryTuple
 use dacho_renderer::Renderer;
 use dacho_log::{log, create_log};
 use dacho_window::Window;
+
+pub use winit::keyboard::KeyCode;
 
 
 #[non_exhaustive]
