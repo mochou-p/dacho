@@ -7,10 +7,9 @@ use {
     ash::vk
 };
 
-use super::{DescriptorPool, DescriptorSetLayout, UniformBufferObject};
-use crate::{
-    buffers::Buffer,
-    devices::Device
+use {
+    super::{DescriptorPool, DescriptorSetLayout, UniformBufferObject},
+    crate::{buffers::Buffer, devices::Device}
 };
 
 use dacho_log::create_log;

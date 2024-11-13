@@ -5,13 +5,9 @@ use {
     ash::vk
 };
 
-use super::Image;
-use crate::renderer::{
-    buffers::StagingBuffer,
-    commands::CommandPool,
-    devices::{Device, PhysicalDevice},
-    setup::Instance,
-    VulkanObject
+use {
+    super::Image,
+    crate::renderer::{buffers::StagingBuffer, commands::CommandPool, devices::{Device, PhysicalDevice}, setup::Instance, VulkanObject}
 };
 
 

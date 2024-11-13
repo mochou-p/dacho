@@ -5,8 +5,10 @@ use {
     ash::{extensions::khr, vk}
 };
 
-use super::PhysicalDevice;
-use crate::setup::Instance;
+use {
+    super::PhysicalDevice,
+    crate::setup::Instance
+};
 
 use dacho_log::{create_log, destroy_log};
 

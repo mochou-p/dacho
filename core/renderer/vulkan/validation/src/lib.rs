@@ -1,5 +1,7 @@
 // dacho/core/renderer/vulkan/validation/src/lib.rs
 
+#![expect(clippy::undocumented_unsafe_blocks, reason = "vulkan is C, so ash (the rust binding) is unsafe")]
+
 use core::{ffi::{c_void, CStr}, ptr::{null, null_mut}};
 
 use {

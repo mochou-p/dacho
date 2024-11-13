@@ -34,7 +34,7 @@ pub fn system(_: TokenStream, item: TokenStream) -> TokenStream {
     let out_type = quote! { (#(#arg_types,)*) };
 
     let out_fn = quote! {
-        fn #fn_name((#(#arg_names,)*): #out_type) {
+        fn #fn_name((#(#arg_names,)*): &#out_type) {
             #fn_block
         }
     };
@@ -42,6 +42,7 @@ pub fn system(_: TokenStream, item: TokenStream) -> TokenStream {
     TokenStream::from(out_fn)
 }
 
+#[expect(clippy::single_call_fn, reason = "functionality separation")]
 fn fix_query(ty: &Type) -> Type {
     if let Type::Path(type_path) = ty {
         if let Some(segment) = type_path.path.segments.last() {

@@ -5,10 +5,7 @@ use {
     ash::vk
 };
 
-use crate::{
-    devices::Device,
-    VulkanDrop
-};
+use crate::{devices::Device, VulkanDrop};
 
 
 pub struct ImageView {

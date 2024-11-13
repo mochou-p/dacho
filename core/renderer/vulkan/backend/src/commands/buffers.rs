@@ -7,12 +7,9 @@ use {
     ash::vk
 };
 
-use super::{Command, CommandPool};
-use crate::{
-    descriptors::DescriptorSet,
-    devices::Device,
-    presentation::Swapchain,
-    rendering::{Pipeline, RenderPass}
+use {
+    super::{Command, CommandPool},
+    crate::{descriptors::DescriptorSet, devices::Device, presentation::Swapchain, rendering::{Pipeline, RenderPass}}
 };
 
 use dacho_log::{create_log, fatal};

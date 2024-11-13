@@ -18,10 +18,10 @@ pub fn mesh() -> GeometryData {
     // * 3 -> xyz
     // * 2 -> position, normal
     // + 6 -> one more for the center vertex (1 * 3 * 2)
-    let mut vertices = Vec::with_capacity(points as usize * 3 * 2 + 6);
+    let mut vertices = Vec::with_capacity((points * 3 * 2 + 6).into());
 
     // * 3 -> triangle per point
-    let mut indices = Vec::with_capacity(points as usize * 3);
+    let mut indices = Vec::with_capacity((points * 3).into());
 
     //                           position       normal
     vertices.extend_from_slice(&[p.x, p.y, p.z, 0.0, 0.0, 1.0]);

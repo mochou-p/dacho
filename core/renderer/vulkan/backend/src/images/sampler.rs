@@ -5,14 +5,7 @@ use {
     ash::vk
 };
 
-use crate::{
-    app::logger::Logger,
-    renderer::{
-        devices::Device,
-        VulkanObject
-    },
-    log
-};
+use crate::{app::logger::Logger, renderer::{devices::Device, VulkanObject}, log};
 
 
 pub struct Sampler {

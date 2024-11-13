@@ -61,7 +61,7 @@ pub fn wgsl_field_to_type(field: &str) -> Result<Type> {
             .context("Failed to parse wgsl field type")?
             +1
         ..
-        field.len() - i32::from(field.chars().last().context("Failed to get the last char")? == ',') as usize
+        field.len() - usize::from(field.chars().last().context("Failed to get the last char")? == ',')
     ];
 
     let kind = match wgsl_type {

@@ -1,94 +1,147 @@
 // dacho/core/ecs/src/entity.rs
 
-use alloc::rc::Rc;
-use core::{any::{Any, TypeId}, cell::RefCell};
-use std::collections::HashMap;
+use {
+    core::any::{Any, TypeId, type_name},
+    std::collections::HashMap
+};
 
+use super::query::QueryT;
 
-pub type EntityComponents = HashMap<TypeId, Vec<Box<dyn Any>>>;
 
 pub struct Entity {
-    pub(crate) components: EntityComponents
+    pub(crate) components: HashMap<TypeId, Vec<Box<dyn Any>>>
 }
 
 impl Entity {
-    #[expect(clippy::new_without_default, reason = "default would just be empty")]
-    pub fn new() -> Self {
-        Self { components: HashMap::new() }
+    pub(crate) fn new<T: QueryT + 'static>(tuple: T) -> Self {
+        Self { components: tuple.to_components() }
     }
 
-    pub fn get_component<T>(&self) -> Option<Rc<RefCell<T>>>
+    pub fn has<T>(&self) -> bool
     where
         T: 'static
     {
-        if let Some(any_components) = self.components.get(&TypeId::of::<T>()) {
-            if let Some(any_component) = any_components.first() {
-                if let Some(component) = any_component.downcast_ref::<Rc<RefCell<T>>>() {
-                    return Some(Rc::clone(component));
-                }
-            }
+        self.components
+            .contains_key(&TypeId::of::<T>())
+    }
+
+    pub fn count<T>(&self) -> usize
+    where
+        T: 'static
+    {
+        if let Some(components) = self.components.get(&TypeId::of::<T>()) {
+            return components.len();
+        }
+
+        0
+    }
+
+    #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
+    pub fn first<T>(&self) -> Option<&T>
+    where
+        T: 'static
+    {
+        if let Some(components) = self.components.get(&TypeId::of::<T>()) {
+            return Some(components[0].downcast_ref::<T>().unwrap());
         }
 
         None
     }
 
-    pub fn get_components<T>(&self) -> Option<Vec<Rc<RefCell<T>>>>
+    #[expect(clippy::panic,       reason = "the function is named `*_unchecked`")]
+    #[expect(clippy::unwrap_used, reason = "guarded by how the `HashMap` stores components")]
+    pub fn first_unchecked<T>(&self) -> &T
     where
         T: 'static
     {
-        if let Some(any_components) = self.components.get(&TypeId::of::<T>()) {
-            let mut components = Vec::with_capacity(any_components.len());
+        self.components
+            .get(&TypeId::of::<T>())
+            .unwrap_or_else(|| panic!("there is no `{}`", type_name::<T>()))
+            [0]
+            .downcast_ref::<T>()
+            .unwrap()
+    }
 
-            for any_component in any_components {
-                if let Some(component) = any_component.downcast_ref::<Rc<RefCell<T>>>() {
-                    components.push(Rc::clone(component));
-                }
-            }
-
-            return
-                if components.is_empty() {
-                    None
-                } else {
-                    Some(components)
-                };
+    #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
+    pub fn first_mut<T>(&mut self) -> Option<&mut T>
+    where
+        T: 'static
+    {
+        if let Some(components) = self.components.get_mut(&TypeId::of::<T>()) {
+            return Some(components[0].downcast_mut::<T>().unwrap());
         }
 
         None
     }
-}
 
-pub trait Tuple {
-    fn insert_into(self, map: &mut EntityComponents);
-}
+    #[expect(clippy::panic,       reason = "the function is named `*_unchecked`")]
+    #[expect(clippy::unwrap_used, reason = "guarded by how the `HashMap` stores components")]
+    pub fn first_mut_unchecked<T>(&mut self) -> &mut T
+    where
+        T: 'static
+    {
+        self.components
+            .get_mut(&TypeId::of::<T>())
+            .unwrap_or_else(|| panic!("there is no `{}`", type_name::<T>()))
+            [0]
+            .downcast_mut::<T>()
+            .unwrap()
+    }
 
-macro_rules! impl_t {
-    ($($i:tt $t:tt),+) => {
-        impl<$($t,)+> Tuple for ($($t,)+)
-        where
-            $($t: 'static,)+
-        {
-            fn insert_into(self, map: &mut EntityComponents) {
-                $(
-                    map
-                        .entry(TypeId::of::<$t>())
-                        .or_insert_with(|| Vec::with_capacity(1))
-                        .push(Box::new(Rc::new(RefCell::new(self.$i))));
-                )+
-            }
+    #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
+    pub fn iter<T>(&self) -> Option<impl Iterator<Item = &T>>
+    where
+        T: 'static
+    {
+        if let Some(components) = self.components.get(&TypeId::of::<T>()) {
+            return Some(
+                components.iter()
+                    .map(|component| component.downcast_ref::<T>().unwrap())
+            );
         }
-    };
-}
 
-impl_t!(0 A);
-impl_t!(0 A, 1 B);
-impl_t!(0 A, 1 B, 2 C);
-impl_t!(0 A, 1 B, 2 C, 3 D);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J, 10 K);
-impl_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J, 10 K, 11 L);
+        None
+    }
+
+    #[expect(clippy::panic,       reason = "the function is named `*_unchecked`")]
+    #[expect(clippy::unwrap_used, reason = "guarded by how the `HashMap` stores components")]
+    pub fn iter_unchecked<T>(&self) -> impl Iterator<Item = &T>
+    where
+        T: 'static
+    {
+        self.components
+            .get(&TypeId::of::<T>())
+            .unwrap_or_else(|| panic!("there are no `{}`s", type_name::<T>()))
+            .iter()
+            .map(|component| component.downcast_ref::<T>().unwrap())
+    }
+
+    #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
+    pub fn iter_mut<T>(&mut self) -> Option<impl Iterator<Item = &mut T>>
+    where
+        T: 'static
+    {
+        if let Some(components) = self.components.get_mut(&TypeId::of::<T>()) {
+            return Some(
+                components.iter_mut()
+                    .map(|component| component.downcast_mut::<T>().unwrap())
+            );
+        }
+
+        None
+    }
+
+    #[expect(clippy::panic,       reason = "the function is named `*_unchecked`")]
+    #[expect(clippy::unwrap_used, reason = "guarded by how the `HashMap` stores components")]
+    pub fn iter_mut_unchecked<T>(&mut self) -> impl Iterator<Item = &mut T>
+    where
+        T: 'static
+    {
+        self.components
+            .get_mut(&TypeId::of::<T>())
+            .unwrap_or_else(|| panic!("there are no `{}`s", type_name::<T>()))
+            .iter_mut()
+            .map(|component| component.downcast_mut::<T>().unwrap())
+    }
+}
 

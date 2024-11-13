@@ -31,6 +31,7 @@ impl V2 {
         V3 { x: self.x, y: self.y, z: 0.0 }
     }
 
+    #[inline]
     #[must_use]
     pub fn normalize(&self) -> Self {
         let n = Vec2 { x: self.x, y: self.y }.normalize();
@@ -99,11 +100,13 @@ impl V3 {
     pub const XZ:   Self = Self { x: 1.0, y: 0.0, z: 1.0 };
     pub const YZ:   Self = Self { x: 0.0, y: 1.0, z: 1.0 };
 
+    #[inline]
     #[must_use]
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
+    #[inline]
     #[must_use]
     pub fn normalize(&self) -> Self {
         let n = Vec3 { x: self.x, y: self.y, z: self.z }.normalize();
@@ -191,6 +194,8 @@ impl Mul<i16> for V3 {
 impl Neg for V3 {
     type Output = Self;
 
+    #[inline]
+    #[must_use]
     fn neg(self) -> Self::Output {
         Self { x: -self.x, y: -self.y, z: -self.z }
     }

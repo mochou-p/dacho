@@ -2,14 +2,15 @@
 
 use {
     anyhow::Result,
-    winit::{dpi::PhysicalSize, event_loop::ActiveEventLoop, window::Window as Raw}
+    winit::{dpi::PhysicalSize, event_loop::ActiveEventLoop, window::Window as RawWindow}
 };
 
 use dacho_log::create_log;
 
 
+#[non_exhaustive]
 pub struct Window {
-        raw:    Raw,
+    pub raw:    RawWindow,
     pub width:  u16,
     pub height: u16
 }
@@ -24,18 +25,13 @@ impl Window {
     ) -> Result<Self> {
         create_log!(debug);
 
-        let window_attributes = Raw::default_attributes()
+        let window_attributes = RawWindow::default_attributes()
             .with_title(title)
             .with_inner_size(PhysicalSize::new(width, height));
 
         let raw = event_loop.create_window(window_attributes)?;
 
         Ok(Self { raw, width, height })
-    }
-
-    #[must_use]
-    pub const fn raw(&self) -> &Raw {
-        &self.raw
     }
 
     #[inline]

@@ -49,7 +49,7 @@ macro_rules! fatal {
         dacho_log::Logger::error(env!("CARGO_PKG_NAME"), &format!($($args),*));
 
         #[allow(clippy::exit)]
-        std::process::exit(1_i32);
+        std::process::exit(1);
     };
 }
 
@@ -102,6 +102,7 @@ impl Logger {
 }
 
 #[cfg(debug_assertions)]
+#[inline]
 pub fn type_name_tail<T>() -> String {
     let type_name = type_name::<T>();
     let tail      = &type_name[type_name.rfind(':').expect("name error") + 1..];

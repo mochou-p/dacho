@@ -7,11 +7,9 @@ use {
     ash::vk
 };
 
-use super::{Buffer, StagingBuffer};
-use crate::{
-    commands::CommandPool,
-    devices::{Device, PhysicalDevice},
-    setup::Instance
+use {
+    super::{Buffer, StagingBuffer},
+    crate::{commands::CommandPool, devices::{Device, PhysicalDevice}, setup::Instance}
 };
 
 

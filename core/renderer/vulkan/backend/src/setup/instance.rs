@@ -7,18 +7,19 @@ use {
     winit::event_loop::ActiveEventLoop
 };
 
-use super::Entry;
-use crate::{create_log, destroy_log};
+use {
+    super::Entry,
+    crate::{create_log, destroy_log}
+};
 
 #[cfg(feature = "validation")]
 use {
+    core::{ffi::c_void, ptr::from_ref},
     alloc::ffi::CString,
-    core::{
-        ffi::c_void,
-        ptr::from_ref
-    },
-    dacho_vulkan_validation::messenger_create_info,
-    crate::log
+
+    crate::log,
+
+    dacho_vulkan_validation::messenger_create_info
 };
 
 

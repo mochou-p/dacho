@@ -3,15 +3,13 @@
 mod planar;
 // mod spatial;
 
-use core::any::Any;
-use std::collections::HashMap;
-
 use {
     ash::vk,
     glam::{EulerRot, f32::{Mat4, Quat, Vec3}}
 };
 
 use dacho_types::{V2, V3};
+
 
 type MeshBuilder = dyn Fn() -> GeometryData;
 
@@ -28,6 +26,7 @@ pub struct GeometryData {
 }
 
 impl GeometryData {
+    #[inline]
     pub const fn new(
         shader:       String,
         id:           u32,
@@ -65,18 +64,7 @@ impl MeshComponent {
         &planar::circle ::mesh
     ];
 
-    pub fn get_transform(&self, components: &HashMap<u32, Box<dyn Any>>) -> Mat4 {
-        if let Some(parent_id) = self.parent_id_option {
-            if let Some(component) = components.get(&parent_id) {
-                if let Some(downcasted_component) = component.downcast_ref::<Self>() {
-                    return downcasted_component.get_transform(components) * self.model_matrix;
-                }
-            }
-        }
-
-        self.model_matrix
-    }
-
+    #[inline]
     pub fn move_by(&mut self, rhs: V3) {
         let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -85,6 +73,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn move_to(&mut self, rhs: V3) {
         let (scale, rotation, _) = self.model_matrix.to_scale_rotation_translation();
 
@@ -93,6 +82,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn rotate_by(&mut self, axis_angle: V3) {
         let (scale, mut rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -103,6 +93,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn rotate_to(&mut self, euler_xyz: V3) {
         let (scale, _, translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -111,6 +102,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn mirror(&mut self, axis: V3) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -121,6 +113,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn scale_by(&mut self, rhs: V3) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -129,6 +122,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn scale_mul(&mut self, rhs: V3) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -137,6 +131,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     pub fn scale_to(&mut self, rhs: V3) {
         let (_, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
@@ -145,6 +140,7 @@ impl MeshComponent {
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
     }
 
+    #[inline]
     #[must_use]
     pub fn quad(position: V3, size: V2) -> Self {
         let id = 0;
@@ -158,6 +154,7 @@ impl MeshComponent {
         Self { children_ids: vec![], parent_id_option: None, shader: String::from("default"), id, model_matrix }
     }
 
+    #[inline]
     #[must_use]
     pub fn circle(position: V3, radius: f32) -> Self {
         let id = 1;

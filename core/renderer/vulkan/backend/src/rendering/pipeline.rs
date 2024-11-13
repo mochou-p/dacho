@@ -1,8 +1,10 @@
 // dacho/core/renderer/vulkan/backend/src/rendering/pipeline.rs
 
-use alloc::ffi::CString;
-use core::{slice::from_raw_parts, str::from_utf8};
-use std::{collections::HashMap, fs::read, path::Path};
+use {
+    core::{slice::from_raw_parts, str::from_utf8},
+    alloc::ffi::CString,
+    std::{collections::HashMap, fs::read, path::Path}
+};
 
 use {
     anyhow::Result,
@@ -10,22 +12,15 @@ use {
     futures::executor::block_on
 };
 
-use super::{
-    geometry::Geometry,
-    render_pass::RenderPass
-};
-use crate::{
-    commands::Command,
-    descriptors::DescriptorSetLayout,
-    devices::Device,
-    VulkanDrop
+use {
+    super::{geometry::Geometry, render_pass::RenderPass},
+    crate::{commands::Command, descriptors::DescriptorSetLayout, devices::Device, VulkanDrop}
 };
 
-use dacho_shader::{
-    ShaderInfo, Type,
-    compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type
+use {
+    dacho_shader::{ShaderInfo, Type, compile_shaders, instance_descriptions, vertex_descriptions, wgsl_field_to_type},
+    dacho_log::{log, fatal}
 };
-use dacho_log::{log, fatal};
 
 
 pub struct Pipeline {

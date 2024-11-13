@@ -2,9 +2,11 @@
 
 #![allow(clippy::multiple_crate_versions, reason = "outside dacho's power")]
 
-pub use dacho_app::*;
-pub use dacho_components::*;
-pub use dacho_ecs::*;
-pub use dacho_types::*;
-pub use dacho_proc_macro::*;
+pub use {
+    dacho_app::*,
+    dacho_components::*,
+    dacho_ecs::*,
+    dacho_types::*,
+    dacho_proc_macro::*
+};
 

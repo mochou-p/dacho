@@ -1,16 +1,14 @@
 // dacho/core/shader/wgsl/src/compilation.rs
 
-use core::str::from_utf8;
-use std::{fs::{create_dir_all, read, read_dir, write}, path::Path};
+use {
+    core::str::from_utf8,
+    std::{fs::{create_dir_all, read, read_dir, write}, path::Path}
+};
 
 use {
     anyhow::{Context, Result},
     futures::future::join_all,
-    naga::{
-        back::spv::{Options as SpvOptions, write_vec},
-        front::wgsl::Frontend,
-        valid::{Capabilities, ValidationFlags, Validator}
-    },
+    naga::{back::spv::{Options as SpvOptions, write_vec}, front::wgsl::Frontend, valid::{Capabilities, ValidationFlags, Validator}},
     tokio::spawn
 };
 

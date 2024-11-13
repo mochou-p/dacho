@@ -5,10 +5,9 @@ use {
     ash::vk
 };
 
-use super::{Image, ImageView};
-use crate::renderer::{
-    devices::Device,
-    VulkanObject
+use {
+    super::{Image, ImageView},
+    crate::renderer::{devices::Device, VulkanObject}
 };
 
 

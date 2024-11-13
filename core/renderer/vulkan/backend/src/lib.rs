@@ -1,5 +1,7 @@
 // dacho/core/renderer/vulkan/backend/src/lib.rs
 
+#![expect(clippy::undocumented_unsafe_blocks, reason = "vulkan is C, so ash (the rust binding) is unsafe")]
+
 extern crate alloc;
 
     mod buffers;
@@ -11,8 +13,10 @@ extern crate alloc;
 pub mod rendering;
     mod setup;
 
-use core::ffi::c_void;
-use std::collections::HashMap;
+use {
+    core::ffi::c_void,
+    std::collections::HashMap
+};
 
 use {
     anyhow::Result,
@@ -30,9 +34,11 @@ use {
     setup::{Entry, Instance}
 };
 
-use dacho_window::Window;
-use dacho_mesh_c::MeshComponent;
-use dacho_log::{log, create_log, destroy_log};
+use {
+    dacho_window::Window,
+    dacho_mesh_c::MeshComponent,
+    dacho_log::{log, create_log, destroy_log}
+};
 
 #[cfg(feature = "validation")]
 use dacho_vulkan_validation::Debug;
@@ -76,7 +82,7 @@ impl Renderer {
         let debug                 = Debug               ::new(&entry.raw, &instance.raw)?;
         let physical_device       = PhysicalDevice      ::new(&instance)?;
         let device                = Device              ::new(&instance, &physical_device)?;
-        let surface               = Surface             ::new(&entry, &instance, window.raw())?;
+        let surface               = Surface             ::new(&entry, &instance, &window.raw)?;
         let render_pass           = RenderPass          ::new(&device)?;
         let swapchain             = Swapchain           ::new(&instance, &device, &surface, &physical_device, &render_pass, window.width, window.height)?;
         let descriptor_set_layout = DescriptorSetLayout ::new(&device)?;

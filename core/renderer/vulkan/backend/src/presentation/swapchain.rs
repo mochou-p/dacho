@@ -5,13 +5,9 @@ use {
     ash::{extensions::khr, vk}
 };
 
-use super::Surface;
-use crate::{
-    devices::{Device, PhysicalDevice},
-    images::{Image, ImageView},
-    setup::Instance,
-    rendering::RenderPass,
-    VulkanDrop
+use {
+    super::Surface,
+    crate::{devices::{Device, PhysicalDevice}, images::{Image, ImageView}, setup::Instance, rendering::RenderPass, VulkanDrop}
 };
 
 use dacho_log::{create_log, destroy_log};

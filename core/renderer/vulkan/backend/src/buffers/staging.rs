@@ -7,12 +7,9 @@ use {
     ash::vk
 };
 
-use super::Buffer;
-use crate::{
-    commands::CommandPool,
-    devices::{Device, PhysicalDevice},
-    setup::Instance,
-    VulkanDrop
+use {
+    super::Buffer,
+    crate::{commands::CommandPool, devices::{Device, PhysicalDevice}, setup::Instance, VulkanDrop}
 };
 
 

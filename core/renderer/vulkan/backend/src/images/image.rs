@@ -5,12 +5,7 @@ use {
     ash::vk
 };
 
-use crate::{
-    commands::CommandPool,
-    devices::{Device, PhysicalDevice},
-    setup::Instance,
-    VulkanDrop
-};
+use crate::{commands::CommandPool, devices::{Device, PhysicalDevice}, setup::Instance, VulkanDrop};
 
 use dacho_log::fatal;
 

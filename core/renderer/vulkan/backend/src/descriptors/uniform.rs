@@ -8,11 +8,7 @@ use {
     glam::f32::{Mat4, Vec3, Vec4}
 };
 
-use crate::{
-    buffers::Buffer,
-    devices::{Device, PhysicalDevice},
-    setup::Instance
-};
+use crate::{buffers::Buffer, devices::{Device, PhysicalDevice}, setup::Instance};
 
 use dacho_log::create_log;
 
