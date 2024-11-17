@@ -30,6 +30,7 @@ impl<T> Query<T>
 where
     T: QueryT
 {
+    #[must_use]
     pub fn first<'component>(&self) -> T::Ref<'component> {
         // SAFETY: raw pointer dereference inside
         unsafe { T::first(self.world) }
@@ -40,11 +41,13 @@ where
     /// Multiple calls to this, or other `Query::*_mut` that return a mutable reference to the same data are possible,
     /// because there is currently no borrow checker, therefore wrong usage will result in undefined behaviour.
     /// Make sure that any previous `*_mut`s to the same data are dropped
+    #[must_use]
     pub unsafe fn first_mut<'component>(&self) -> T::RefMut<'component> {
         // SAFETY: raw pointer dereference inside
         unsafe { T::first_mut(self.world) }
     }
 
+    #[must_use]
     pub fn entity_first(&self) -> &Entity {
         // SAFETY: raw pointer dereference inside
         unsafe { T::entity_first(self.world) }
@@ -55,6 +58,7 @@ where
     /// Multiple calls to this, or other `Query::*_mut` that return a mutable reference to the same data are possible,
     /// because there is currently no borrow checker, therefore wrong usage will result in undefined behaviour.
     /// Make sure that any previous `*_mut`s to the same data are dropped
+    #[must_use]
     pub unsafe fn entity_first_mut(&self) -> &mut Entity {
         // SAFETY: raw pointer dereference inside
         unsafe { T::entity_first_mut(self.world) }
@@ -166,9 +170,15 @@ macro_rules! impl_query_t {
             }
 
             fn to_components(self) -> HashMap<TypeId, Vec<Box<dyn Any>>> {
-                HashMap::from([
-                    $((TypeId::of::<$ty>(), vec![Box::new(self.$i) as Box<dyn Any>])),+
-                ])
+                let mut map = HashMap::new();
+
+                $(
+                    map.entry(TypeId::of::<$ty>())
+                        .or_insert(Vec::with_capacity(1))
+                        .push(Box::new(self.$i) as Box<dyn Any>);
+                )+
+
+                map
             }
 
             unsafe fn first<'component>(world: *mut World) -> Self::Ref<'component> {

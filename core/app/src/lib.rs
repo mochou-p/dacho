@@ -22,7 +22,7 @@ use timer::Timer;
 use {
     dacho_ecs::{query::QueryTuple, world::World},
     dacho_renderer::Renderer,
-    dacho_log::{fatal, log, create_log},
+    dacho_log::{log, create_log},
     dacho_window::Window
 };
 
@@ -32,12 +32,13 @@ pub use winit::keyboard::KeyCode;
 type System = (Box<dyn Fn()>, usize, Vec<BTreeSet<TypeId>>);
 
 pub struct App {
-        title:    String,
-    pub world:    Pin<Box<World>>,
-        systems:  Vec<System>,
-        timer:    Timer,
-        window:   Option<Window>,
-        renderer: Option<Renderer>
+        title:     String,
+    pub world:     Pin<Box<World>>,
+        systems:   Vec<System>,
+        timer:     Timer,
+        window:    Option<Window>,
+        renderer:  Option<Renderer>,
+        no_window: bool
 }
 
 impl App {
@@ -49,13 +50,18 @@ impl App {
         let timer = Timer::new();
 
         Self {
-            title:    String::from(title),
+            title:     String::from(title),
             world,
-            systems:  vec![],
+            systems:   vec![],
             timer,
-            window:   None,
-            renderer: None
+            window:    None,
+            renderer:  None,
+            no_window: false
         }
+    }
+
+    pub fn no_window_run_once(&mut self, flag: bool) {
+        self.no_window = flag;
     }
 
     pub fn insert<T, F>(&mut self, func: F)
@@ -114,11 +120,19 @@ impl App {
     pub async fn run(mut self) {
         log!(info, "Running App");
 
+        // changes global pedantic from forbid to deny
+        #[expect(clippy::panic, reason = "not dacho_log::fatal because tests cannot capture exit, only panic")]
         if self.systems.is_empty() {
-            fatal!("App has no Systems, nothing to do");
+            panic!("App has no Systems, nothing to do");
         }
 
         self.setup();
+
+        if self.no_window {
+            self.run_systems();
+
+            return;
+        }
 
         let event_loop = EventLoop::new()
             .expect("failed to create an EventLoop");

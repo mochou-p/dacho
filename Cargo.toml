@@ -59,7 +59,7 @@ codegen-units = 1
 
 [lints.clippy]
 all      = "forbid"
-pedantic = "forbid"
+pedantic = "deny"
 nursery  = "forbid"
 cargo    = "deny"
 

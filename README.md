@@ -16,12 +16,15 @@ In dacho, you insert Systems into Schedules
 
 use dacho::*;
 
+
 fn main() {
-    App::new("My game")
-        .add_system(Schedule::Start,    spawn_player)
-        .add_system(Schedule::Update,   animate_player)
-        .add_system(Schedule::Keyboard, player_movement)
-        .run();
+    let mut app = App::new("my game");
+
+    app.world.spawn(...); // entity: tuple of components
+
+    app.insert(...);      // system: function with queries
+
+    app.run();
 }
 ```
 See the [example](https://github.com/mochou-p/dacho-example) for more

@@ -17,6 +17,7 @@ impl Entity {
         Self { components: tuple.to_components() }
     }
 
+    #[must_use]
     pub fn has<T>(&self) -> bool
     where
         T: 'static
@@ -25,6 +26,7 @@ impl Entity {
             .contains_key(&TypeId::of::<T>())
     }
 
+    #[must_use]
     pub fn count<T>(&self) -> usize
     where
         T: 'static
@@ -36,6 +38,7 @@ impl Entity {
         0
     }
 
+    #[must_use]
     #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
     pub fn first<T>(&self) -> Option<&T>
     where
@@ -48,6 +51,7 @@ impl Entity {
         None
     }
 
+    #[must_use]
     #[expect(clippy::panic,       reason = "the function is named `*_unchecked`")]
     #[expect(clippy::unwrap_used, reason = "guarded by how the `HashMap` stores components")]
     pub fn first_unchecked<T>(&self) -> &T
@@ -62,6 +66,7 @@ impl Entity {
             .unwrap()
     }
 
+    #[must_use]
     #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
     pub fn first_mut<T>(&mut self) -> Option<&mut T>
     where
@@ -74,6 +79,7 @@ impl Entity {
         None
     }
 
+    #[must_use]
     #[expect(clippy::panic,       reason = "the function is named `*_unchecked`")]
     #[expect(clippy::unwrap_used, reason = "guarded by how the `HashMap` stores components")]
     pub fn first_mut_unchecked<T>(&mut self) -> &mut T
@@ -88,6 +94,7 @@ impl Entity {
             .unwrap()
     }
 
+    #[must_use]
     #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
     pub fn iter<T>(&self) -> Option<impl Iterator<Item = &T>>
     where
@@ -116,6 +123,7 @@ impl Entity {
             .map(|component| component.downcast_ref::<T>().unwrap())
     }
 
+    #[must_use]
     #[expect(clippy::unwrap_used,      reason = "guarded by how the `HashMap` stores components")]
     pub fn iter_mut<T>(&mut self) -> Option<impl Iterator<Item = &mut T>>
     where
