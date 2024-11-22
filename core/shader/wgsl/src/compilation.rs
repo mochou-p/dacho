@@ -6,7 +6,7 @@ use {
 };
 
 use {
-    anyhow::{Context, Result},
+    anyhow::{Context as _, Result},
     futures::future::join_all,
     naga::{back::spv::{Options as SpvOptions, write_vec}, front::wgsl::Frontend, valid::{Capabilities, ValidationFlags, Validator}},
     tokio::spawn

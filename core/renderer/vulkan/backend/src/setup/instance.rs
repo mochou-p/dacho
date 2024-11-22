@@ -3,7 +3,7 @@
 use {
     anyhow::Result,
     ash::vk,
-    raw_window_handle::HasRawDisplayHandle,
+    raw_window_handle::HasRawDisplayHandle as _,
     winit::event_loop::ActiveEventLoop
 };
 

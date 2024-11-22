@@ -9,7 +9,7 @@ use {
 
 use {
     super::Buffer,
-    crate::{commands::CommandPool, devices::{Device, PhysicalDevice}, setup::Instance, VulkanDrop}
+    crate::{commands::CommandPool, devices::{Device, PhysicalDevice}, setup::Instance, VulkanDrop as _}
 };
 
 

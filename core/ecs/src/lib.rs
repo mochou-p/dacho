@@ -6,5 +6,5 @@ pub mod entity;
 pub mod query;
 pub mod world;
 
-pub use {query::Query, world::World};
+pub use {query::Query, world::{World, WorldComponent}};
 

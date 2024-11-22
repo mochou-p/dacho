@@ -10,7 +10,7 @@ use super::{entity::Entity, world::World};
 
 
 pub struct Query<T> {
-    world: *mut World,
+    world: *mut World, // could be a Weak<RefCell<World>>, but idk maybe Arc<Mutex/RwLock<World>> when multithreading
     pd:         PhantomData<T>
 }
 
@@ -273,7 +273,7 @@ impl_query_t!(0 A, 1 B, 2 C, 3 D, 4 E, 5 F, 6 G, 7 H, 8 I, 9 J, 10 K, 11 L);
 
 pub trait QueryTuple {
     fn          new(world: *mut World) -> Self;
-    fn get_all_sets()                  -> Vec<BTreeSet<TypeId>>;
+    fn get_all_sets()                  -> Vec<(BTreeSet<TypeId>, u32)>;
 }
 
 macro_rules! impl_query_tuple {
@@ -286,8 +286,8 @@ macro_rules! impl_query_tuple {
                 ($(Query::<$ty> { world, pd: PhantomData },)+)
             }
 
-            fn get_all_sets() -> Vec<BTreeSet<TypeId>> {
-                vec![$($ty::get_set()),+]
+            fn get_all_sets() -> Vec<(BTreeSet<TypeId>, u32)> {
+                vec![$(($ty::get_set(), 0)),+]
             }
         }
     }

@@ -3,7 +3,7 @@
 use {
     anyhow::Result,
     ash::{extensions::khr, vk},
-    raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle},
+    raw_window_handle::{HasRawDisplayHandle as _, HasRawWindowHandle as _},
     winit::window::Window
 };
 

@@ -3,13 +3,16 @@
 #![expect(clippy::allow_attributes_without_reason)]
 
 #[cfg(test)]
-#[expect(clippy::should_panic_without_expect)]
-#[expect(clippy::undocumented_unsafe_blocks)]
-#[expect(clippy::unwrap_used)]
-#[expect(clippy::let_underscore_must_use)]
-#[expect(clippy::let_underscore_untyped)]
+#[expect(
+    clippy::should_panic_without_expect,
+    clippy::undocumented_unsafe_blocks,
+    clippy::unwrap_used,
+    clippy::let_underscore_must_use,
+    clippy::let_underscore_untyped,
+    clippy::min_ident_chars
+)]
 mod tests {
-    use dacho::{App, Query, system};
+    use dacho::{App, Query, WorldComponent, system};
 
 
     // explicit type makes `Query` understand its a ZST
@@ -29,7 +32,7 @@ mod tests {
         #[test]
         fn app_runs() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             #[system]
             fn system(__: Query<Nothing>) {}
@@ -42,7 +45,7 @@ mod tests {
         #[test]
         fn no_duplication() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn(((),));
 
@@ -69,7 +72,7 @@ mod tests {
             static mut CALLED: bool = false;
 
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn(((),));
 
@@ -92,7 +95,7 @@ mod tests {
         #[test]
         fn first() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8,));
             app.world.spawn((2_u8,));
@@ -110,7 +113,7 @@ mod tests {
         #[test]
         fn first_mut() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8,));
             app.world.spawn((3_u8,));
@@ -134,7 +137,7 @@ mod tests {
         #[test]
         fn iter() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8,));
             app.world.spawn((2_u8,));
@@ -158,7 +161,7 @@ mod tests {
         #[test]
         fn iter_mut() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8,));
             app.world.spawn((2_u8,));
@@ -190,7 +193,7 @@ mod tests {
         #[test]
         fn entities_iter() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
             app.world.spawn((3_u8,));
@@ -215,7 +218,7 @@ mod tests {
             use dacho::entity::Entity;
 
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
             app.world.spawn((3_u8,));
@@ -245,6 +248,65 @@ mod tests {
 
             app.run();
         }
+
+        #[test]
+        fn multiple() {
+            static mut CALLED: bool = false;
+
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((true, 0_u8));
+            app.world.spawn((0_u16, 0_u8));
+
+            #[system]
+            fn system(__: Query<(u8, bool)>, ___: Query<u16>) {
+                unsafe { CALLED = true; }
+            }
+
+            app.insert(system);
+
+            app.run();
+
+            assert!(unsafe { CALLED });
+        }
+
+        #[test]
+        fn adds_and_removes() {
+            static mut N: u8 = 0;
+
+            let mut app = App::new("");
+            app.no_window_run_n_times(5);
+
+            app.world.spawn((0_u8, 1_u8, 0_u16));
+
+            #[system]
+            fn system_1(query: Query<u8>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.remove_first::<u8>(q_world.first());
+
+                unsafe { N += 30; }
+            }
+
+            #[system]
+            fn system_2(query: Query<u16>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.insert(0_u32, q_world.first());
+
+                unsafe { N += 1; }
+            }
+
+            #[system]
+            fn system_3(__: Query<u32>) {
+                unsafe { N -= 2; }
+            }
+
+            app.insert(system_1);
+            app.insert(system_2);
+            app.insert(system_3);
+
+            app.run();
+
+            assert_eq!(unsafe { N }, 57);
+        }
     }
 
     mod entity {
@@ -253,7 +315,7 @@ mod tests {
         #[test]
         fn has() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((true,));
 
@@ -273,7 +335,7 @@ mod tests {
         #[test]
         fn count() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((true, false, true));
 
@@ -293,7 +355,7 @@ mod tests {
         #[test]
         fn first() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((20_u8,));
 
@@ -313,7 +375,7 @@ mod tests {
         #[test]
         fn first_unchecked() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((20_u8,));
 
@@ -333,7 +395,7 @@ mod tests {
         #[should_panic]
         fn first_unchecked_panic() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((20_u8,));
 
@@ -352,7 +414,7 @@ mod tests {
         #[test]
         fn first_mut() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((20_u8,));
 
@@ -379,7 +441,7 @@ mod tests {
         #[test]
         fn first_mut_unchecked() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((20_u8,));
 
@@ -407,7 +469,7 @@ mod tests {
         #[should_panic]
         fn first_mut_unchecked_panic() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((20_u8,));
 
@@ -426,7 +488,7 @@ mod tests {
         #[test]
         fn iter() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
 
@@ -445,7 +507,7 @@ mod tests {
         #[test]
         fn iter_unchecked() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
 
@@ -465,7 +527,7 @@ mod tests {
         #[should_panic]
         fn iter_unchecked_panic() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
 
@@ -484,7 +546,7 @@ mod tests {
         #[test]
         fn iter_mut() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
 
@@ -513,7 +575,7 @@ mod tests {
         #[test]
         fn iter_mut_unchecked() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
 
@@ -543,7 +605,7 @@ mod tests {
         #[should_panic]
         fn iter_mut_unchecked_panic() {
             let mut app = App::new("");
-            app.no_window_run_once(true);
+            app.no_window_run_n_times(1);
 
             app.world.spawn((1_u8, 2_u8));
 
@@ -552,6 +614,268 @@ mod tests {
                 let entity = unsafe { query.entity_first_mut() };
 
                 let _ = entity.iter_mut_unchecked::<i8>();
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn insert() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((0_u8,));
+
+            #[system]
+            fn system(query: Query<u8>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.insert(0_u8, q_world.first());
+
+                assert_eq!(query.entity_first().count::<u8>(), 2);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn insert_n() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((0_u8,));
+
+            #[system]
+            fn system(query: Query<u8>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.insert_n::<u8, 5>(0, q_world.first());
+
+                assert_eq!(query.entity_first().count::<u8>(), 6);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_first() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let n = unsafe { query.entity_first_mut() }.remove_first::<u8>(q_world.first()).unwrap();
+
+                assert_eq!(n, 1);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_first_unchecked() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let n = unsafe { query.entity_first_mut() }.remove_first_unchecked::<u8>(q_world.first());
+
+                assert_eq!(n, 1);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        #[should_panic]
+        fn remove_first_unchecked_panic() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.remove_first_unchecked::<u32>(q_world.first());
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_nth() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let n = unsafe { query.entity_first_mut() }.remove_nth::<u8>(1, q_world.first()).unwrap();
+
+                assert_eq!(n, 2);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_nth_unchecked() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let n = unsafe { query.entity_first_mut() }.remove_nth_unchecked::<u8>(1, q_world.first());
+
+                assert_eq!(n, 2);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        #[should_panic]
+        fn remove_nth_unchecked_panic() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.remove_nth_unchecked::<u32>(1, q_world.first());
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_last() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let n = unsafe { query.entity_first_mut() }.remove_last::<u8>(q_world.first()).unwrap();
+
+                assert_eq!(n, 3);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_last_unchecked() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let n = unsafe { query.entity_first_mut() }.remove_last_unchecked::<u8>(q_world.first());
+
+                assert_eq!(n, 3);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        #[should_panic]
+        fn remove_last_unchecked_panic() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.remove_last_unchecked::<u32>(q_world.first());
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_all() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let nums = unsafe { query.entity_first_mut() }.remove_all::<u8>(q_world.first()).unwrap();
+
+                assert_eq!(nums.into_iter().sum::<u8>(), 6);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        fn remove_all_unchecked() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                let nums = unsafe { query.entity_first_mut() }.remove_all_unchecked::<u8>(q_world.first());
+
+                assert_eq!(nums.into_iter().sum::<u8>(), 6);
+            }
+
+            app.insert(system);
+
+            app.run();
+        }
+
+        #[test]
+        #[should_panic]
+        fn remove_all_unchecked_panic() {
+            let mut app = App::new("");
+            app.no_window_run_n_times(1);
+
+            app.world.spawn((1_u8, 2_u8, 3_u8, 0_u16));
+
+            #[system]
+            fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
+                unsafe { query.entity_first_mut() }.remove_all_unchecked::<u32>(q_world.first());
             }
 
             app.insert(system);

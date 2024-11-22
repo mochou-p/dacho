@@ -20,7 +20,7 @@ use winit::{
 use timer::Timer;
 
 use {
-    dacho_ecs::{query::QueryTuple, world::World},
+    dacho_ecs::{query::QueryTuple, world::{World, WorldComponent}},
     dacho_renderer::Renderer,
     dacho_log::{log, create_log},
     dacho_window::Window
@@ -29,7 +29,7 @@ use {
 pub use winit::keyboard::KeyCode;
 
 
-type System = (Box<dyn Fn()>, usize, Vec<BTreeSet<TypeId>>);
+type System = (Box<dyn Fn()>, Vec<(BTreeSet<TypeId>, u32)>);
 
 pub struct App {
         title:     String,
@@ -38,7 +38,7 @@ pub struct App {
         timer:     Timer,
         window:    Option<Window>,
         renderer:  Option<Renderer>,
-        no_window: bool
+        no_window: usize
 }
 
 impl App {
@@ -56,12 +56,12 @@ impl App {
             timer,
             window:    None,
             renderer:  None,
-            no_window: false
+            no_window: 0
         }
     }
 
-    pub fn no_window_run_once(&mut self, flag: bool) {
-        self.no_window = flag;
+    pub fn no_window_run_n_times(&mut self, count: usize) {
+        self.no_window = count;
     }
 
     pub fn insert<T, F>(&mut self, func: F)
@@ -71,7 +71,7 @@ impl App {
     {
         let query_tuple = T::new(self.world_mut_ptr());
 
-        self.systems.push((Box::new(move || func(&query_tuple)), 0, T::get_all_sets()));
+        self.systems.push((Box::new(move || func(&query_tuple)), T::get_all_sets()));
     }
 
     fn world_mut_ptr(&mut self) -> *mut World {
@@ -80,38 +80,54 @@ impl App {
 
     fn setup(&mut self) {
         let entity_sets = self.world.entities.keys().cloned().collect::<Vec<_>>();
-        let mut x;
 
-        for (_, match_count, query_sets) in &mut self.systems {
-            for query_set in query_sets {
-                x = false;
-
+        for (_, queries) in &mut self.systems {
+            for (query, matches) in queries {
                 for entity_set in &entity_sets {
-                    if query_set.is_subset(entity_set) {
+                    if query.is_subset(entity_set) {
                         self.world.query_matches
-                            .entry(query_set.clone())
+                            .entry(query.clone())
                             // not ideal
                             .and_modify(|vec| if !vec.contains(entity_set) {
                                 vec.push(entity_set.clone());
                             })
                             .or_insert(vec![entity_set.clone()]);
 
-                        x = true;
+                        *matches += 1;
                     }
-                }
-
-                if x {
-                    *match_count += 1;
                 }
             }
         }
     }
 
     fn run_systems(&mut self) {
-        for (system, satisfied, sets) in &self.systems {
-            if *satisfied == sets.len() {
+        for (system, queries) in &self.systems {
+            if queries.iter().all(|x| x.1 != 0) {
                 system();
             }
+        }
+
+        self.world.check_moves();
+
+        if self.world.changed_sets.0.len() + self.world.changed_sets.1.len() != 0 {
+            for (_, queries) in &mut self.systems {
+                for (query, matches) in queries {
+                    for new_set in &self.world.changed_sets.0 {
+                        if query.is_subset(new_set) {
+                            *matches += 1;
+                        }
+                    }
+
+                    for removed_set in &self.world.changed_sets.1 {
+                        if query.is_subset(removed_set) {
+                            *matches -= 1;
+                        }
+                    }
+                }
+            }
+
+            self.world.changed_sets.0.clear();
+            self.world.changed_sets.1.clear();
         }
     }
 
@@ -120,16 +136,22 @@ impl App {
     pub async fn run(mut self) {
         log!(info, "Running App");
 
-        // changes global pedantic from forbid to deny
+        // changes global clippy::pedantic from forbid to deny
         #[expect(clippy::panic, reason = "not dacho_log::fatal because tests cannot capture exit, only panic")]
         if self.systems.is_empty() {
             panic!("App has no Systems, nothing to do");
         }
 
+        // SAFETY: raw pointer
+        let world_c = unsafe { WorldComponent::new(self.world_mut_ptr()) };
+        self.world.spawn((world_c,));
+
         self.setup();
 
-        if self.no_window {
-            self.run_systems();
+        if self.no_window != 0 {
+            for _ in 0..self.no_window {
+                self.run_systems();
+            }
 
             return;
         }
@@ -220,8 +242,6 @@ impl ApplicationHandler for App {
                 if let Some(renderer) = &mut self.renderer {
                     renderer.redraw(self.timer.elapsed());
                 };
-
-                event_loop.exit();
             },
             _ => ()
         }

@@ -3,7 +3,6 @@
 pub use {
     dacho_input_c::*,
     dacho_mesh_c::*,
-    dacho_time_c::*,
-    dacho_world_c::*
+    dacho_time_c::*
 };
 

@@ -3,7 +3,7 @@
 use core::mem::size_of;
 
 use {
-    anyhow::{Context, Result},
+    anyhow::{Context as _, Result},
     ash::vk
 };
 

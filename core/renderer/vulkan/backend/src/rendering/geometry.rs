@@ -6,7 +6,7 @@ use {
 };
 
 use {
-    anyhow::{Context, Result},
+    anyhow::{Context as _, Result},
     ash::vk
 };
 

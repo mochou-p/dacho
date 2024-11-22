@@ -1,7 +1,7 @@
 // dacho/core/renderer/vulkan/backend/src/devices/physical.rs
 
 use {
-    anyhow::{Context, Result},
+    anyhow::{Context as _, Result},
     ash::vk
 };
 
