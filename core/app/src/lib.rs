@@ -64,14 +64,14 @@ impl App {
         self.no_window = count;
     }
 
-    pub fn insert<T, F>(&mut self, func: F)
+    pub fn insert<T, F>(&mut self, system: F)
     where
         T: QueryTuple + 'static,
         F: Fn(&T)     + 'static
     {
         let query_tuple = T::new(self.world_mut_ptr());
 
-        self.systems.push((Box::new(move || func(&query_tuple)), T::get_all_sets()));
+        self.systems.push((Box::new(move || system(&query_tuple)), T::get_all_sets()));
     }
 
     fn world_mut_ptr(&mut self) -> *mut World {
@@ -96,6 +96,10 @@ impl App {
                         *matches += 1;
                     }
                 }
+
+                self.world.query_matches
+                    .entry(query.clone())
+                    .or_default();
             }
         }
     }
@@ -108,6 +112,8 @@ impl App {
         }
 
         self.world.check_moves();
+        self.world.update_matches();
+        self.world.move_new_entities();
 
         if self.world.changed_sets.0.len() + self.world.changed_sets.1.len() != 0 {
             for (_, queries) in &mut self.systems {

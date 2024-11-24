@@ -883,5 +883,34 @@ mod tests {
             app.run();
         }
     }
+
+    mod world {
+        use super::*;
+
+        #[test]
+        fn insert() {
+            static mut N: u8 = 0;
+
+            let mut app = App::new("");
+            app.no_window_run_n_times(2);
+
+            #[system]
+            fn system_1(q_world: Query<WorldComponent>) {
+                q_world.first().insert((5_u8,));
+            }
+
+            #[system]
+            fn system_2(query: Query<u8>) {
+                unsafe { N += query.first(); }
+            }
+
+            app.insert(system_1);
+            app.insert(system_2);
+
+            app.run();
+
+            assert_eq!(unsafe { N }, 5);
+        }
+    }
 }
 
