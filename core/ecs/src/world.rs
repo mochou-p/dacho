@@ -3,10 +3,12 @@
 use {
     core::any::TypeId,
     alloc::collections::{btree_map::Entry::{Occupied as BtmOccupied, Vacant as BtmVacant}, BTreeMap, BTreeSet},
-    std::collections::{hash_map::Entry::{Occupied as HmOccupied, Vacant as HmVacant}, HashMap}
+    std::collections::{hash_map::Entry::{Occupied as HmOccupied, Vacant as HmVacant}, HashMap, HashSet}
 };
 
 use super::{entity::Entity, query::QueryT};
+
+use dacho_mesh_c::MeshComponent;
 
 
 pub struct WorldComponent {
@@ -57,33 +59,47 @@ impl WorldComponent {
             }
         }
     }
+
+    pub fn mesh_updater(&self) -> impl Fn(*const MeshComponent) + use<'_> {
+        |ptr| {
+            // SAFETY: raw pointer dereference
+            unsafe { (*self.world).updated_meshes.insert(ptr); }
+
+            // SAFETY: raw pointer dereference
+            unsafe { (*self.world).meshes_updated = true; }
+        }
+    }
 }
 
 #[non_exhaustive]
 pub struct World {
-    pub entities:       HashMap<BTreeSet<TypeId>, (Vec<Entity>, Vec<Entity>)>,
-    pub query_matches:  HashMap<BTreeSet<TypeId>, Vec<BTreeSet<TypeId>>>,
-        moves:          HashMap<BTreeSet<TypeId>, BTreeMap<usize, HashMap<TypeId, bool>>>,
-    pub changed_sets:   (Vec<BTreeSet<TypeId>>, Vec<BTreeSet<TypeId>>),
-    pub meshes:         HashMap<u32, Vec<f32>>,
-    pub meshes_updated: bool
+    pub entities:        HashMap<BTreeSet<TypeId>, (Vec<Entity>, Vec<Entity>)>,
+    pub query_matches:   HashMap<BTreeSet<TypeId>, Vec<BTreeSet<TypeId>>>,
+        moves:           HashMap<BTreeSet<TypeId>, BTreeMap<usize, HashMap<TypeId, bool>>>,
+    pub changed_sets:    (Vec<BTreeSet<TypeId>>, Vec<BTreeSet<TypeId>>),
+    pub meshes:          HashMap<u32, Vec<f32>>,
+    pub meshes_updated:  bool,
+        updated_meshes:  HashSet<*const MeshComponent>,
+        mesh_id_counter: HashMap<u32, u32>
 }
 
 impl World {
     #[expect(clippy::new_without_default, reason = "default would be empty")]
     pub fn new() -> Self {
         Self {
-            entities:       HashMap::new(),
-            query_matches:  HashMap::new(),
-            moves:          HashMap::new(),
-            changed_sets:   (vec![], vec![]),
-            meshes:         HashMap::new(),
-            meshes_updated: false
+            entities:        HashMap::new(),
+            query_matches:   HashMap::new(),
+            moves:           HashMap::new(),
+            changed_sets:    (vec![], vec![]),
+            meshes:          HashMap::new(),
+            meshes_updated:  false,
+            updated_meshes:  HashSet::new(),
+            mesh_id_counter: HashMap::new()
         }
     }
 
-    fn check_for_meshes<T: QueryT>(&mut self, tuple: &T) {
-        let meshes = tuple.get_meshes();
+    fn check_for_meshes<T: QueryT>(&mut self, tuple: &mut T) {
+        let meshes = tuple.get_meshes(&mut self.mesh_id_counter);
 
         if !meshes.is_empty() {
             for (id, model_matrix) in meshes {
@@ -97,14 +113,28 @@ impl World {
         }
     }
 
+    #[expect(clippy::unwrap_used, reason = "guarded")]
     pub fn get_meshes(&mut self) -> &HashMap<u32, Vec<f32>> {
+        // SAFETY: raw pointer dereference, guarded in context by correct order of mesh work
+        unsafe {
+            for mesh in self.updated_meshes.drain() {
+                let i = ((*mesh).nth * 16) as usize;
+
+                self.meshes
+                    .get_mut(&(*mesh).id)
+                    .unwrap()
+                    [i..i+16]
+                    .copy_from_slice(&(*mesh).model_matrix.to_cols_array());
+            }
+        }
+
         self.meshes_updated = false;
 
         &self.meshes
     }
 
-    pub fn spawn<T: QueryT + 'static>(&mut self, tuple: T) {
-        self.check_for_meshes(&tuple);
+    pub fn spawn<T: QueryT + 'static>(&mut self, mut tuple: T) {
+        self.check_for_meshes(&mut tuple);
 
         self.entities
             .entry(T::get_set())
@@ -112,8 +142,8 @@ impl World {
             .0.push(Entity::new(tuple));
     }
 
-    fn insert<T: QueryT + 'static>(&mut self, tuple: T) {
-        self.check_for_meshes(&tuple);
+    fn insert<T: QueryT + 'static>(&mut self, mut tuple: T) {
+        self.check_for_meshes(&mut tuple);
 
         let set = T::get_set();
 

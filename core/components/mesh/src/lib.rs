@@ -55,6 +55,7 @@ pub struct MeshComponent {
     #[expect(dead_code, reason = "currently there is only the default shader")]
         shader:           String,
     pub id:               u32, // for instancing
+    pub nth:              u32, // for World operations
     pub model_matrix:     Mat4
 }
 
@@ -65,25 +66,29 @@ impl MeshComponent {
     ];
 
     #[inline]
-    pub fn move_by(&mut self, rhs: V3) {
+    pub fn move_by<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
         let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
 
         translation += rhs.reverse_y().to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn move_to(&mut self, rhs: V3) {
+    pub fn move_to<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
         let (scale, rotation, _) = self.model_matrix.to_scale_rotation_translation();
 
         let translation = rhs.reverse_y().to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn rotate_by(&mut self, axis_angle: V3) {
+    pub fn rotate_by<U: Fn(*const Self)>(&mut self, axis_angle: V3, updater: U) {
         let (scale, mut rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         let angles = V3::from_tuple(rotation.to_euler(EulerRot::XYZ)) + axis_angle;
@@ -91,53 +96,65 @@ impl MeshComponent {
         rotation = Quat::from_euler(EulerRot::XYZ, angles.x, angles.y, angles.z);
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn rotate_to(&mut self, euler_xyz: V3) {
+    pub fn rotate_to<U: Fn(*const Self)>(&mut self, euler_xyz: V3, updater: U) {
         let (scale, _, translation) = self.model_matrix.to_scale_rotation_translation();
 
         let rotation = Quat::from_euler(EulerRot::XYZ, euler_xyz.x, euler_xyz.y, euler_xyz.z);
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn mirror(&mut self, axis: V3) {
+    pub fn mirror<U: Fn(*const Self)>(&mut self, axis: V3, updater: U) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
-        if (axis.x - 1.0).abs() < f32::EPSILON { scale.x *= -1.0; }
-        if (axis.y - 1.0).abs() < f32::EPSILON { scale.y *= -1.0; }
-        if (axis.z - 1.0).abs() < f32::EPSILON { scale.z *= -1.0; }
+        if axis.x == 1.0 { scale.x = -scale.x; }
+        if axis.y == 1.0 { scale.y = -scale.y; }
+        if axis.z == 1.0 { scale.z = -scale.z; }
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn scale_by(&mut self, rhs: V3) {
+    pub fn scale_by<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         scale += rhs.to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn scale_mul(&mut self, rhs: V3) {
+    pub fn scale_mul<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         scale *= rhs.to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
-    pub fn scale_to(&mut self, rhs: V3) {
+    pub fn scale_to<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
         let (_, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         let scale = rhs.to_glam();
 
         self.model_matrix = Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+        updater(self);
     }
 
     #[inline]
@@ -151,7 +168,14 @@ impl MeshComponent {
             position.reverse_y().to_glam()
         );
 
-        Self { children_ids: vec![], parent_id_option: None, shader: String::from("default"), id, model_matrix }
+        Self {
+            children_ids:     vec![],
+            parent_id_option: None,
+            shader:           String::from("default"),
+            id,
+            nth:              0,
+            model_matrix
+        }
     }
 
     #[inline]
@@ -165,7 +189,14 @@ impl MeshComponent {
             position.reverse_y().to_glam()
         );
 
-        Self { children_ids: vec![], parent_id_option: None, shader: String::from("default"), id, model_matrix }
+        Self {
+            children_ids:     vec![],
+            parent_id_option: None,
+            shader:           String::from("default"),
+            id,
+            nth:              0,
+            model_matrix
+        }
     }
 }
 

@@ -103,7 +103,8 @@ pub trait QueryT {
 
     fn       get_set()      -> BTreeSet<TypeId>;
     fn to_components(self)  ->  HashMap<TypeId, Vec<Box<dyn Any>>>;
-    fn    get_meshes(&self) ->      Vec<(u32, [f32; 16])>;
+
+    fn get_meshes(&mut self, mesh_id_counter: &mut HashMap<u32, u32>) -> Vec<(u32, [f32; 16])>;
 
     /// # Safety
     ///
@@ -185,12 +186,16 @@ macro_rules! impl_query_t {
             }
 
             // could be just a ::CONST when Component is a Trait, made with a proc-macro
-            fn get_meshes(&self) -> Vec<(u32, [f32; 16])> {
+            fn get_meshes(&mut self, mesh_id_counter: &mut HashMap<u32, u32>) -> Vec<(u32, [f32; 16])> {
                 let mut vec = Vec::with_capacity($l);
 
                 $(
                     if TypeId::of::<$ty>() == MESH_TI {
-                        let mesh = (&self.$i as &dyn Any).downcast_ref::<MeshComponent>().unwrap();
+                        let mesh = (&mut self.$i as &mut dyn Any).downcast_mut::<MeshComponent>().unwrap();
+
+                        mesh.nth = *mesh_id_counter.entry(mesh.id)
+                            .and_modify(|count| *count += 1)
+                            .or_insert(0);
 
                         vec.push((mesh.id, mesh.model_matrix.to_cols_array()));
                     }
