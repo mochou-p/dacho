@@ -59,30 +59,53 @@ impl WorldComponent {
     }
 }
 
-// TODO: SoA, branchless
-//       or magic, i could make a derive proc-macro, and if it can store things,
-//       magic could help with contiguity (since the SoA problem is not knowing all user types)
-//       but can macros even expand in/into structs?
 #[non_exhaustive]
 pub struct World {
-    pub entities:      HashMap<BTreeSet<TypeId>, (Vec<Entity>, Vec<Entity>)>,
-    pub query_matches: HashMap<BTreeSet<TypeId>, Vec<BTreeSet<TypeId>>>,
-        moves:         HashMap<BTreeSet<TypeId>, BTreeMap<usize, HashMap<TypeId, bool>>>,
-    pub changed_sets:  (Vec<BTreeSet<TypeId>>, Vec<BTreeSet<TypeId>>)
+    pub entities:       HashMap<BTreeSet<TypeId>, (Vec<Entity>, Vec<Entity>)>,
+    pub query_matches:  HashMap<BTreeSet<TypeId>, Vec<BTreeSet<TypeId>>>,
+        moves:          HashMap<BTreeSet<TypeId>, BTreeMap<usize, HashMap<TypeId, bool>>>,
+    pub changed_sets:   (Vec<BTreeSet<TypeId>>, Vec<BTreeSet<TypeId>>),
+    pub meshes:         HashMap<u32, Vec<f32>>,
+    pub meshes_updated: bool
 }
 
 impl World {
     #[expect(clippy::new_without_default, reason = "default would be empty")]
     pub fn new() -> Self {
         Self {
-            entities:      HashMap::new(),
-            query_matches: HashMap::new(),
-            moves:         HashMap::new(),
-            changed_sets:  (vec![], vec![])
+            entities:       HashMap::new(),
+            query_matches:  HashMap::new(),
+            moves:          HashMap::new(),
+            changed_sets:   (vec![], vec![]),
+            meshes:         HashMap::new(),
+            meshes_updated: false
         }
     }
 
+    fn check_for_meshes<T: QueryT>(&mut self, tuple: &T) {
+        let meshes = tuple.get_meshes();
+
+        if !meshes.is_empty() {
+            for (id, model_matrix) in meshes {
+                self.meshes
+                    .entry(id)
+                    .and_modify(|vec| vec.extend(model_matrix))
+                    .or_insert(model_matrix.to_vec());
+
+                self.meshes_updated = true;
+            }
+        }
+    }
+
+    pub fn get_meshes(&mut self) -> &HashMap<u32, Vec<f32>> {
+        self.meshes_updated = false;
+
+        &self.meshes
+    }
+
     pub fn spawn<T: QueryT + 'static>(&mut self, tuple: T) {
+        self.check_for_meshes(&tuple);
+
         self.entities
             .entry(T::get_set())
             .or_insert((Vec::with_capacity(1), vec![]))
@@ -90,6 +113,8 @@ impl World {
     }
 
     fn insert<T: QueryT + 'static>(&mut self, tuple: T) {
+        self.check_for_meshes(&tuple);
+
         let set = T::get_set();
 
         self.entities

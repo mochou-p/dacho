@@ -196,7 +196,7 @@ impl ApplicationHandler for App {
                 Renderer::new(
                     event_loop,
                     window,
-                    vec![]
+                    self.world.get_meshes()
                 ).expect("failed to create a Renderer")
             );
         }
@@ -246,6 +246,12 @@ impl ApplicationHandler for App {
             },
             WindowEvent::RedrawRequested => {
                 if let Some(renderer) = &mut self.renderer {
+                    if self.world.meshes_updated {
+                        renderer.update_meshes(
+                            self.world.get_meshes()
+                        ).expect("failed to update meshes");
+                    }
+
                     renderer.redraw(self.timer.elapsed());
                 };
             },

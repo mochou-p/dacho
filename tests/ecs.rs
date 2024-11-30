@@ -201,7 +201,7 @@ mod tests {
             #[system]
             fn system(query: Query<u8>) {
                 assert_eq!(
-                    query.entities_iter()
+                    query.iter_entities()
                         .map(|entity| entity.iter_unchecked::<u8>().sum::<u8>())
                         .sum::<u8>(),
                     6
@@ -225,7 +225,7 @@ mod tests {
 
             #[system]
             fn system_1(query: Query<u8>) {
-                let numbers = unsafe { query.entities_iter_mut() }
+                let numbers = unsafe { query.iter_mut_entities() }
                     .flat_map(Entity::iter_mut_unchecked::<u8>);
 
                 for n in numbers {
@@ -236,7 +236,7 @@ mod tests {
             #[system]
             fn system_2(query: Query<u8>) {
                 assert_eq!(
-                    query.entities_iter()
+                    query.iter_entities()
                         .map(|entity| entity.iter_unchecked::<u8>().sum::<u8>())
                         .sum::<u8>(),
                     12
@@ -282,14 +282,14 @@ mod tests {
 
             #[system]
             fn system_1(query: Query<u8>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.remove_first::<u8>(q_world.first());
+                unsafe { query.first_mut_entity() }.remove_first::<u8>(q_world.first());
 
                 unsafe { N += 30; }
             }
 
             #[system]
             fn system_2(query: Query<u16>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.insert(0_u32, q_world.first());
+                unsafe { query.first_mut_entity() }.insert(0_u32, q_world.first());
 
                 unsafe { N += 1; }
             }
@@ -321,7 +321,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<bool>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert!( entity.has::<bool>());
                 assert!(!entity.has::<u128>());
@@ -341,7 +341,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<bool>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(entity.count::<bool>(), 3);
                 assert_eq!(entity.count::<u128>(), 0);
@@ -361,7 +361,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(*entity.first::<u8>().unwrap(), 20);
                 assert_eq!( entity.first::<i8>(),          None);
@@ -381,7 +381,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(*entity.first_unchecked::<u8>(), 20);
             }
@@ -401,7 +401,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 let _ = entity.first_unchecked::<i8>();
             }
@@ -420,14 +420,14 @@ mod tests {
 
             #[system]
             fn system_1(query: Query<u8>) {
-                let entity = unsafe { query.entity_first_mut() };
+                let entity = unsafe { query.first_mut_entity() };
 
                 *entity.first_mut::<u8>().unwrap() = 30;
             }
 
             #[system]
             fn system_2(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(*entity.first::<u8>().unwrap(), 30);
             }
@@ -447,14 +447,14 @@ mod tests {
 
             #[system]
             fn system_1(query: Query<u8>) {
-                let entity = unsafe { query.entity_first_mut() };
+                let entity = unsafe { query.first_mut_entity() };
 
                 *entity.first_mut_unchecked::<u8>() = 30;
             }
 
             #[system]
             fn system_2(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(*entity.first_unchecked::<u8>(), 30);
             }
@@ -475,7 +475,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = unsafe { query.entity_first_mut() };
+                let entity = unsafe { query.first_mut_entity() };
 
                 let _ = entity.first_mut_unchecked::<i8>();
             }
@@ -494,7 +494,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(entity.iter::<u8>().unwrap().sum::<u8>(), 3);
             }
@@ -513,7 +513,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(entity.iter_unchecked::<u8>().sum::<u8>(), 3);
             }
@@ -533,7 +533,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 let _ = entity.iter_unchecked::<i8>();
             }
@@ -552,7 +552,7 @@ mod tests {
 
             #[system]
             fn system_1(query: Query<u8>) {
-                let entity = unsafe { query.entity_first_mut() };
+                let entity = unsafe { query.first_mut_entity() };
 
                 for x in entity.iter_mut::<u8>().unwrap() {
                     *x *= 2;
@@ -561,7 +561,7 @@ mod tests {
 
             #[system]
             fn system_2(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(entity.iter::<u8>().unwrap().sum::<u8>(), 6);
             }
@@ -581,7 +581,7 @@ mod tests {
 
             #[system]
             fn system_1(query: Query<u8>) {
-                let entity = unsafe { query.entity_first_mut() };
+                let entity = unsafe { query.first_mut_entity() };
 
                 for x in entity.iter_mut_unchecked::<u8>() {
                     *x *= 2;
@@ -590,7 +590,7 @@ mod tests {
 
             #[system]
             fn system_2(query: Query<u8>) {
-                let entity = query.entity_first();
+                let entity = query.first_entity();
 
                 assert_eq!(entity.iter_unchecked::<u8>().sum::<u8>(), 6);
             }
@@ -611,7 +611,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>) {
-                let entity = unsafe { query.entity_first_mut() };
+                let entity = unsafe { query.first_mut_entity() };
 
                 let _ = entity.iter_mut_unchecked::<i8>();
             }
@@ -630,9 +630,9 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.insert(0_u8, q_world.first());
+                unsafe { query.first_mut_entity() }.insert(0_u8, q_world.first());
 
-                assert_eq!(query.entity_first().count::<u8>(), 2);
+                assert_eq!(query.first_entity().count::<u8>(), 2);
             }
 
             app.insert(system);
@@ -649,9 +649,9 @@ mod tests {
 
             #[system]
             fn system(query: Query<u8>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.insert_n::<u8, 5>(0, q_world.first());
+                unsafe { query.first_mut_entity() }.insert_n::<u8, 5>(0, q_world.first());
 
-                assert_eq!(query.entity_first().count::<u8>(), 6);
+                assert_eq!(query.first_entity().count::<u8>(), 6);
             }
 
             app.insert(system);
@@ -668,7 +668,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let n = unsafe { query.entity_first_mut() }.remove_first::<u8>(q_world.first()).unwrap();
+                let n = unsafe { query.first_mut_entity() }.remove_first::<u8>(q_world.first()).unwrap();
 
                 assert_eq!(n, 1);
             }
@@ -687,7 +687,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let n = unsafe { query.entity_first_mut() }.remove_first_unchecked::<u8>(q_world.first());
+                let n = unsafe { query.first_mut_entity() }.remove_first_unchecked::<u8>(q_world.first());
 
                 assert_eq!(n, 1);
             }
@@ -707,7 +707,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.remove_first_unchecked::<u32>(q_world.first());
+                unsafe { query.first_mut_entity() }.remove_first_unchecked::<u32>(q_world.first());
             }
 
             app.insert(system);
@@ -724,7 +724,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let n = unsafe { query.entity_first_mut() }.remove_nth::<u8>(1, q_world.first()).unwrap();
+                let n = unsafe { query.first_mut_entity() }.remove_nth::<u8>(1, q_world.first()).unwrap();
 
                 assert_eq!(n, 2);
             }
@@ -743,7 +743,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let n = unsafe { query.entity_first_mut() }.remove_nth_unchecked::<u8>(1, q_world.first());
+                let n = unsafe { query.first_mut_entity() }.remove_nth_unchecked::<u8>(1, q_world.first());
 
                 assert_eq!(n, 2);
             }
@@ -763,7 +763,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.remove_nth_unchecked::<u32>(1, q_world.first());
+                unsafe { query.first_mut_entity() }.remove_nth_unchecked::<u32>(1, q_world.first());
             }
 
             app.insert(system);
@@ -780,7 +780,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let n = unsafe { query.entity_first_mut() }.remove_last::<u8>(q_world.first()).unwrap();
+                let n = unsafe { query.first_mut_entity() }.remove_last::<u8>(q_world.first()).unwrap();
 
                 assert_eq!(n, 3);
             }
@@ -799,7 +799,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let n = unsafe { query.entity_first_mut() }.remove_last_unchecked::<u8>(q_world.first());
+                let n = unsafe { query.first_mut_entity() }.remove_last_unchecked::<u8>(q_world.first());
 
                 assert_eq!(n, 3);
             }
@@ -819,7 +819,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.remove_last_unchecked::<u32>(q_world.first());
+                unsafe { query.first_mut_entity() }.remove_last_unchecked::<u32>(q_world.first());
             }
 
             app.insert(system);
@@ -836,7 +836,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let nums = unsafe { query.entity_first_mut() }.remove_all::<u8>(q_world.first()).unwrap();
+                let nums = unsafe { query.first_mut_entity() }.remove_all::<u8>(q_world.first()).unwrap();
 
                 assert_eq!(nums.into_iter().sum::<u8>(), 6);
             }
@@ -855,7 +855,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                let nums = unsafe { query.entity_first_mut() }.remove_all_unchecked::<u8>(q_world.first());
+                let nums = unsafe { query.first_mut_entity() }.remove_all_unchecked::<u8>(q_world.first());
 
                 assert_eq!(nums.into_iter().sum::<u8>(), 6);
             }
@@ -875,7 +875,7 @@ mod tests {
 
             #[system]
             fn system(query: Query<(u8, u16)>, q_world: Query<WorldComponent>) {
-                unsafe { query.entity_first_mut() }.remove_all_unchecked::<u32>(q_world.first());
+                unsafe { query.first_mut_entity() }.remove_all_unchecked::<u32>(q_world.first());
             }
 
             app.insert(system);

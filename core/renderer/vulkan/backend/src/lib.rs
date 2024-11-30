@@ -72,7 +72,7 @@ impl Renderer {
     pub fn new(
         event_loop:     &ActiveEventLoop,
         window:         &Window,
-        mesh_instances:  Vec<(u32, Vec<f32>)>
+        mesh_instances: &HashMap<u32, Vec<f32>>
     ) -> Result<Self> {
         create_log!(info);
 
@@ -148,7 +148,7 @@ impl Renderer {
         render_pass:           &RenderPass,
         width:                  u16,
         height:                 u16,
-        mesh_instances:         Vec<(u32, Vec<f32>)>
+        mesh_instances:        &HashMap<u32, Vec<f32>>
     ) -> Result<HashMap::<String, Pipeline>> {
         log!(info, "Preparing Meshes");
 
@@ -160,12 +160,12 @@ impl Renderer {
         let mut shader_info_cache = HashMap::new();
 
         for mi in mesh_instances {
-            let mut data   = MeshComponent::BUILDERS[mi.0 as usize]();
-            data.instances = mi.1;
+            let mut data   = MeshComponent::BUILDERS[*mi.0 as usize]();
+            data.instances = mi.1.to_vec();
 
             let geometry = Geometry::new(instance, physical_device, device, command_pool, &mut data, &mut shader_info_cache)?;
 
-            geometries.insert(mi.0, geometry);
+            geometries.insert(*mi.0, geometry);
         }
 
         log!(info, "Creating Pipelines");
@@ -185,36 +185,36 @@ impl Renderer {
         self.device.wait();
     }
 
-    pub fn update_meshes(&mut self, updated_meshes: Vec<(u32, Vec<f32>)>) -> Result<()> {
+    pub fn update_meshes(&mut self, updated_meshes: &HashMap<u32, Vec<f32>>) -> Result<()> {
         if updated_meshes.is_empty() {
             return Ok(());
         }
 
         let pipeline = self.pipelines.get_mut("default").expect("failed to get the default pipeline");
 
-        for (mesh_id, mut instances) in updated_meshes {
+        for (mesh_id, instances) in updated_meshes {
             if instances.is_empty() {
-                if let Some(geometry) = pipeline.geometries.remove(&mesh_id) {
+                if let Some(geometry) = pipeline.geometries.remove(mesh_id) {
                     geometry.drop(&self.device);
                 }
 
                 continue;
             }
 
-            let geometry_option = pipeline.geometries.get_mut(&mesh_id);
+            let geometry_option = pipeline.geometries.get_mut(mesh_id);
 
             if let Some(geometry) = geometry_option {
                 geometry.instance_buffer.drop(&self.device);
-                geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, &mut instances)?;
+                geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, instances)?;
                 geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 => temp for the default shader
             } else {
-                let mut data   = MeshComponent::BUILDERS[mesh_id as usize]();
-                data.instances = instances;
+                let mut data   = MeshComponent::BUILDERS[*mesh_id as usize]();
+                data.instances = instances.to_vec();
 
                 //                                                                                                               ~~~~ temp ~~~~~~~~~
                 let geometry = Geometry::new(&self.instance, &self.physical_device, &self.device, &self.command_pool, &mut data, &mut HashMap::new())?;
 
-                pipeline.geometries.insert(mesh_id, geometry);
+                pipeline.geometries.insert(*mesh_id, geometry);
             }
         }
 

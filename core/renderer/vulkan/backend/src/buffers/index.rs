@@ -21,10 +21,10 @@ impl IndexBuffer {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        indices:         &mut [u32]
+        indices:         &[u32]
     ) -> Result<Buffer> {
         let index_buffer = {
-            let data        = indices.as_mut_ptr() as *mut c_void;
+            let data        = indices.as_ptr() as *const c_void;
             let buffer_size = size_of_val(indices) as u64;
             let buffer_type = vk::BufferUsageFlags::INDEX_BUFFER;
 

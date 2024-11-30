@@ -21,7 +21,7 @@ impl StagingBuffer {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        data:            *mut c_void,
+        data:            *const c_void,
         buffer_size:      u64,
         buffer_type:      vk::BufferUsageFlags
     ) -> Result<Buffer> {

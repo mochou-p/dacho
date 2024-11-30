@@ -73,9 +73,9 @@ impl Geometry {
                 .instance_size
         )?;
 
-        let   vertex_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &mut data.vertices )?;
-        let instance_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &mut data.instances)?;
-        let    index_buffer =  IndexBuffer::new_buffer(instance, physical_device, device, command_pool, &mut data.indices  )?;
+        let   vertex_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &data.vertices )?;
+        let instance_buffer = VertexBuffer::new_buffer(instance, physical_device, device, command_pool, &data.instances)?;
+        let    index_buffer =  IndexBuffer::new_buffer(instance, physical_device, device, command_pool, &data.indices  )?;
 
         Ok(Self { shader, id, vertex_buffer, instance_buffer, index_buffer, index_count, instance_count })
     }

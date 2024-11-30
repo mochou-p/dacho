@@ -21,10 +21,10 @@ impl VertexBuffer {
         physical_device: &PhysicalDevice,
         device:          &Device,
         command_pool:    &CommandPool,
-        vertices:        &mut [f32]
+        vertices:        &[f32]
     ) -> Result<Buffer> {
         let vertex_buffer = {
-            let data        = vertices.as_mut_ptr() as *mut c_void;
+            let data        = vertices.as_ptr() as *const c_void;
             let buffer_size = size_of_val(vertices) as u64;
             let buffer_type = vk::BufferUsageFlags::VERTEX_BUFFER;
 
