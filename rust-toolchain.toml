@@ -1,5 +1,6 @@
 # dacho/rust-toolchain.toml
 
 [toolchain]
-channel = "nightly"
+channel = "nightly-2024-12-18"
+profile = "minimal"
 

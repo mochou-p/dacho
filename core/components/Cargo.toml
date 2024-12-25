@@ -4,14 +4,11 @@
 name         = "dacho-components"
 
 edition      = "2021"
-rust-version = "1.84.0"
+rust-version = "1.85.0"
 
 authors      = ["mochou-p"]
 license      = "MIT OR Apache-2.0"
 
 [dependencies]
-dacho-input-c = { path = "input" }
 dacho-mesh-c  = { path = "mesh"  }
-dacho-time-c  = { path = "time"  }
-dacho-world-c = { path = "world" }
 

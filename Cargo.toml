@@ -5,7 +5,7 @@ name         = "dacho"
 version      = "0.2.0"
 
 edition      = "2021"
-rust-version = "1.84.0"
+rust-version = "1.85.0"
 
 authors      = ["mochou-p"]
 description  = "ECS Game Engine"
@@ -20,10 +20,7 @@ categories   = ["game-development", "game-engines", "graphics", "rendering", "re
 members = [
     "core/app",
     "core/components",
-    "core/components/input",
     "core/components/mesh",
-    "core/components/time",
-    "core/components/world",
     "core/ecs",
     "core/log",
     "core/renderer",
@@ -60,7 +57,7 @@ codegen-units = 1
 
 [lints.clippy]
 all      = "forbid"
-pedantic = "deny"
+pedantic = "forbid"
 nursery  = "forbid"
 cargo    = "deny"
 

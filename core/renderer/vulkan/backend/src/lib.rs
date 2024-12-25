@@ -70,9 +70,8 @@ pub struct Renderer {
 
 impl Renderer {
     pub fn new(
-        event_loop:     &ActiveEventLoop,
-        window:         &Window,
-        mesh_instances: &HashMap<u32, Vec<f32>>
+        event_loop: &ActiveEventLoop,
+        window:     &Window
     ) -> Result<Self> {
         create_log!(info);
 
@@ -91,20 +90,7 @@ impl Renderer {
         let descriptor_pool       = DescriptorPool      ::new(&device)?;
         let descriptor_set        = DescriptorSet       ::new(&device, &descriptor_pool, &descriptor_set_layout, &ubo)?;
         let command_buffers       = CommandBuffers      ::new(&command_pool, &swapchain, &device)?;
-
-        let pipelines = Self::geometry(
-            &instance,
-            &physical_device,
-            &device,
-            &command_pool,
-            &descriptor_set_layout,
-            &render_pass,
-            window.width,
-            window.height,
-            mesh_instances
-        )?;
-
-        log!(debug, "Recording Commands");
+        let pipelines             = HashMap             ::new();
 
         command_buffers.record(
             &device,
@@ -138,83 +124,30 @@ impl Renderer {
         )
     }
 
-    #[expect(clippy::too_many_arguments, reason = "stuff around renderer is bulky rn")]
-    fn geometry(
-        instance:              &Instance,
-        physical_device:       &PhysicalDevice,
-        device:                &Device,
-        command_pool:          &CommandPool,
-        descriptor_set_layout: &DescriptorSetLayout,
-        render_pass:           &RenderPass,
-        width:                  u16,
-        height:                 u16,
-        mesh_instances:        &HashMap<u32, Vec<f32>>
-    ) -> Result<HashMap::<String, Pipeline>> {
-        log!(info, "Preparing Meshes");
+    // temporarily just replacing all data instead of updating/removing
+    pub fn update_meshes(&mut self, meshes: &HashMap<u32, Vec<f32>>) -> Result<()> {
+        let pipeline = self.pipelines.entry(String::from("default"))
+            .or_insert_with(|| Pipeline::default(&self.device, &self.descriptor_set_layout, 1600, 900, &self.render_pass).expect(""));
 
-        if mesh_instances.is_empty() {
-            return Ok(HashMap::new());
-        }
+        for (id, vertices) in meshes {
+            match pipeline.geometries.get_mut(id) {
+                Some(geometry) => {
+                    geometry.instance_buffer.drop(&self.device);
+                    geometry.instance_buffer = VertexBuffer::new_buffer(
+                        &self.instance, &self.physical_device, &self.device, &self.command_pool, vertices
+                    )?;
+                    geometry.instance_count = u32::try_from(vertices.len() / 16)?;
+                },
+                _ => {
+                    let mut data   = MeshComponent::BUILDERS[*id as usize]();
+                    data.instances = vertices.to_vec();
 
-        let mut geometries        = HashMap::new();
-        let mut shader_info_cache = HashMap::new();
-
-        for mi in mesh_instances {
-            let mut data   = MeshComponent::BUILDERS[*mi.0 as usize]();
-            data.instances = mi.1.to_vec();
-
-            let geometry = Geometry::new(instance, physical_device, device, command_pool, &mut data, &mut shader_info_cache)?;
-
-            geometries.insert(*mi.0, geometry);
-        }
-
-        log!(info, "Creating Pipelines");
-
-        let     shader_info = shader_info_cache.get("default").expect("failed to find the default shader");
-        let mut pipeline    = Pipeline::new(device, descriptor_set_layout, width, height, render_pass, shader_info)?;
-        pipeline.geometries = geometries;
-
-        let mut pipelines = HashMap::new();
-        pipelines.insert(String::from("default"), pipeline);
-
-        Ok(pipelines)
-    }
-
-    #[inline]
-    pub fn wait_for_device(&self) {
-        self.device.wait();
-    }
-
-    pub fn update_meshes(&mut self, updated_meshes: &HashMap<u32, Vec<f32>>) -> Result<()> {
-        if updated_meshes.is_empty() {
-            return Ok(());
-        }
-
-        let pipeline = self.pipelines.get_mut("default").expect("failed to get the default pipeline");
-
-        for (mesh_id, instances) in updated_meshes {
-            if instances.is_empty() {
-                if let Some(geometry) = pipeline.geometries.remove(mesh_id) {
-                    geometry.drop(&self.device);
+                    pipeline.geometries.insert(*id, Geometry::new(
+                        &self.instance, &self.physical_device, &self.device, &self.command_pool,
+                        &mut data,
+                        &mut HashMap::new()
+                    )?);
                 }
-
-                continue;
-            }
-
-            let geometry_option = pipeline.geometries.get_mut(mesh_id);
-
-            if let Some(geometry) = geometry_option {
-                geometry.instance_buffer.drop(&self.device);
-                geometry.instance_buffer = VertexBuffer::new_buffer(&self.instance, &self.physical_device, &self.device, &self.command_pool, instances)?;
-                geometry.instance_count  = u32::try_from(instances.len() / 16)?; // / 16 => temp for the default shader
-            } else {
-                let mut data   = MeshComponent::BUILDERS[*mesh_id as usize]();
-                data.instances = instances.to_vec();
-
-                //                                                                                                               ~~~~ temp ~~~~~~~~~
-                let geometry = Geometry::new(&self.instance, &self.physical_device, &self.device, &self.command_pool, &mut data, &mut HashMap::new())?;
-
-                pipeline.geometries.insert(*mesh_id, geometry);
             }
         }
 
@@ -230,6 +163,11 @@ impl Renderer {
         Ok(())
     }
 
+    #[inline]
+    pub fn wait_for_device(&self) {
+        self.device.wait();
+    }
+
     pub fn redraw(&mut self, time: f32) {
         let (image_index, _) = unsafe {
             self.swapchain.loader
@@ -239,8 +177,7 @@ impl Renderer {
                     self.swapchain.images_available[self.swapchain.current_image],
                     vk::Fence::null()
                 )
-        }
-            .expect("Acquiring next image failed");
+        }.expect("Acquiring next image failed");
 
         UniformBufferObject::update(
             self.ubo_mapped,
@@ -253,15 +190,13 @@ impl Renderer {
                 true,
                 u64::MAX
             )
-        }
-            .expect("Waiting for fences failed");
+        }.expect("Waiting for fences failed");
 
         unsafe {
             self.device.raw.reset_fences(
                 &[self.swapchain.may_begin_drawing[self.swapchain.current_image]]
             )
-        }
-            .expect("Resetting fences failed");
+        }.expect("Resetting fences failed");
 
         let semaphores_available = [self.swapchain.images_available[self.swapchain.current_image]];
         let waiting_stages       = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT              ];
@@ -280,8 +215,7 @@ impl Renderer {
                 &[*submit_info],
                 self.swapchain.may_begin_drawing[self.swapchain.current_image]
             )
-        }
-            .expect("Submitting queue failed");
+        }.expect("Submitting queue failed");
 
         let swapchains    = [self.swapchain.raw];
         let image_indices = [image_index];
@@ -296,8 +230,7 @@ impl Renderer {
                 self.device.queue,
                 &present_info
             )
-        }
-            .expect("Presenting queue failed");
+        }.expect("Presenting queue failed");
 
         self.swapchain.current_image =
             (self.swapchain.current_image + 1)

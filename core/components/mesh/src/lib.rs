@@ -65,8 +65,16 @@ impl MeshComponent {
         &planar::circle ::mesh
     ];
 
+    // temp
     #[inline]
-    pub fn move_by<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
+    #[must_use]
+    pub fn pos(&self) -> V3 {
+        let v3 = self.model_matrix.to_scale_rotation_translation().2;
+        V3::new(v3.x, v3.y, v3.z)
+    }
+
+    #[inline]
+    pub fn move_by<U: Fn(*mut Self)>(&mut self, rhs: V3, updater: U) {
         let (scale, rotation, mut translation) = self.model_matrix.to_scale_rotation_translation();
 
         translation += rhs.reverse_y().to_glam();
@@ -77,7 +85,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn move_to<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
+    pub fn move_to<U: Fn(*mut Self)>(&mut self, rhs: V3, updater: U) {
         let (scale, rotation, _) = self.model_matrix.to_scale_rotation_translation();
 
         let translation = rhs.reverse_y().to_glam();
@@ -88,7 +96,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn rotate_by<U: Fn(*const Self)>(&mut self, axis_angle: V3, updater: U) {
+    pub fn rotate_by<U: Fn(*mut Self)>(&mut self, axis_angle: V3, updater: U) {
         let (scale, mut rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         let angles = V3::from_tuple(rotation.to_euler(EulerRot::XYZ)) + axis_angle;
@@ -101,7 +109,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn rotate_to<U: Fn(*const Self)>(&mut self, euler_xyz: V3, updater: U) {
+    pub fn rotate_to<U: Fn(*mut Self)>(&mut self, euler_xyz: V3, updater: U) {
         let (scale, _, translation) = self.model_matrix.to_scale_rotation_translation();
 
         let rotation = Quat::from_euler(EulerRot::XYZ, euler_xyz.x, euler_xyz.y, euler_xyz.z);
@@ -112,7 +120,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn mirror<U: Fn(*const Self)>(&mut self, axis: V3, updater: U) {
+    pub fn mirror<U: Fn(*mut Self)>(&mut self, axis: V3, updater: U) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         if axis.x == 1.0 { scale.x = -scale.x; }
@@ -125,7 +133,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn scale_by<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
+    pub fn scale_by<U: Fn(*mut Self)>(&mut self, rhs: V3, updater: U) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         scale += rhs.to_glam();
@@ -136,7 +144,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn scale_mul<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
+    pub fn scale_mul<U: Fn(*mut Self)>(&mut self, rhs: V3, updater: U) {
         let (mut scale, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         scale *= rhs.to_glam();
@@ -147,7 +155,7 @@ impl MeshComponent {
     }
 
     #[inline]
-    pub fn scale_to<U: Fn(*const Self)>(&mut self, rhs: V3, updater: U) {
+    pub fn scale_to<U: Fn(*mut Self)>(&mut self, rhs: V3, updater: U) {
         let (_, rotation, translation) = self.model_matrix.to_scale_rotation_translation();
 
         let scale = rhs.to_glam();

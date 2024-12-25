@@ -203,6 +203,17 @@ impl Pipeline {
         Ok(Self { raw, name, layout, geometries: HashMap::new() })
     }
 
+    #[inline]
+    pub fn default(
+        device:                &Device,
+        descriptor_set_layout: &DescriptorSetLayout,
+        width:                  u16,
+        height:                 u16,
+        render_pass:           &RenderPass
+    ) -> Result<Self> {
+        Self::new(device, descriptor_set_layout, width, height, render_pass, &ShaderInfo::default())
+    }
+
     pub fn commands_multiple(pipelines: &HashMap<String, Self>) -> Vec<Command> {
         let mut commands   = Vec::new();
         let mut first_iter = true;

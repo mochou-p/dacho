@@ -34,6 +34,28 @@ pub struct ShaderInfo {
     pub instance_size: usize
 }
 
+impl Default for ShaderInfo {
+    fn default() -> Self {
+        let (vertex_info, instance_info) = {
+            use Type::*;
+
+            (
+                vec![Vec3, Vec3],
+                vec![Vec4, Vec4, Vec4, Vec4]
+            )
+        };
+
+        Self {
+            name:          String::from("default"),
+            cull_mode:     vk::CullModeFlags::FRONT,
+            polygon_mode:  vk::PolygonMode::FILL,
+            vertex_info,
+            instance_info,
+            instance_size: 0
+        }
+    }
+}
+
 const fn type_to_size(kind: Type) -> usize {
     match kind {
         Type::Float  =>      size_of::<f32>(),

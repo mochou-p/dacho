@@ -24,9 +24,11 @@
             openssl
             pkg-config
             (
-              rust-bin.selectLatestNightlyWith (toolchain: toolchain.default.override {
+              rust-bin.selectLatestNightlyWith (toolchain: toolchain.minimal.override {
                 extensions = [
+                  "clippy-preview"
                   "rust-analyzer-preview"
+                  "rust-src"
                   "rustc-codegen-cranelift-preview"
                 ];
               })
