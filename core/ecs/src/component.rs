@@ -5,20 +5,31 @@ use std::collections::HashMap;
 use super::entity::EntityIndex;
 
 
-pub(crate) type ComponentId      = u32;
-pub(crate) type ComponentMask    = u32;
-           type ComponentIndex   = usize;
-pub(crate) type Components       = HashMap<ComponentId, Vec<(EntityIndex, Box<dyn Component>)>>;
-pub(crate) type ComponentIndices = HashMap<ComponentId, Vec<ComponentIndex>>;
+pub type ComponentId      = u32;
+pub type ComponentMask    = u32;
+pub type ComponentIndex   = (ComponentMask, usize);
+pub type ComponentIndices = HashMap<ComponentMask, Vec<usize>>;
+pub type Components       = HashMap<ComponentMask, Vec<(EntityIndex, Box<dyn ComponentGroup>)>>;
 
 pub trait Component {
-    fn id() -> ComponentId where Self: Sized;
+    fn id() -> ComponentId;
 }
 
 pub trait ComponentGroup {
-    fn mask() -> ComponentMask;
+    fn mask() -> ComponentMask where Self: Sized;
 
-    fn insert_and_into_indices(self, owner: EntityIndex, map: &mut Components) -> ComponentIndices;
+    fn insert_and_into_index(self, owner: EntityIndex, map: &mut Components) -> ComponentIndex
+    where
+        Self: Sized + 'static
+    {
+        let mask = Self::mask();
+        let vec  = map.entry(mask)
+            .or_insert(Vec::with_capacity(16));
+
+        vec.push((owner, Box::new(self)));
+
+        (mask, vec.len() - 1)
+    }
 }
 
 impl<C> ComponentGroup for C
@@ -29,22 +40,6 @@ where
     #[must_use]
     fn mask() -> ComponentMask {
         1 << C::id()
-    }
-
-    #[expect(clippy::unwrap_used, reason = "never None")]
-    #[must_use]
-    fn insert_and_into_indices(self, owner: EntityIndex, map: &mut Components) -> ComponentIndices {
-        let     id      = C::id();
-        let mut indices = HashMap::from([(id, Vec::with_capacity(1))]);
-
-        let vec = map.entry(id)
-            .or_insert(Vec::with_capacity(16));
-
-        vec.push((owner, Box::new(self)));
-
-        indices.get_mut(&id).unwrap().push(vec.len() - 1);
-
-        indices
     }
 }
 
@@ -58,26 +53,6 @@ macro_rules! impl_component_group_for_tuple {
             #[must_use]
             fn mask() -> ComponentMask {
                 0 $(| 1 << $ty::id())+
-            }
-
-            #[must_use]
-            fn insert_and_into_indices(self, owner: EntityIndex, map: &mut Components) -> ComponentIndices {
-                let ids = [$($ty::id()),+];
-
-                let mut indices = HashMap::from([
-                    $((ids[$i], Vec::with_capacity(1))),+
-                ]);
-
-                $(
-                    let vec = map.entry(ids[$i])
-                        .or_insert(Vec::with_capacity(16));
-
-                    vec.push((owner, Box::new(self.$i)));
-
-                    indices.get_mut(&ids[$i]).unwrap().push(vec.len() - 1);
-                )+
-
-                indices
             }
         }
     }

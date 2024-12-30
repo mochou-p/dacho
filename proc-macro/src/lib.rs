@@ -8,7 +8,8 @@ use {
     syn::{DeriveInput, FnArg, ItemFn, Pat, Type, PathArguments, GenericArgument, parse2, parse_macro_input}
 };
 
-static mut COMPONENT_ID: u32 = 0;
+// TODO: refactor this to not require manual updates
+static mut COMPONENT_ID: u32 = 1; // amount of built-in components
 
 
 #[proc_macro_derive(Component)]

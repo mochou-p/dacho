@@ -6,5 +6,10 @@ mod query;
 mod system;
 mod world;
 
-pub use {component::Component, query::Query, system::{Arguments, System}, world::World};
+pub use {
+    component::Component,
+    query::Query,
+    system::{Arguments, System},
+    world::{World, WorldComponent}
+};
 

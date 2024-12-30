@@ -10,7 +10,7 @@ authors      = ["mochou-p"]
 license      = "MIT OR Apache-2.0"
 
 [dependencies]
-dacho-log    = { path = "../log"             }
-dacho-mesh-c = { path = "../components/mesh" }
-dacho-types  = { path = "../types"           }
+dacho-log        = { path = "../log"             }
+dacho-mesh-c     = { path = "../components/mesh" }
+dacho-types      = { path = "../types"           }
 

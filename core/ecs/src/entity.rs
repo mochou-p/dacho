@@ -16,11 +16,19 @@ pub struct Entity {
 impl Entity {
     #[inline]
     #[must_use]
-    pub(crate) fn from<CG>(component_group: CG, index: EntityIndex, components: &mut Components) -> Self
+    pub(crate) fn from<CG>(component_group: CG, self_i: EntityIndex, components: &mut Components) -> Self
     where
-        CG: ComponentGroup
+        CG: ComponentGroup + 'static
     {
-        Self { _component_indices: component_group.insert_and_into_indices(index, components) }
+        let (mask, index) = component_group.insert_and_into_index(self_i, components);
+        let mut indices   = Vec::with_capacity(16);
+        indices.push(index);
+
+        Self {
+            _component_indices: ComponentIndices::from([
+                (mask, indices)
+            ])
+        }
     }
 }
 

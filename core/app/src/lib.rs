@@ -12,7 +12,7 @@ use winit::{
 };
 
 use {
-    dacho_ecs::{Arguments, System, World},
+    dacho_ecs::{Arguments, System, World, WorldComponent},
     dacho_renderer::Renderer,
     dacho_window::Window
 };
@@ -21,10 +21,10 @@ pub use winit::keyboard::KeyCode;
 
 
 pub struct App {
-        title:     String,
-    pub world:     Pin<Box<World>>,
-        window:    Option<Window>,
-        renderer:  Option<Renderer>
+        title:    String,
+    pub world:    Pin<Box<World>>,
+        window:   Option<Window>,
+        renderer: Option<Renderer>
 }
 
 impl App {
@@ -40,12 +40,13 @@ impl App {
         }
     }
 
-    pub fn add<S, A>(&self, _system: S)
+    #[inline]
+    pub fn add<S, A>(&mut self, system: S)
     where
         S: System<A>,
         A: Arguments
     {
-        //
+        self.world.add_system(system);
     }
 
     #[tokio::main]
@@ -53,6 +54,11 @@ impl App {
     pub async fn run(mut self) {
         let event_loop = EventLoop::new()
             .expect("failed to create an EventLoop");
+
+        {
+            let world_ptr = Pin::<&mut _>::into_inner(self.world.as_mut()) as *mut _;
+            self.world.add(WorldComponent::new(world_ptr));
+        }
 
         event_loop.set_control_flow(Poll);
         event_loop.run_app(&mut self).expect("failed to run the app in event loop");
@@ -77,6 +83,8 @@ impl ApplicationHandler for App {
     }
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        self.world.run_systems();
+
         self.renderer.as_ref().unwrap().wait_for_device();
         self.window.as_ref().unwrap().request_redraw();
     }
