@@ -26,9 +26,9 @@ impl SystemT {
         S: System<A>,
         A: Arguments
     {
-        let     masks   = S::masks();
-        let     total   = masks.len() as u8;
-        let mut ready   = 0;
+        let     masks = S::masks();
+        let     total = masks.len() as u8;
+        let mut ready = 0;
 
         masks.iter()
             .for_each(|mask| {
@@ -117,6 +117,8 @@ macro_rules! impl_system_for_tuple {
             #[inline]
             #[must_use]
             fn shapeshift(self, world: *mut World) -> StoredSystem {
+                $($ty::validate();)+
+
                 Box::new(move || {
                     self($(&$ty::pes(world)),+);
                 })

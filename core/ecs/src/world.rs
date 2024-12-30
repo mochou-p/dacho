@@ -68,6 +68,8 @@ impl World {
     where
         CG: ComponentGroup + 'static
     {
+        CG::validate();
+
         let entity = Entity::from(component_group, self.entities.len(), &mut self.components);
         let mask   = CG::mask();
 

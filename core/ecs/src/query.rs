@@ -32,6 +32,7 @@ where
 }
 
 pub trait QueryMarker: Sized {
+    fn validate();
     fn mask() -> ComponentMask;
     fn pes(world: *mut World) -> Self;
 }
@@ -40,6 +41,11 @@ impl<CG> QueryMarker for Query<CG>
 where
     CG: ComponentGroup
 {
+    #[inline]
+    fn validate() {
+        CG::validate();
+    }
+
     #[inline]
     #[must_use]
     fn mask() -> ComponentMask {
