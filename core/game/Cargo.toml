@@ -1,7 +1,7 @@
-# dacho/core/app/Cargo.toml
+# dacho/core/game/Cargo.toml
 
 [package]
-name         = "dacho-app"
+name         = "dacho-game"
 
 edition      = "2021"
 rust-version = "1.85.0"
@@ -11,11 +11,10 @@ license      = "MIT OR Apache-2.0"
 
 [dependencies]
 dacho-components = { path = "../components" }
-dacho-ecs        = { path = "../ecs"        }
 dacho-log        = { path = "../log"        }
 dacho-renderer   = { path = "../renderer"   }
 dacho-window     = { path = "../window"     }
 
 tokio = { version = "1.38.1", default-features = false, features = ["rt", "rt-multi-thread", "macros"] }
-winit = { version = "0.30.4",                           features = ["rwh_05"]                          }
+winit = "0.30.4"
 

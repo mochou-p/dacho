@@ -1,14 +1,11 @@
 // dacho/core/components/mesh/src/lib.rs
 
 mod planar;
-// mod spatial;
 
 use {
     ash::vk,
-    glam::{EulerRot, f32::{Mat4, Quat, Vec3}}
+    glam::f32::{Mat4, Quat, Vec2, Vec3}
 };
-
-use dacho_types::{V2, V3};
 
 
 type MeshBuilder = dyn Fn() -> GeometryData;
@@ -49,7 +46,7 @@ impl GeometryData {
 }
 
 #[non_exhaustive]
-pub struct MeshComponent {
+pub struct Mesh {
     pub children_ids:     Vec<u32>,
     pub parent_id_option: Option<u32>,
     #[expect(dead_code, reason = "currently there is only the default shader")]
@@ -59,13 +56,13 @@ pub struct MeshComponent {
     pub model_matrix:     Mat4
 }
 
-impl MeshComponent {
+impl Mesh {
     pub const BUILDERS: [&'static MeshBuilder; 2] = [
         &planar::quad   ::mesh,
         &planar::circle ::mesh
     ];
 
-    // temp
+/*
     #[inline]
     #[must_use]
     pub fn pos(&self) -> V3 {
@@ -164,16 +161,17 @@ impl MeshComponent {
 
         updater(self);
     }
+*/
 
     #[inline]
     #[must_use]
-    pub fn quad(position: V3, size: V2) -> Self {
+    pub fn quad(position: Vec3, size: Vec2) -> Self {
         let id = 0;
 
         let model_matrix = Mat4::from_scale_rotation_translation(
-            (size * 0.5).to_glam().extend(1.0),
+            size.extend(1.0),
             Quat::IDENTITY,
-            position.reverse_y().to_glam()
+            position
         );
 
         Self {
@@ -188,13 +186,13 @@ impl MeshComponent {
 
     #[inline]
     #[must_use]
-    pub fn circle(position: V3, radius: f32) -> Self {
+    pub fn circle(position: Vec3, radius: f32) -> Self {
         let id = 1;
 
         let model_matrix = Mat4::from_scale_rotation_translation(
-            Vec3::new(radius, radius, 1.0),
+            Vec3 { x: radius, y: radius, z: 1.0 },
             Quat::IDENTITY,
-            position.reverse_y().to_glam()
+            position
         );
 
         Self {

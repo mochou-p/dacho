@@ -36,7 +36,7 @@ use {
 
 use {
     dacho_window::Window,
-    dacho_mesh_c::MeshComponent,
+    dacho_mesh_c::Mesh,
     dacho_log::{log, create_log, destroy_log}
 };
 
@@ -139,7 +139,7 @@ impl Renderer {
                     geometry.instance_count = u32::try_from(vertices.len() / 16)?;
                 },
                 _ => {
-                    let mut data   = MeshComponent::BUILDERS[*id as usize]();
+                    let mut data   = Mesh::BUILDERS[*id as usize]();
                     data.instances = vertices.to_vec();
 
                     pipeline.geometries.insert(*id, Geometry::new(

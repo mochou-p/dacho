@@ -70,7 +70,7 @@ impl Swapchain {
                 .pre_transform(surface_capabilities.current_transform)
                 .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
                 .present_mode(vk::PresentModeKHR::FIFO);
-    
+
             (
                 unsafe { loader.create_swapchain(&create_info, None) }?,
                 extent

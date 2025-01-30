@@ -18,19 +18,16 @@ categories   = ["game-development", "game-engines", "graphics", "rendering", "re
 
 [workspace]
 members = [
-    "core/app",
     "core/components",
     "core/components/mesh",
-    "core/ecs",
+    "core/game",
     "core/log",
     "core/renderer",
     "core/renderer/vulkan/backend",
     "core/renderer/vulkan/validation",
     "core/shader",
     "core/shader/wgsl",
-    "core/types",
-    "core/window",
-    "proc-macro"
+    "core/window"
 ]
 
 [features]
@@ -41,13 +38,13 @@ vulkan-validation = ["dacho-renderer/vulkan-validation"]
 wgsl              = ["dacho-shader/wgsl"]
 
 [dependencies]
-dacho-app        = { path = "core/app"        }
 dacho-components = { path = "core/components" }
-dacho-ecs        = { path = "core/ecs"        }
+dacho-game       = { path = "core/game"       }
 dacho-renderer   = { path = "core/renderer"   }
 dacho-shader     = { path = "core/shader"     }
-dacho-types      = { path = "core/types"      }
-dacho-proc-macro = { path = "proc-macro"      }
+
+glam  = { version = "0.29.2", default-features = false, features = ["std"] }
+winit = "0.30.4"
 
 [profile.release]
 strip         = "symbols"

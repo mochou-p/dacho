@@ -4,14 +4,14 @@ use ash::vk;
 
 use crate::GeometryData;
 
-use dacho_types::V3;
+use glam::Vec3;
 
 
 pub fn mesh() -> GeometryData {
     let id     = 1;
 
     #[expect(clippy::min_ident_chars, reason = "save chars")]
-    let p      = V3::ZERO;
+    let p      = Vec3::ZERO;
     let radius = 0.5;
     let points = 50_u16;
 

@@ -13,7 +13,6 @@ license      = "MIT OR Apache-2.0"
 validation = ["dacho-vulkan-validation"]
 
 [dependencies]
-dacho-ecs    = { path = "../../../ecs"             }
 dacho-log    = { path = "../../../log"             }
 dacho-shader = { path = "../../../shader"          }
 dacho-mesh-c = { path = "../../../components/mesh" }
@@ -24,7 +23,7 @@ dacho-vulkan-validation = { path = "../validation", optional = true }
 anyhow            = { version = "1.0.86", default-features = false, features = ["std"]                             }
 ash               = { version = "0.37.3"                                                                           }
 ash-window        = { version = "0.12.0", default-features = false                                                 }
-glam              = { version = "0.29.0", default-features = false, features = ["std"]                             }
+glam              = { version = "0.29.2", default-features = false, features = ["std"]                             }
 raw-window-handle = { version = "0.5.0",  default-features = false                                                 }
 futures           = { version = "0.3.30", default-features = false, features = ["std", "async-await", "executor"]  }
 winit             = { version = "0.30.4",                           features = ["rwh_05"]                          }
