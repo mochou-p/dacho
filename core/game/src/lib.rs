@@ -3,9 +3,11 @@
 #![expect(internal_features, reason = "chill down rare synthetic key events")]
 #![feature(core_intrinsics)]
 
+pub mod data;
+
 use {
     core::intrinsics::cold_path,
-    std::{collections::HashMap, time::Instant}
+    std::time::Instant
 };
 
 use winit::{
@@ -16,100 +18,36 @@ use winit::{
     window::WindowId
 };
 
+use data::{commands::Command, Data};
+
 use {
-    dacho_components::{Camera, Mesh},
     dacho_renderer::Renderer,
     dacho_window::Window
 };
 
 
-#[non_exhaustive]
-pub enum Command {
-    Exit,
-    Noop
-}
-
-#[derive(Default)]
-pub struct Commands {
-    queue: Vec<Command>
-}
-
-impl Commands {
-    #[inline]
-    pub fn submit(&mut self, command: Command) {
-        self.queue.push(command);
-    }
-
-    #[inline]
-    pub fn submit_all<C>(&mut self, commands: C)
-    where
-        C: IntoIterator<Item = Command>
-    {
-        self.queue.extend(commands);
-    }
-}
-
-#[derive(Default)]
-pub struct Meshes {
-    updated: bool,
-    data:    HashMap<u32, Vec<f32>>
-}
-
-impl Meshes {
-    pub fn push(&mut self, mesh: Mesh) {
-        self.data
-            .entry(mesh.id)
-            .and_modify(|vec| vec.extend(
-                mesh.model_matrix
-                    .to_cols_array()
-            ))
-            .or_insert(
-                mesh.model_matrix
-                    .to_cols_array()
-                    .into()
-            );
-
-        self.updated = true;
-    }
-
-    pub fn clear(&mut self) {
-        self.data.clear();
-    }
-}
-
-pub trait World {
-    fn get_mut_commands(&mut self) -> &mut Commands;
-    fn get_mut_meshes  (&mut self) -> &mut Meshes;
-    fn get_mut_camera  (&mut self) -> &mut Camera;
-}
-
 #[derive(Default)]
 #[expect(clippy::exhaustive_structs, reason = "created by struct expr + ..default")]
-pub struct Game<W: 'static>
-where
-    W: World
-{
+#[expect(clippy::type_complexity,    reason = "will clean up later"               )]
+pub struct Game<GD: 'static> {
     pub title:    &'static str,
     pub clock:             Clock,
     pub window:     Option<Window>,
     pub renderer:   Option<Renderer>,
 
-    pub    start_systems: &'static [fn(&mut W                            )],
-    pub   update_systems: &'static [fn(&mut W, &Time                     )],
-    pub keyboard_systems: &'static [fn(&mut W, &KeyEvent                 )],
-    pub    mouse_systems: &'static [fn(&mut W,  MouseButton, ElementState)],
-    pub   cursor_systems: &'static [fn(&mut W, &PhysicalPosition<f64>    )],
-    pub   scroll_systems: &'static [fn(&mut W, &MouseScrollDelta         )],
-    pub    focus_systems: &'static [fn(&mut W,  bool                     )],
-    pub      end_systems: &'static [fn(                                  )],
+    pub    start_systems: &'static [fn(&mut Data<GD>                            )],
+    pub   update_systems: &'static [fn(&mut Data<GD>, &Time                     )],
+    pub keyboard_systems: &'static [fn(&mut Data<GD>, &KeyEvent                 )],
+    pub    mouse_systems: &'static [fn(&mut Data<GD>,  MouseButton, ElementState)],
+    pub   cursor_systems: &'static [fn(&mut Data<GD>, &PhysicalPosition<f64>    )],
+    pub   scroll_systems: &'static [fn(&mut Data<GD>, &MouseScrollDelta         )],
+    pub    focus_systems: &'static [fn(&mut Data<GD>,  bool                     )],
+    pub      end_systems: &'static [fn(&mut Data<GD>                            )],
 
-    pub world: W
+    pub data: Data<GD>
 }
 
-impl<W> Game<W>
-where
-    W: World
-{
+impl<GD> Game<GD> {
     #[tokio::main]
     #[expect(clippy::missing_panics_doc, reason = "no docs")]
     pub async fn run(mut self) {
@@ -117,25 +55,18 @@ where
             .expect("failed to create an EventLoop");
 
         for system in self.start_systems {
-            system(&mut self.world);
+            system(&mut self.data);
         }
 
         event_loop.set_control_flow(ControlFlow::Poll);
         event_loop.run_app(&mut self)
             .expect("failed to run the app in event loop");
 
-        for system in self.end_systems {
-            system();
-        }
-
         drop(self.renderer.expect("renderer is None"));
     }
 }
 
-impl<W> ApplicationHandler for Game<W>
-where
-    W: World
-{
+impl<D> ApplicationHandler for Game<D> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.window.get_or_insert(
             Window::new(self.title, 1600, 900, event_loop)
@@ -151,7 +82,7 @@ where
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        for command in self.world.get_mut_commands().queue.drain(..) {
+        for command in self.data.engine.commands.queue.drain(..) {
             if let Command::Exit = command {
                 return event_loop.exit();
             }
@@ -165,10 +96,10 @@ where
         self.clock.last_tick = Instant::now();
 
         for system in self.update_systems {
-            system(&mut self.world, &time);
+            system(&mut self.data, &time);
         }
 
-        self.world.get_mut_camera().try_update();
+        self.data.engine.camera.try_update();
 
         self.renderer
             .as_ref()
@@ -194,7 +125,7 @@ where
                 event_loop.exit();
             },
             WindowEvent::RedrawRequested => {
-                let meshes   = self.world.get_mut_meshes();
+                let meshes   = &mut self.data.engine.meshes;
                 let renderer = self.renderer
                     .as_mut()
                     .expect("renderer is None");
@@ -208,7 +139,7 @@ where
 
                 renderer.redraw(
                     self.clock.start.elapsed().as_secs_f32(),
-                    self.world.get_mut_camera()
+                    &self.data.engine.camera
                 );
             },
             WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
@@ -216,31 +147,38 @@ where
                     cold_path();
                 } else {
                     for system in self.keyboard_systems {
-                        system(&mut self.world, &event);
+                        system(&mut self.data, &event);
                     }
                 }
             },
             WindowEvent::MouseInput { button, state, .. } => {
                 for system in self.mouse_systems {
-                    system(&mut self.world, button, state);
+                    system(&mut self.data, button, state);
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 for system in self.scroll_systems {
-                    system(&mut self.world, &delta);
+                    system(&mut self.data, &delta);
                 }
             },
             WindowEvent::Focused(value) => {
                 for system in self.focus_systems {
-                    system(&mut self.world, value);
+                    system(&mut self.data, value);
                 }
             },
             WindowEvent::CursorMoved { position, .. } => {
                 for system in self.cursor_systems {
-                    system(&mut self.world, &position);
+                    system(&mut self.data, &position);
                 }
             },
             _ => ()
+        }
+    }
+
+    #[inline]
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        for system in self.end_systems {
+            system(&mut self.data);
         }
     }
 }

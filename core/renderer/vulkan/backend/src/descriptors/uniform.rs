@@ -57,7 +57,7 @@ impl UniformBufferObject {
     pub fn update(
         ubo_mapped: *mut c_void,
         time:            f32,
-        camera:     &Camera
+        camera:         &Camera
     ) {
         let mut ubo = Self {
             _view:       camera.view,

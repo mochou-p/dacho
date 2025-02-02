@@ -19,8 +19,11 @@ pub mod prelude {
     pub use {
         dacho_components::{Camera, Mesh},
         dacho_game::{
-            Command, Commands, Game, Meshes, Time,
-            World as DachoWorld
+            data::{
+                commands::Command,
+                Data
+            },
+            Game, Time
         },
 
         glam::{
