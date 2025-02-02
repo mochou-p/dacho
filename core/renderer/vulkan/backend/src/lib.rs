@@ -35,9 +35,9 @@ use {
 };
 
 use {
-    dacho_window::Window,
-    dacho_mesh_c::Mesh,
-    dacho_log::{log, create_log, destroy_log}
+    dacho_components::{Camera, Mesh},
+    dacho_log::{log, create_log, destroy_log},
+    dacho_window::Window
 };
 
 #[cfg(feature = "validation")]
@@ -168,7 +168,7 @@ impl Renderer {
         self.device.wait();
     }
 
-    pub fn redraw(&mut self, time: f32) {
+    pub fn redraw(&mut self, time: f32, camera: &Camera) {
         let (image_index, _) = unsafe {
             self.swapchain.loader
                 .acquire_next_image(
@@ -181,7 +181,8 @@ impl Renderer {
 
         UniformBufferObject::update(
             self.ubo_mapped,
-            time
+            time,
+            camera
         );
 
         unsafe {

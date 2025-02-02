@@ -13,10 +13,10 @@ license      = "MIT OR Apache-2.0"
 validation = ["dacho-vulkan-validation"]
 
 [dependencies]
-dacho-log    = { path = "../../../log"             }
-dacho-shader = { path = "../../../shader"          }
-dacho-mesh-c = { path = "../../../components/mesh" }
-dacho-window = { path = "../../../window"          }
+dacho-components = { path = "../../../components" }
+dacho-log        = { path = "../../../log"        }
+dacho-shader     = { path = "../../../shader"     }
+dacho-window     = { path = "../../../window"     }
 
 dacho-vulkan-validation = { path = "../validation", optional = true }
 

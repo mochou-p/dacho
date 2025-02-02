@@ -4,7 +4,7 @@
 #![feature(core_intrinsics)]
 
 use {
-    core::{intrinsics::cold_path},
+    core::intrinsics::cold_path,
     std::{collections::HashMap, time::Instant}
 };
 
@@ -17,7 +17,7 @@ use winit::{
 };
 
 use {
-    dacho_components::Mesh,
+    dacho_components::{Camera, Mesh},
     dacho_renderer::Renderer,
     dacho_window::Window
 };
@@ -57,8 +57,6 @@ pub struct Meshes {
 
 impl Meshes {
     pub fn push(&mut self, mesh: Mesh) {
-        self.updated = true;
-
         self.data
             .entry(mesh.id)
             .and_modify(|vec| vec.extend(
@@ -70,6 +68,8 @@ impl Meshes {
                     .to_cols_array()
                     .into()
             );
+
+        self.updated = true;
     }
 
     pub fn clear(&mut self) {
@@ -80,6 +80,7 @@ impl Meshes {
 pub trait World {
     fn get_mut_commands(&mut self) -> &mut Commands;
     fn get_mut_meshes  (&mut self) -> &mut Meshes;
+    fn get_mut_camera  (&mut self) -> &mut Camera;
 }
 
 #[derive(Default)]
@@ -137,7 +138,7 @@ where
 {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.window.get_or_insert(
-            Window::new(self.title, 800, 600, event_loop)
+            Window::new(self.title, 1600, 900, event_loop)
                 .expect("failed to create Window")
         );
 
@@ -166,6 +167,8 @@ where
         for system in self.update_systems {
             system(&mut self.world, &time);
         }
+
+        self.world.get_mut_camera().try_update();
 
         self.renderer
             .as_ref()
@@ -199,9 +202,14 @@ where
                 if meshes.updated {
                     renderer.update_meshes(&meshes.data)
                         .expect("failed to update meshes");
+
+                    meshes.updated = false;
                 }
 
-                renderer.redraw(0.0);
+                renderer.redraw(
+                    self.clock.start.elapsed().as_secs_f32(),
+                    self.world.get_mut_camera()
+                );
             },
             WindowEvent::KeyboardInput { event, is_synthetic, .. } => {
                 if is_synthetic {

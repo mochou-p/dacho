@@ -16,7 +16,7 @@ use {
 };
 
 use {
-    dacho_mesh_c::GeometryData,
+    dacho_components::GeometryData,
     dacho_shader::{ShaderInfo, size_of_types}
 };
 

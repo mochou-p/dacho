@@ -5,12 +5,15 @@ use core::{ffi::c_void, mem::size_of, ptr::{copy_nonoverlapping, from_mut}};
 use {
     anyhow::Result,
     ash::vk,
-    glam::f32::{Mat4, Vec3, Vec4}
+    glam::f32::{Mat4, Vec4}
 };
 
 use crate::{buffers::Buffer, devices::{Device, PhysicalDevice}, setup::Instance};
 
-use dacho_log::create_log;
+use {
+    dacho_log::create_log,
+    dacho_components::Camera
+};
 
 
 pub struct UniformBufferObject {
@@ -53,25 +56,13 @@ impl UniformBufferObject {
 
     pub fn update(
         ubo_mapped: *mut c_void,
-        time:            f32
+        time:            f32,
+        camera:     &Camera
     ) {
-        const FOV:  f32 = 2.0;
-        const AR:   f32 = 16.0/9.0;
-        const NEAR: f32 = 0.0001;
-        const FAR:  f32 = 10000.0;
-
-        let view = Mat4::look_at_rh(Vec3::Z, Vec3::ZERO, Vec3::Y);
-
-        let projection = {
-            let x = FOV * AR;
-
-            glam::Mat4::orthographic_rh(-x, x, FOV, -FOV, NEAR, FAR)
-        };
-
         let mut ubo = Self {
-            _view:       view,
-            _projection: projection,
-            _camera_pos: Vec3::NEG_Z.extend(0.0),
+            _view:       camera.view,
+            _projection: camera.projection,
+            _camera_pos: camera.position.extend(0.0),
             _time:       time
         };
 
