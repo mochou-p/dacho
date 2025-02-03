@@ -60,10 +60,10 @@ impl UniformBufferObject {
         camera:         &Camera
     ) {
         let mut ubo = Self {
-            _view:       camera.view,
-            _projection: camera.projection,
-            _camera_pos: camera.position.extend(0.0),
-            _time:       time
+            _view:       *camera.get_view(),
+            _projection: *camera.get_projection(),
+            _camera_pos:  camera.get_position().extend(0.0),
+            _time:        time
         };
 
         let src  = from_mut::<Self>(&mut ubo).cast::<c_void>();

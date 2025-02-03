@@ -9,14 +9,14 @@ use dacho_components::Camera;
 
 
 #[derive(Default)]
-#[non_exhaustive]
+#[expect(clippy::exhaustive_structs, reason = "for now created by struct expr + ..default")]
 pub struct Data<GD> {
     pub game:   GD,
     pub engine: EngineData
 }
 
 #[derive(Default)]
-#[non_exhaustive]
+#[expect(clippy::exhaustive_structs, reason = "for now created by struct expr + ..default")]
 pub struct EngineData {
     pub camera:   Camera,
     pub commands: Commands,

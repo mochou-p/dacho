@@ -27,8 +27,8 @@ use {
 
 
 #[derive(Default)]
-#[expect(clippy::exhaustive_structs, reason = "created by struct expr + ..default")]
-#[expect(clippy::type_complexity,    reason = "will clean up later"               )]
+#[expect(clippy::exhaustive_structs, reason = "for now created by struct expr + ..default")]
+#[expect(clippy::type_complexity,    reason = "will clean up later")]
 pub struct Game<GD: 'static> {
     pub title:    &'static str,
     pub clock:             Clock,
@@ -66,7 +66,7 @@ impl<GD> Game<GD> {
     }
 }
 
-impl<D> ApplicationHandler for Game<D> {
+impl<GD> ApplicationHandler for Game<GD> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         self.window.get_or_insert(
             Window::new(self.title, 1600, 900, event_loop)
