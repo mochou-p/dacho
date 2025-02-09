@@ -47,7 +47,7 @@ impl Default for ShaderInfo {
 
         Self {
             name:          String::from("default"),
-            cull_mode:     vk::CullModeFlags::FRONT,
+            cull_mode:     vk::CullModeFlags::BACK,
             polygon_mode:  vk::PolygonMode::FILL,
             vertex_info,
             instance_info,

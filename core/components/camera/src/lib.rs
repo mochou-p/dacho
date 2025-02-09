@@ -224,7 +224,7 @@ impl Camera {
         let quat         = Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0);
         let forward      = quat * Vec3::Z;
         let up           = quat * Vec3::Y;
-        let near_far     = Vec2 { x: 0.1, y: 100.0 };
+        let near_far     = Vec2 { x: 0.01, y: 1000.0 };
         let aspect_ratio = 16.0 / 9.0;
         let screen       = Vec4::new(
             0.5 * aspect_ratio, -0.5 * aspect_ratio, // what, i should probably not use rh
@@ -260,7 +260,7 @@ impl Camera {
         let quat         = Quat::from_euler(EulerRot::XYZ, 0.0, 0.0, 0.0);
         let forward      = quat * Vec3::Z;
         let up           = quat * Vec3::Y;
-        let near_far     = Vec2 { x: 0.1, y: 100.0 };
+        let near_far     = Vec2 { x: 0.01, y: 1000.0 };
         let aspect_ratio = 16.0 / 9.0;
         let fov_y        = 90.0_f32.to_radians();
 

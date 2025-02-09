@@ -85,6 +85,7 @@ impl<GD> Game<GD> {
             system(&mut self.data);
             // todo: move the command check from resumed here
             //       when renderer and window are not options
+            // (or maybe start systems run before window intentionally)
         }
 
         event_loop.set_control_flow(ControlFlow::Poll);
