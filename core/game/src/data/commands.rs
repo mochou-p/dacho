@@ -1,9 +1,15 @@
 // dacho/core/game/src/data/commands.rs
 
+use winit::window::CursorGrabMode;
+
+
 #[non_exhaustive]
 pub enum Command {
     Exit,
-    Noop
+
+    SetCursorGrab(CursorGrabMode),
+    SetCursorPosition((i32, i32)),
+    SetCursorVisible(bool)
 }
 
 #[derive(Default)]
@@ -14,12 +20,12 @@ pub struct Commands {
 
 impl Commands {
     #[inline]
-    pub fn submit(&mut self, command: Command) {
+    pub fn push(&mut self, command: Command) {
         self.queue.push(command);
     }
 
     #[inline]
-    pub fn submit_all<C>(&mut self, commands: C)
+    pub fn extend<C>(&mut self, commands: C)
     where
         C: IntoIterator<Item = Command>
     {

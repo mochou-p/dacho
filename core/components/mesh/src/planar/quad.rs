@@ -1,10 +1,11 @@
 // dacho/core/components/mesh/src/planar/quad.rs
 
-use ash::vk;
+use {
+    ash::vk,
+    glam::{Vec2, Vec3}
+};
 
 use crate::GeometryData;
-
-use glam::{Vec2, Vec3};
 
 
 pub fn mesh() -> GeometryData {

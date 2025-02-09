@@ -1,10 +1,11 @@
 // dacho/core/components/mesh/src/planar/circle.rs
 
-use ash::vk;
+use {
+    ash::vk,
+    glam::Vec3
+};
 
 use crate::GeometryData;
-
-use glam::Vec3;
 
 
 pub fn mesh() -> GeometryData {

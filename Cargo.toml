@@ -19,6 +19,7 @@ categories   = ["game-development", "game-engines", "graphics", "rendering", "re
 [workspace]
 members = [
     "core/components",
+    "core/components/camera",
     "core/components/mesh",
     "core/game",
     "core/log",

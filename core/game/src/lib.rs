@@ -12,7 +12,7 @@ use {
 
 use winit::{
     application::ApplicationHandler,
-    event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent},
+    event::{ElementState, DeviceEvent, DeviceId, KeyEvent, MouseButton, MouseScrollDelta, WindowEvent},
     event_loop::{ActiveEventLoop, EventLoop, ControlFlow},
     dpi::PhysicalPosition,
     window::WindowId
@@ -34,12 +34,14 @@ pub struct Game<GD: 'static> {
     pub clock:             Clock,
     pub window:     Option<Window>,
     pub renderer:   Option<Renderer>,
+    pub should_close:      bool, // temp
 
     pub    start_systems: &'static [fn(&mut Data<GD>                            )],
     pub   update_systems: &'static [fn(&mut Data<GD>, &Time                     )],
     pub keyboard_systems: &'static [fn(&mut Data<GD>, &KeyEvent                 )],
     pub    mouse_systems: &'static [fn(&mut Data<GD>,  MouseButton, ElementState)],
     pub   cursor_systems: &'static [fn(&mut Data<GD>, &PhysicalPosition<f64>    )],
+    pub   motion_systems: &'static [fn(&mut Data<GD>, &(f64, f64)               )],
     pub   scroll_systems: &'static [fn(&mut Data<GD>, &MouseScrollDelta         )],
     pub    focus_systems: &'static [fn(&mut Data<GD>,  bool                     )],
     pub      end_systems: &'static [fn(&mut Data<GD>                            )],
@@ -48,6 +50,31 @@ pub struct Game<GD: 'static> {
 }
 
 impl<GD> Game<GD> {
+    fn check_commands(&mut self) {
+        for command in self.data.engine.commands.queue.drain(..) {
+            match command {
+                Command::Exit => {
+                    self.should_close = true;
+                },
+
+                Command::SetCursorGrab(mode) => {
+                    let window = self.window.as_mut().expect("no Window");
+                    window.raw.set_cursor_grab(mode)
+                        .expect("failed to set window CursorGrabMode");
+                },
+                Command::SetCursorPosition((x, y)) => {
+                    let window = self.window.as_mut().expect("no Window");
+                    window.raw.set_cursor_position(PhysicalPosition { x, y })
+                        .expect("failed to set window CursorPosition");
+                },
+                Command::SetCursorVisible(value) => {
+                    let window = self.window.as_mut().expect("no Window");
+                    window.raw.set_cursor_visible(value);
+                }
+            }
+        }
+    }
+
     #[tokio::main]
     #[expect(clippy::missing_panics_doc, reason = "no docs")]
     pub async fn run(mut self) {
@@ -56,6 +83,8 @@ impl<GD> Game<GD> {
 
         for system in self.start_systems {
             system(&mut self.data);
+            // todo: move the command check from resumed here
+            //       when renderer and window are not options
         }
 
         event_loop.set_control_flow(ControlFlow::Poll);
@@ -78,14 +107,15 @@ impl<GD> ApplicationHandler for Game<GD> {
                 .expect("failed to create Renderer")
         );
 
+        self.check_commands();
+
         self.clock = Clock::default();
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-        for command in self.data.engine.commands.queue.drain(..) {
-            if let Command::Exit = command {
-                return event_loop.exit();
-            }
+        if self.should_close {
+            event_loop.exit();
+            return;
         }
 
         let time = Time {
@@ -97,6 +127,7 @@ impl<GD> ApplicationHandler for Game<GD> {
 
         for system in self.update_systems {
             system(&mut self.data, &time);
+            self.check_commands();
         }
 
         self.data.engine.camera.try_update();
@@ -110,6 +141,20 @@ impl<GD> ApplicationHandler for Game<GD> {
             .as_ref()
             .expect("window is None")
             .request_redraw();
+    }
+
+    fn device_event(
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        _device_id:   DeviceId,
+        event:        DeviceEvent
+    ) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            for system in self.motion_systems {
+                system(&mut self.data, &delta);
+                self.check_commands();
+            }
+        }
     }
 
     #[expect(clippy::renamed_function_params, reason = "winit reuses `event`")]
@@ -148,27 +193,32 @@ impl<GD> ApplicationHandler for Game<GD> {
                 } else {
                     for system in self.keyboard_systems {
                         system(&mut self.data, &event);
+                        self.check_commands();
                     }
                 }
             },
             WindowEvent::MouseInput { button, state, .. } => {
                 for system in self.mouse_systems {
                     system(&mut self.data, button, state);
+                    self.check_commands();
                 }
             },
             WindowEvent::MouseWheel { delta, .. } => {
                 for system in self.scroll_systems {
                     system(&mut self.data, &delta);
+                    self.check_commands();
                 }
             },
             WindowEvent::Focused(value) => {
                 for system in self.focus_systems {
                     system(&mut self.data, value);
+                    self.check_commands();
                 }
             },
             WindowEvent::CursorMoved { position, .. } => {
                 for system in self.cursor_systems {
                     system(&mut self.data, &position);
+                    self.check_commands();
                 }
             },
             _ => ()
@@ -179,6 +229,7 @@ impl<GD> ApplicationHandler for Game<GD> {
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         for system in self.end_systems {
             system(&mut self.data);
+            self.check_commands();
         }
     }
 }

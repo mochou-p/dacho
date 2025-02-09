@@ -1,6 +1,7 @@
 // dacho/core/components/mesh/src/lib.rs
 
 mod planar;
+mod spatial;
 
 use {
     ash::vk,
@@ -18,8 +19,8 @@ pub struct GeometryData {
     pub cull_mode:    u32,
     pub polygon_mode: i32,
     pub vertices:     Vec<f32>,
-    pub instances:    Vec<f32>,
-    pub indices:      Vec<u32>
+    pub indices:      Vec<u32>,
+    pub instances:    Vec<f32>
 }
 
 impl GeometryData {
@@ -57,9 +58,11 @@ pub struct Mesh {
 }
 
 impl Mesh {
-    pub const BUILDERS: [&'static MeshBuilder; 2] = [
-        &planar::quad   ::mesh,
-        &planar::circle ::mesh
+    pub const BUILDERS: [&'static MeshBuilder; 4] = [
+        &planar ::quad  ::mesh,
+        &planar ::circle::mesh,
+        &spatial::cube  ::mesh,
+        &spatial::sphere::mesh
     ];
 
 /*
@@ -191,6 +194,48 @@ impl Mesh {
 
         let model_matrix = Mat4::from_scale_rotation_translation(
             Vec3 { x: radius, y: radius, z: 1.0 },
+            Quat::IDENTITY,
+            position
+        );
+
+        Self {
+            children_ids:     vec![],
+            parent_id_option: None,
+            shader:           String::from("default"),
+            id,
+            nth:              0,
+            model_matrix
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn cube(position: Vec3, size: f32) -> Self {
+        let id = 2;
+
+        let model_matrix = Mat4::from_scale_rotation_translation(
+            Vec3::splat(size),
+            Quat::IDENTITY,
+            position
+        );
+
+        Self {
+            children_ids:     vec![],
+            parent_id_option: None,
+            shader:           String::from("default"),
+            id,
+            nth:              0,
+            model_matrix
+        }
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn sphere(position: Vec3, radius: f32) -> Self {
+        let id = 3;
+
+        let model_matrix = Mat4::from_scale_rotation_translation(
+            Vec3::splat(radius),
             Quat::IDENTITY,
             position
         );

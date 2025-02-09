@@ -28,12 +28,14 @@ pub mod prelude {
 
         glam::{
             f32::{Vec2, Vec3, Vec4, Mat4, Quat},
+            swizzles::{Vec2Swizzles, Vec3Swizzles, Vec4Swizzles},
             EulerRot
         },
         winit::{
             event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta},
             dpi::PhysicalPosition,
-            keyboard::*
+            keyboard::*,
+            window::CursorGrabMode
         }
     };
 }
