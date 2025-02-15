@@ -22,8 +22,9 @@ pub mod prelude {
             data::{
                 commands::Command,
                 Data, EngineData
-            },
-            Game, Time
+	    },
+	    events::{Event, EngineEvent},
+            Game, Key, Time
         },
 
         glam::{
@@ -32,11 +33,20 @@ pub mod prelude {
             EulerRot
         },
         winit::{
-            event::{ElementState, KeyEvent, MouseButton, MouseScrollDelta},
+            event::{DeviceEvent, ElementState, KeyEvent, MouseButton, MouseScrollDelta},
             dpi::PhysicalPosition,
-            keyboard::*,
+            keyboard::{Key as LogicalKey, KeyCode, PhysicalKey},
             window::CursorGrabMode
-        }
+        },
+
+	super::default
     };
 }
 
+#[must_use]
+pub fn default<T>() -> T
+where
+    T: Default
+{
+    T::default()
+}

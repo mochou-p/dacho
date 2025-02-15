@@ -13,8 +13,8 @@ use crate::GeometryData;
 pub fn mesh() -> GeometryData {
     let id = 3;
 
-    let sectors = 8;
-    let stacks  = 8;
+    let stacks  = 12;
+    let sectors = stacks * 2;
 
     let radius   = 1.0;
     let position = Vec3::ZERO;
