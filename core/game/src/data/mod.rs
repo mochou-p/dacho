@@ -17,12 +17,16 @@ pub struct Data<GD, GE> {
     pub engine: EngineData<GE>
 }
 
+// not derive to not expect Default from GE
 impl<GD, GE> Default for Data<GD, GE>
 where
     GD: Default
 {
     fn default() -> Self {
-	Self { game: GD::default(), engine: EngineData::<GE>::default() }
+	Self {
+            game:   GD::default(),
+            engine: EngineData::<GE>::default()
+        }
     }
 }
 
@@ -35,6 +39,7 @@ pub struct EngineData<GE> {
     pub meshes:   Meshes
 }
 
+// not derive to not expect Default from GE
 impl<GE> Default for EngineData<GE> {
     fn default() -> Self {
 	Self {

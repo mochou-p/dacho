@@ -13,7 +13,7 @@ use crate::GeometryData;
 pub fn mesh() -> GeometryData {
     let id = 3;
 
-    let stacks  = 12;
+    let stacks  = 12; // 1 -> SIGSEGV
     let sectors = stacks * 2;
 
     let radius   = 1.0;

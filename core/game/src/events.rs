@@ -13,7 +13,7 @@ use winit::{
 use super::{Key, Time};
 
 
-#[expect(clippy::exhaustive_enums, reason = "guaranteed to not change")]
+#[expect(clippy::exhaustive_enums, reason = "guaranteed to never change")]
 #[derive(Debug)]
 pub enum Event<GE> {
     Game(GE),
@@ -23,12 +23,13 @@ pub enum Event<GE> {
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum EngineEvent {
-    // engine flow
+    // --- engine flow ---
     Start,
-    Update,
+    Update      { tick: usize },
+    FixedUpdate { tick: usize },
     End,
 
-    // input
+    // --- input ---
     Device    { device_id: DeviceId, event:    DeviceEvent                         },
     Keyboard  { device_id: DeviceId, key:      Key, is_pressed: bool, repeat: bool },
     Modifiers { value:     Modifiers },
@@ -36,7 +37,7 @@ pub enum EngineEvent {
     Scroll    { device_id: DeviceId, delta:    MouseScrollDelta                    },
     Cursor    { device_id: DeviceId, position: PhysicalPosition<f64>               },
 
-    // window
+    // --- window ---
     CursorPresent { device_id: DeviceId, value: bool },
     Focused       {                      value: bool },
     Occluded      {                      value: bool }
@@ -47,6 +48,7 @@ pub struct Events<GE> {
     pub queue: LinkedList<Node<GE>>
 }
 
+// not derive to not expect Default from GE
 impl<GE> Default for Events<GE> {
     fn default() -> Self {
 	Self { queue: LinkedList::new() }

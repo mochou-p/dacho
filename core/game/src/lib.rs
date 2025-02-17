@@ -1,14 +1,16 @@
 // dacho/core/game/src/lib.rs
 
-#![expect(internal_features, reason = "chill down rare synthetic key events")]
-#![feature(core_intrinsics, linked_list_cursors)]
+#![feature(linked_list_cursors)]
 
 extern crate alloc;
 
 pub mod data;
 pub mod events;
 
-use std::time::Instant;
+use {
+    core::time::Duration,
+    std::time::Instant
+};
 
 use winit::{
     application::ApplicationHandler,
@@ -38,6 +40,7 @@ pub struct Game<GD, GE> {
     pub renderer:       Option<Renderer>,
     pub resumed:               bool,
     pub should_close:          bool, // temp
+    pub fixed_update:   Option<f32>, // in seconds
 
     pub event_handler: fn(&mut Data<GD, GE>, &Event<GE>),
     pub data:          Data<GD, GE>
@@ -55,6 +58,7 @@ where
 	    renderer:      None,
 	    resumed:       false,
 	    should_close:  false,
+            fixed_update:  None,
 	    event_handler: |_, _| {},
 	    data:          Data::<GD, GE>::default()
 	}
@@ -106,6 +110,34 @@ impl<GD, GE> Game<GD, GE> {
 	}
     }
 
+    // todo: simplify
+    #[expect(clippy::unwrap_used, reason = "temp")]
+    fn check_fixed_update(&mut self) {
+        let fixed_elapsed = self.clock.last_tick
+            .duration_since(self.clock.fixed_last_tick)
+            .as_secs_f32();
+
+        if fixed_elapsed > self.fixed_update.unwrap() {
+            let late = fixed_elapsed - self.fixed_update.unwrap();
+
+            (self.event_handler)(&mut self.data, &Event::Engine(
+                EngineEvent::FixedUpdate { tick: self.clock.fixed_logic_index }
+            ));
+
+            // temp
+            let error_correction = Duration::from_secs_f32(
+                if self.clock.fixed_logic_index == 0 {
+                    late * 2.0
+                } else {
+                    late
+                }
+            );
+
+            self.clock.fixed_logic_index += 1;
+            self.clock.fixed_last_tick    = self.clock.last_tick - error_correction;
+        }
+    }
+
     #[tokio::main]
     #[expect(clippy::missing_panics_doc, reason = "no docs")]
     pub async fn run(mut self) {
@@ -116,7 +148,7 @@ impl<GD, GE> Game<GD, GE> {
         event_loop.run_app(&mut self)
             .expect("failed to run the app in event loop");
 
-        drop(self.renderer.expect("renderer is None"));
+        drop(self.renderer.expect("no Renderer"));
     }
 }
 
@@ -133,8 +165,9 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
                 .expect("failed to create Window")
         );
 
+        #[expect(clippy::unwrap_used, reason = "Some in this context")]
         self.renderer.get_or_insert(
-            Renderer::new(event_loop, self.window.as_ref().expect("window is None"))
+            Renderer::new(event_loop, self.window.as_ref().unwrap())
                 .expect("failed to create Renderer")
         );
 
@@ -148,13 +181,6 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
-	self.check_commands();
-
-        if self.should_close {
-            event_loop.exit();
-            return;
-        }
-
         self.data.engine.time = Time {
             elapsed: self.clock.start    .elapsed().as_secs_f32(),
             delta:   self.clock.last_tick.elapsed().as_secs_f32()
@@ -163,19 +189,31 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
         self.clock.last_tick = Instant::now();
 
 	(self.event_handler)(&mut self.data, &Event::Engine(
-	    EngineEvent::Update
+	    EngineEvent::Update { tick: self.clock.logic_index }
 	));
 
+        self.clock.logic_index += 1;
+
+        if self.fixed_update.is_some() {
+            self.check_fixed_update();
+        }
+
 	self.check_events();
+	self.check_commands();
+
+        if self.should_close {
+            event_loop.exit();
+            return;
+        }
 
         self.renderer
             .as_ref()
-            .expect("window is None")
+            .expect("no Renderer")
             .wait_for_device();
 
         self.window
             .as_ref()
-            .expect("window is None")
+            .expect("no Window")
             .request_redraw();
     }
 
@@ -214,7 +252,7 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
 
 		if meshes.updated {
 		    renderer.update_meshes(&meshes.data)
-			.expect("failed to update meshes");
+			.expect("failed to update Meshes");
 
 		    meshes.updated = false;
 		}
@@ -295,8 +333,11 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
 }
 
 pub struct Clock {
-    start:     Instant,
-    last_tick: Instant
+    start:             Instant,
+    last_tick:         Instant,
+    logic_index:       usize,
+    fixed_last_tick:   Instant,
+    fixed_logic_index: usize
 }
 
 impl Default for Clock {
@@ -306,8 +347,11 @@ impl Default for Clock {
         let now = Instant::now();
 
         Self {
-            start:     now,
-            last_tick: now
+            start:             now,
+            last_tick:         now,
+            logic_index:       0,
+            fixed_last_tick:   now,
+            fixed_logic_index: 0
         }
     }
 }
