@@ -1,5 +1,7 @@
 // dacho/core/game/src/data/commands.rs
 
+use alloc::collections::VecDeque;
+
 use winit::window::CursorGrabMode;
 
 
@@ -15,13 +17,13 @@ pub enum Command {
 #[derive(Default)]
 #[non_exhaustive]
 pub struct Commands {
-    pub queue: Vec<Command>
+    pub queue: VecDeque<Command>
 }
 
 impl Commands {
     #[inline]
     pub fn push(&mut self, command: Command) {
-        self.queue.push(command);
+        self.queue.push_back(command);
     }
 
     #[inline]
