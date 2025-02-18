@@ -51,17 +51,17 @@ where
     GD: Default
 {
     fn default() -> Self {
-	Self {
-	    title:         "untitled game",
-	    clock:         Clock::default(),
-	    window:        None,
-	    renderer:      None,
-	    resumed:       false,
-	    should_close:  false,
+        Self {
+            title:         "untitled game",
+            clock:         Clock::default(),
+            window:        None,
+            renderer:      None,
+            resumed:       false,
+            should_close:  false,
             fixed_update:  None,
-	    event_handler: |_, _| {},
-	    data:          Data::<GD, GE>::default()
-	}
+            event_handler: |_, _| {},
+            data:          Data::<GD, GE>::default()
+        }
     }
 }
 
@@ -96,18 +96,18 @@ impl<GD, GE> Game<GD, GE> {
     //       do not trigger any events
     #[expect(clippy::unwrap_used, reason = "temp")]
     fn check_events(&mut self) {
-	while !self.data.engine.events.queue.is_empty() {
-	    {
-		let node = self.data.engine.events.queue.front().unwrap();
+        while !self.data.engine.events.queue.is_empty() {
+            {
+                let node = self.data.engine.events.queue.front().unwrap();
 
-		if node.when > self.data.engine.time.elapsed {
-		    return;
-		}
-	    }
+                if node.when > self.data.engine.time.elapsed {
+                    return;
+                }
+            }
 
-	    let node = self.data.engine.events.queue.pop_front().unwrap();
-	    (self.event_handler)(&mut self.data, &Event::Game(node.event));
-	}
+            let node = self.data.engine.events.queue.pop_front().unwrap();
+            (self.event_handler)(&mut self.data, &Event::Game(node.event));
+        }
     }
 
     // todo: simplify
@@ -154,11 +154,11 @@ impl<GD, GE> Game<GD, GE> {
 
 impl<GD, GE> ApplicationHandler for Game<GD, GE> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-	if self.resumed {
-	    return;
-	}
+        if self.resumed {
+            return;
+        }
 
-	self.resumed = true;
+        self.resumed = true;
 
         self.window.get_or_insert(
             Window::new(self.title, 1600, 900, event_loop)
@@ -171,9 +171,9 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
                 .expect("failed to create Renderer")
         );
 
-	(self.event_handler)(&mut self.data, &Event::Engine(
-	    EngineEvent::Start
-	));
+        (self.event_handler)(&mut self.data, &Event::Engine(
+            EngineEvent::Start
+        ));
 
         self.check_commands();
 
@@ -188,9 +188,9 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
 
         self.clock.last_tick = Instant::now();
 
-	(self.event_handler)(&mut self.data, &Event::Engine(
-	    EngineEvent::Update { tick: self.clock.logic_index }
-	));
+        (self.event_handler)(&mut self.data, &Event::Engine(
+            EngineEvent::Update { tick: self.clock.logic_index }
+        ));
 
         self.clock.logic_index += 1;
 
@@ -198,8 +198,8 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
             self.check_fixed_update();
         }
 
-	self.check_events();
-	self.check_commands();
+        self.check_events();
+        self.check_commands();
 
         if self.should_close {
             event_loop.exit();
@@ -218,117 +218,117 @@ impl<GD, GE> ApplicationHandler for Game<GD, GE> {
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-	(self.event_handler)(&mut self.data, &Event::Engine(
-	    EngineEvent::End
-	));
+        (self.event_handler)(&mut self.data, &Event::Engine(
+            EngineEvent::End
+        ));
     }
 
     fn device_event(
-	&mut self,
-	_event_loop: &ActiveEventLoop,
-	device_id:    DeviceId,
-	event:        DeviceEvent
+        &mut self,
+        _event_loop: &ActiveEventLoop,
+        device_id:    DeviceId,
+        event:        DeviceEvent
     ) {
-	(self.event_handler)(&mut self.data, &Event::Engine(
-	    EngineEvent::Device { device_id, event }
-	));
+        (self.event_handler)(&mut self.data, &Event::Engine(
+            EngineEvent::Device { device_id, event }
+        ));
     }
 
     fn window_event(
-	&mut self,
-	event_loop: &ActiveEventLoop,
-	_window_id:  WindowId,
-	event:       WindowEvent
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _window_id:  WindowId,
+        event:       WindowEvent
     ) {
-	#[expect(clippy::wildcard_enum_match_arm, reason = "a lot of unused WindowEvents")]
-	match event {
-	    WindowEvent::CloseRequested => {
-		event_loop.exit();
-	    },
-	    WindowEvent::RedrawRequested => {
-		let meshes   = &mut self.data.engine.meshes;
-		let renderer = self.renderer.as_mut()
-		    .expect("no Renderer");
+        #[expect(clippy::wildcard_enum_match_arm, reason = "a lot of unused WindowEvents")]
+        match event {
+            WindowEvent::CloseRequested => {
+                event_loop.exit();
+            },
+            WindowEvent::RedrawRequested => {
+                let meshes   = &mut self.data.engine.meshes;
+                let renderer = self.renderer.as_mut()
+                    .expect("no Renderer");
 
-		if meshes.updated {
-		    renderer.update_meshes(&meshes.data)
-			.expect("failed to update Meshes");
+                if meshes.updated {
+                    renderer.update_meshes(&meshes.data)
+                        .expect("failed to update Meshes");
 
-		    meshes.updated = false;
-		}
+                    meshes.updated = false;
+                }
 
-		self.data.engine.camera.try_update();
+                self.data.engine.camera.try_update();
 
-		renderer.redraw(
-		    self.data.engine.time.elapsed,
-		    &self.data.engine.camera
-		);
-	    },
-	    WindowEvent::KeyboardInput { device_id, event: key_event, is_synthetic } => {
-		if is_synthetic { // todo: maybe hint code temperature
-		    return;
-		}
+                renderer.redraw(
+                    self.data.engine.time.elapsed,
+                    &self.data.engine.camera
+                );
+            },
+            WindowEvent::KeyboardInput { device_id, event: key_event, is_synthetic } => {
+                if is_synthetic { // todo: maybe hint code temperature
+                    return;
+                }
 
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Keyboard {
-			device_id,
-			key: Key {
-			    physical: key_event.physical_key,
-			    logical:  key_event.logical_key,
-			    text:     key_event.text,
-			    location: key_event.location
-			},
-			is_pressed: key_event.state.is_pressed(),
-			repeat:     key_event.repeat
-		    }
-		));
-	    },
-	    WindowEvent::ModifiersChanged(value) => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Modifiers { value }
-		));
-	    },
-	    WindowEvent::MouseInput { device_id, state, button } => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Mouse {
-			device_id,
-			button,
-			is_pressed: state.is_pressed()
-		    }
-		));
-	    },
-	    WindowEvent::MouseWheel { device_id, delta, .. } => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Scroll { device_id, delta }
-		));
-	    },
-	    WindowEvent::CursorMoved { device_id, position } => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Cursor { device_id, position }
-		));
-	    },
-	    WindowEvent::CursorEntered { device_id } => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::CursorPresent { device_id, value: true }
-		));
-	    },
-	    WindowEvent::CursorLeft { device_id } => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::CursorPresent { device_id, value: false }
-		));
-	    },
-	    WindowEvent::Focused(value) => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Focused { value }
-		));
-	    },
-	    WindowEvent::Occluded(value) => {
-		(self.event_handler)(&mut self.data, &Event::Engine(
-		    EngineEvent::Occluded { value }
-		));
-	    },
-	    _ => ()
-	}
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Keyboard {
+                        device_id,
+                        key: Key {
+                            physical: key_event.physical_key,
+                            logical:  key_event.logical_key,
+                            text:     key_event.text,
+                            location: key_event.location
+                        },
+                        is_pressed: key_event.state.is_pressed(),
+                        repeat:     key_event.repeat
+                    }
+                ));
+            },
+            WindowEvent::ModifiersChanged(value) => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Modifiers { value }
+                ));
+            },
+            WindowEvent::MouseInput { device_id, state, button } => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Mouse {
+                        device_id,
+                        button,
+                        is_pressed: state.is_pressed()
+                    }
+                ));
+            },
+            WindowEvent::MouseWheel { device_id, delta, .. } => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Scroll { device_id, delta }
+                ));
+            },
+            WindowEvent::CursorMoved { device_id, position } => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Cursor { device_id, position }
+                ));
+            },
+            WindowEvent::CursorEntered { device_id } => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::CursorPresent { device_id, value: true }
+                ));
+            },
+            WindowEvent::CursorLeft { device_id } => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::CursorPresent { device_id, value: false }
+                ));
+            },
+            WindowEvent::Focused(value) => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Focused { value }
+                ));
+            },
+            WindowEvent::Occluded(value) => {
+                (self.event_handler)(&mut self.data, &Event::Engine(
+                    EngineEvent::Occluded { value }
+                ));
+            },
+            _ => ()
+        }
     }
 }
 

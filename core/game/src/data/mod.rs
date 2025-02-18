@@ -23,7 +23,7 @@ where
     GD: Default
 {
     fn default() -> Self {
-	Self {
+        Self {
             game:   GD::default(),
             engine: EngineData::<GE>::default()
         }
@@ -42,12 +42,12 @@ pub struct EngineData<GE> {
 // not derive to not expect Default from GE
 impl<GE> Default for EngineData<GE> {
     fn default() -> Self {
-	Self {
-	    time:     Time    ::default(),
-	    camera:   Camera  ::default(),
-	    commands: Commands::default(),
-	    events:   Events  ::default(),
-	    meshes:   Meshes  ::default()
-	}
+        Self {
+            time:     Time    ::default(),
+            camera:   Camera  ::default(),
+            commands: Commands::default(),
+            events:   Events  ::default(),
+            meshes:   Meshes  ::default()
+        }
     }
 }

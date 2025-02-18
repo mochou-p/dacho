@@ -7,8 +7,10 @@ use winit::window::CursorGrabMode;
 
 #[non_exhaustive]
 pub enum Command {
+    // --- engine flow ---
     Exit,
 
+    // --- window ---
     SetCursorGrab(CursorGrabMode),
     SetCursorPosition((i32, i32)),
     SetCursorVisible(bool)

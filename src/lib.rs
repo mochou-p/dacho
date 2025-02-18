@@ -22,13 +22,16 @@ pub mod prelude {
             data::{
                 commands::Command,
                 Data, EngineData
-	    },
-	    events::{Event, EngineEvent},
+            },
+            events::{Event, EngineEvent},
             Game, Key, Time
         },
 
         glam::{
-            f32::{Vec2, Vec3, Vec4, Mat4, Quat},
+            f32::{
+                Vec2, Vec3, Vec3A, Vec4, Mat4, Quat,
+                vec2, vec3, vec3a, vec4, mat4, quat
+            },
             swizzles::{Vec2Swizzles, Vec3Swizzles, Vec4Swizzles},
             EulerRot
         },
@@ -39,7 +42,7 @@ pub mod prelude {
             window::CursorGrabMode
         },
 
-	super::default
+        super::default
     };
 }
 

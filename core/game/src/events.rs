@@ -32,7 +32,7 @@ pub enum EngineEvent {
     // --- input ---
     Device    { device_id: DeviceId, event:    DeviceEvent                         },
     Keyboard  { device_id: DeviceId, key:      Key, is_pressed: bool, repeat: bool },
-    Modifiers { value:     Modifiers },
+    Modifiers { value:     Modifiers                                               },
     Mouse     { device_id: DeviceId, button:   MouseButton, is_pressed: bool       },
     Scroll    { device_id: DeviceId, delta:    MouseScrollDelta                    },
     Cursor    { device_id: DeviceId, position: PhysicalPosition<f64>               },
@@ -51,7 +51,7 @@ pub struct Events<GE> {
 // not derive to not expect Default from GE
 impl<GE> Default for Events<GE> {
     fn default() -> Self {
-	Self { queue: LinkedList::new() }
+        Self { queue: LinkedList::new() }
     }
 }
 
@@ -65,27 +65,27 @@ impl<GE> Events<GE> {
     // todo: simplify
     #[expect(clippy::unwrap_used, reason = "temp")]
     pub fn do_after(&mut self, event: GE, delay: Duration, time: &Time) {
-	let when = time.elapsed + delay.as_secs_f32();
+        let when = time.elapsed + delay.as_secs_f32();
 
-	if self.queue.is_empty() {
-	    self.queue.push_front(Node { when, event });
-	    return;
-	}
+        if self.queue.is_empty() {
+            self.queue.push_front(Node { when, event });
+            return;
+        }
 
-	let mut node = self.queue.cursor_front_mut();
+        let mut node = self.queue.cursor_front_mut();
 
-	while when > node.current().unwrap().when {
+        while when > node.current().unwrap().when {
             if node.peek_next().is_some() {
-	        node.move_next();
-	    } else {
-	        break;
-	    }
-	}
+                node.move_next();
+            } else {
+                break;
+            }
+        }
 
-	if when > node.current().unwrap().when {
-	    node.insert_after(Node { when, event });
-	} else {
-	    node.insert_before(Node { when, event });
-	}
+        if when > node.current().unwrap().when {
+            node.insert_after(Node { when, event });
+        } else {
+            node.insert_before(Node { when, event });
+        }
     }
 }
