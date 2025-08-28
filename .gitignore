@@ -1,6 +1,7 @@
 # dacho/.gitignore
 
-.cargo/
-.private/
+.stash/
 target/
+*.txt
+*.sh
 

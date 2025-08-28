@@ -1,6 +1,6 @@
-<!-- dacho/README.md -->
+<!-- dacho/examples/usage/README.md -->
 
-# dacho
+# dacho example - usage
 
 ## License
 Licensed under either of

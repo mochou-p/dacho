@@ -1,0 +1,17 @@
+# dacho/crates/dacho_window/Cargo.toml
+
+[package]
+publish      = false
+name         = "dacho_window"
+version      = "0.3.0"
+edition      = "2024"
+rust-version = "1.88.0"
+authors      = ["mochou-p"]
+description  = "dacho_window"
+readme       = "README.md"
+license      = "MIT OR Apache-2.0"
+repository   = "https://github.com/mochou-p/dacho"
+
+[dependencies]
+winit = { version = "0.30.12", default-features = false, features = ["wayland"] }
+

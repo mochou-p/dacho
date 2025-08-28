@@ -1,6 +1,6 @@
-<!-- dacho/README.md -->
+<!-- dacho/crates/dacho_window/README.md -->
 
-# dacho
+# dacho_window
 
 ## License
 Licensed under either of
