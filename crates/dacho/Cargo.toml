@@ -13,6 +13,9 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [dependencies]
-dacho_renderer = { path = "../dacho_renderer" }
-dacho_window   = { path = "../dacho_window"   }
+dacho_renderer = { path = "../dacho_renderer", version = "0.3.0" }
+dacho_window   = { path = "../dacho_window",   version = "0.3.0" }
+
+[lints]
+workspace = true
 

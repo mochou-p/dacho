@@ -5,7 +5,7 @@ use ash_window::enumerate_required_extensions;
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
-use winit::raw_window_handle::HasDisplayHandle;
+use winit::raw_window_handle::HasDisplayHandle as _;
 use winit::window::{Window, WindowId};
 
 use dacho_renderer::Vulkan;
@@ -17,7 +17,7 @@ struct App {
 }
 
 impl App {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self { window: None, vulkan: None }
     }
 }
@@ -33,10 +33,10 @@ impl ApplicationHandler for App {
 
         let display_handle = event_loop
             .display_handle()
+            .unwrap()
+            .into();
+        let required_extensions = enumerate_required_extensions(display_handle)
             .unwrap();
-        let required_extensions = enumerate_required_extensions(display_handle.into())
-            .unwrap();
-
         let vulkan  = Vulkan::new(required_extensions);
         self.vulkan = Some(vulkan);
     }

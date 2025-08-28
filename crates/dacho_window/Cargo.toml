@@ -15,5 +15,8 @@ repository   = "https://github.com/mochou-p/dacho"
 [dependencies]
 ash-window     = "0.13.0"
 winit          = { version = "0.30.12", default-features = false, features = ["rwh_06", "wayland"] }
-dacho_renderer = { path    = "../dacho_renderer" }
+dacho_renderer = { path = "../dacho_renderer", version = "0.3.0" }
+
+[lints]
+workspace = true
 

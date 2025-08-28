@@ -1,5 +1,11 @@
 // dacho/crates/dacho_renderer/src/lib.rs
 
+#![expect(
+    clippy::undocumented_unsafe_blocks,
+    clippy::multiple_unsafe_ops_per_block,
+    reason = "most of vulkan is unsafe"
+)]
+
 use core::ffi::c_char;
 
 use ash::{Device, Entry, Instance};
@@ -15,6 +21,7 @@ pub struct Vulkan {
 }
 
 impl Vulkan {
+    #[must_use]
     pub fn new(required_extensions: &[*const c_char]) -> Self {
         let entry = unsafe { Entry::load() }
             .unwrap();

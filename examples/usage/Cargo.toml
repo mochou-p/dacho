@@ -15,3 +15,6 @@ repository   = "https://github.com/mochou-p/dacho"
 [dependencies]
 dacho = { path = "../../crates/dacho" }
 
+[lints]
+workspace = true
+
