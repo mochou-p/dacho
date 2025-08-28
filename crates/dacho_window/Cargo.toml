@@ -13,5 +13,7 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [dependencies]
-winit = { version = "0.30.12", default-features = false, features = ["wayland"] }
+ash-window     = "0.13.0"
+winit          = { version = "0.30.12", default-features = false, features = ["rwh_06", "wayland"] }
+dacho_renderer = { path    = "../dacho_renderer" }
 

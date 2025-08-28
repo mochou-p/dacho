@@ -1,18 +1,24 @@
 // dacho/crates/dacho_window/src/lib.rs
 
+use ash_window::enumerate_required_extensions;
+
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::raw_window_handle::HasDisplayHandle;
 use winit::window::{Window, WindowId};
+
+use dacho_renderer::Vulkan;
 
 
 struct App {
-    window: Option<Window>
+    window: Option<Window>,
+    vulkan: Option<Vulkan>
 }
 
 impl App {
     fn new() -> Self {
-        Self { window: None }
+        Self { window: None, vulkan: None }
     }
 }
 
@@ -24,6 +30,15 @@ impl ApplicationHandler for App {
             .create_window(window_attributes)
             .unwrap();
         self.window = Some(window);
+
+        let display_handle = event_loop
+            .display_handle()
+            .unwrap();
+        let required_extensions = enumerate_required_extensions(display_handle.into())
+            .unwrap();
+
+        let vulkan  = Vulkan::new(required_extensions);
+        self.vulkan = Some(vulkan);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, _event: WindowEvent) {

@@ -1,17 +1,17 @@
-# dacho/examples/usage/Cargo.toml
+# dacho/crates/dacho_renderer/Cargo.toml
 
 [package]
 publish      = false
-name         = "usage"
+name         = "dacho_renderer"
 version      = "0.3.0"
 edition      = "2024"
 rust-version = "1.88.0"
 authors      = ["mochou-p"]
-description  = "dacho usage example"
+description  = "dacho_renderer"
 readme       = "README.md"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [dependencies]
-dacho = { path = "../../crates/dacho" }
+ash = { version = "0.38.0", default-features = false, features = ["loaded"] }
 
