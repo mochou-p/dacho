@@ -13,7 +13,9 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [dependencies]
-ash = { version = "0.38.0", default-features = false, features = ["loaded"] }
+ash               = { version = "0.38.0", default-features = false, features = ["loaded"] }
+ash-window        = "0.13.0"
+raw-window-handle = "0.6.2"
 
 [lints]
 workspace = true

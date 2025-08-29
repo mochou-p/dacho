@@ -1,8 +1,8 @@
 # dacho/.gitignore
 
+.notes/
 .stash/
 target/
-*.txt
 *.sh
 Cargo.lock
 

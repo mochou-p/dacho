@@ -8,17 +8,18 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::raw_window_handle::HasDisplayHandle as _;
 use winit::window::{Window, WindowId};
 
-use dacho_renderer::Vulkan;
+use dacho_renderer::{Renderer, Vulkan};
 
 
 struct App {
-    window: Option<Window>,
-    vulkan: Option<Vulkan>
+    window:   Option<Window>,
+    vulkan:   Option<Vulkan>,
+    renderer: Option<Renderer>
 }
 
 impl App {
     const fn new() -> Self {
-        Self { window: None, vulkan: None }
+        Self { window: None, vulkan: None, renderer: None }
     }
 }
 
@@ -29,7 +30,6 @@ impl ApplicationHandler for App {
         let window = event_loop
             .create_window(window_attributes)
             .unwrap();
-        self.window = Some(window);
 
         let display_handle = event_loop
             .display_handle()
@@ -37,12 +37,30 @@ impl ApplicationHandler for App {
             .into();
         let required_extensions = enumerate_required_extensions(display_handle)
             .unwrap();
-        let vulkan  = Vulkan::new(required_extensions);
-        self.vulkan = Some(vulkan);
+        let vulkan = Vulkan::new(required_extensions);
+
+        let renderer = vulkan.new_renderer(&window);
+
+        self.window   = Some(window);
+        self.vulkan   = Some(vulkan);
+        self.renderer = Some(renderer);
     }
 
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, _event: WindowEvent) {
         event_loop.exit();
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        let vulkan = self.vulkan
+            .take()
+            .unwrap();
+
+        let renderer = self.renderer
+            .take()
+            .unwrap();
+
+        vulkan.device_wait_idle();
+        vulkan.destroy_renderer(renderer);
     }
 }
 

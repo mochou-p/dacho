@@ -9,15 +9,21 @@
 use core::ffi::c_char;
 
 use ash::{Device, Entry, Instance};
-use ash::vk::{ApplicationInfo, DeviceCreateInfo, DeviceQueueCreateInfo, InstanceCreateInfo, PhysicalDevice, Queue, API_VERSION_1_3};
+use ash::khr::surface::Instance as InstanceKHR;
+use ash::vk::{ApplicationInfo, DeviceCreateInfo, DeviceQueueCreateInfo, InstanceCreateInfo, PhysicalDevice, SurfaceKHR, Queue, API_VERSION_1_3};
+
+use ash_window::create_surface;
+
+use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
 
 pub struct Vulkan {
-    _entry:           Entry,
+    entry:            Entry,
     instance:         Instance,
     _physical_device: PhysicalDevice,
     device:           Device,
-    _queue:           Queue
+    _queue:           Queue,
+    ext_surface:      InstanceKHR
 }
 
 impl Vulkan {
@@ -50,23 +56,63 @@ impl Vulkan {
 
         let queue = unsafe { device.get_device_queue(0, 0) };
 
+        let ext_surface = InstanceKHR::new(&entry, &instance);
+
         Self {
-            _entry:           entry,
+            entry,
             instance,
             _physical_device: physical_device,
             device,
-            _queue:           queue
+            _queue:           queue,
+            ext_surface
         }
+    }
+
+    #[must_use]
+    pub fn new_renderer<H: HasDisplayHandle + HasWindowHandle>(&self, handle: H) -> Renderer {
+        Renderer::new(&self.entry, &self.instance, handle)
+    }
+
+    pub fn destroy_renderer(&self, renderer: Renderer) {
+        renderer.destroy(&self.ext_surface);
+    }
+
+    pub fn device_wait_idle(&self) {
+        unsafe { self.device.device_wait_idle().unwrap(); }
     }
 }
 
 impl Drop for Vulkan {
     fn drop(&mut self) {
         unsafe {
-            self.device.device_wait_idle().unwrap();
             self.device.destroy_device(None);
             self.instance.destroy_instance(None);
         }
+    }
+}
+
+pub struct Renderer {
+    surface: SurfaceKHR
+}
+
+impl Renderer {
+    #[must_use]
+    fn new<H: HasDisplayHandle + HasWindowHandle>(entry: &Entry, instance: &Instance, handle: H) -> Self {
+        let rdh = handle
+            .display_handle()
+            .unwrap()
+            .into();
+        let rwh = handle
+            .window_handle()
+            .unwrap()
+            .into();
+        let surface = unsafe { create_surface(entry, instance, rdh, rwh, None) }.unwrap();
+
+        Self { surface }
+    }
+
+    fn destroy(self, ext_surface: &InstanceKHR) {
+        unsafe { ext_surface.destroy_surface(self.surface, None); }
     }
 }
 
