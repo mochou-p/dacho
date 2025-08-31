@@ -19,6 +19,7 @@ nursery  = { level = "warn", priority = -1 }
 cargo    = { level = "warn", priority = -1 }
 
 # -all:
+let_and_return          = "allow"
 option_map_unit_fn      = "allow"
 # -pedantic:
 missing_panics_doc      = "allow"
@@ -58,7 +59,6 @@ impl_trait_in_params                 = "warn"
 infinite_loop                        = "warn"
 inline_asm_x86_att_syntax            = "warn"
 integer_division                     = "warn"
-integer_division_remainder_used      = "warn"
 large_include_file                   = "warn"
 let_underscore_must_use              = "warn"
 let_underscore_untyped               = "warn"
