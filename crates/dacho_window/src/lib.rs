@@ -39,7 +39,8 @@ impl ApplicationHandler for App {
             .unwrap();
         let vulkan = Vulkan::new(required_extensions);
 
-        let renderer = vulkan.new_renderer(&window);
+        let inner_size = window.inner_size();
+        let renderer   = vulkan.new_renderer(&window, inner_size.width, inner_size.height);
 
         self.window   = Some(window);
         self.vulkan   = Some(vulkan);
