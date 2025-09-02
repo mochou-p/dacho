@@ -12,6 +12,10 @@ readme       = "README.md"
 license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
+[features]
+window_x11     = ["dacho_window/winit_x11"]
+window_wayland = ["dacho_window/winit_wayland"]
+
 [dependencies]
 dacho_renderer = { path = "../dacho_renderer", version = "0.3.0" }
 dacho_window   = { path = "../dacho_window",   version = "0.3.0" }
