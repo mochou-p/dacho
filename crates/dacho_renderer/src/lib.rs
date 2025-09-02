@@ -140,6 +140,75 @@ impl Vulkan {
     }
 
     #[inline]
+    pub fn resize(&self, renderer: &mut Renderer, width: u32, height: u32) {
+        self.device_wait_idle();
+
+        let surface_capabilities = unsafe { self.ext_surface.get_physical_device_surface_capabilities(self.physical_device, renderer.surface) }
+            .unwrap();
+        let image_extent = vk::Extent2D { width, height };
+        let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
+            .old_swapchain(renderer.swapchain)
+            .surface(renderer.surface)
+            .image_format(vk::Format::R8G8B8A8_UNORM)
+            .image_extent(image_extent)
+            .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
+            .image_array_layers(1)
+            .min_image_count(u32::try_from(MAX_FRAMES_IN_FLIGHT).unwrap())
+            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+            .pre_transform(surface_capabilities.current_transform)
+            .clipped(true)
+            .present_mode(vk::PresentModeKHR::FIFO);
+        let swapchain = unsafe { self.ext_swapchain.create_swapchain(&swapchain_create_info, None) }
+            .unwrap();
+
+        let swapchain_images = unsafe { self.ext_swapchain.get_swapchain_images(swapchain) }
+            .unwrap();
+
+        let subresource_range = vk::ImageSubresourceRange::default()
+            .aspect_mask(vk::ImageAspectFlags::COLOR)
+            .base_mip_level(0)
+            .level_count(1)
+            .base_array_layer(0)
+            .layer_count(1);
+        let swapchain_image_views = swapchain_images
+            .iter()
+            .map(|image| {
+                let image_view_create_info = vk::ImageViewCreateInfo::default()
+                    .image(*image)
+                    .view_type(vk::ImageViewType::TYPE_2D)
+                    .format(vk::Format::R8G8B8A8_UNORM)
+                    .subresource_range(subresource_range);
+
+                let image_view = unsafe { self.device.create_image_view(&image_view_create_info, None) }
+                    .unwrap();
+
+                image_view
+            })
+            .collect();
+
+        let viewports = [
+            vk::Viewport {
+                x:         0.0,          y:         0.0,
+                width:     width as f32, height:    height as f32,
+                min_depth: 0.0,          max_depth: 1.0
+            }
+        ];
+        let scissors = [
+            image_extent.into()
+        ];
+
+        renderer.destroy_swapchain_and_image_views(self);
+
+        renderer.image_extent          = image_extent;
+        renderer.swapchain             = swapchain;
+        renderer.swapchain_images      = swapchain_images;
+        renderer.subresource_range     = subresource_range;
+        renderer.swapchain_image_views = swapchain_image_views;
+        renderer.viewports             = viewports;
+        renderer.scissors              = scissors;
+    }
+
+    #[inline]
     fn wait_for_and_reset_fences(&self, in_flight_fence: vk::Fence) {
         let in_flight_fences = [in_flight_fence];
 
@@ -164,20 +233,20 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_command_buffer<F: Fn()>(&self, command_buffer: vk::CommandBuffer, f: F) {
+    fn with_command_buffer<F: Fn()>(&self, command_buffer: vk::CommandBuffer, closure: F) {
         let begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         unsafe { self.device.begin_command_buffer(command_buffer, &begin_info) }
             .unwrap();
 
-        f();
+        closure();
 
         unsafe { self.device.end_command_buffer(command_buffer) }
             .unwrap();
     }
 
     #[inline]
-    fn with_image_memory_barriers<F: Fn()>(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, f: F) {
+    fn with_image_memory_barriers<F: Fn()>(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, closure: F) {
         let rendering_image_memory_barriers = [
             vk::ImageMemoryBarrier2::default()
                 .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
@@ -193,7 +262,7 @@ impl Vulkan {
             .image_memory_barriers(&rendering_image_memory_barriers);
         unsafe { self.device.cmd_pipeline_barrier2(command_buffer, &rendering_dependency_info); }
 
-        f();
+        closure();
 
         let presenting_image_memory_barriers = [
             vk::ImageMemoryBarrier2::default()
@@ -212,7 +281,7 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_rendering<F: Fn()>(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, f: F) {
+    fn with_rendering<F: Fn()>(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, closure: F) {
         let color_attachments = [
             vk::RenderingAttachmentInfo::default()
                 .image_view(renderer.swapchain_image_views[image_index as usize])
@@ -228,7 +297,7 @@ impl Vulkan {
 
         unsafe { self.device.cmd_begin_rendering(command_buffer, &rendering_info); }
 
-        f();
+        closure();
 
         unsafe { self.device.cmd_end_rendering(command_buffer); }
     }
@@ -443,8 +512,8 @@ impl Renderer {
             image_extent.into()
         ];
         let viewport_state = vk::PipelineViewportStateCreateInfo::default()
-            .viewports(&viewports)
-            .scissors(&scissors);
+            .viewport_count(1)
+            .scissor_count(1);
         let rasterization_state = vk::PipelineRasterizationStateCreateInfo::default()
             .rasterizer_discard_enable(false)
             .polygon_mode(vk::PolygonMode::FILL)
@@ -517,7 +586,17 @@ impl Renderer {
         }
     }
 
-    fn destroy(self, vk: &Vulkan) {
+    fn destroy_swapchain_and_image_views(&mut self, vk: &Vulkan) {
+        unsafe {
+            self.swapchain_image_views
+                .iter()
+                .for_each(|image_view| vk.device.destroy_image_view(*image_view, None));
+
+            vk.ext_swapchain.destroy_swapchain(self.swapchain, None);
+        }
+    }
+
+    fn destroy(mut self, vk: &Vulkan) {
         unsafe {
             vk.device.destroy_pipeline(self.pipeline, None);
             vk.device.destroy_pipeline_layout(self.pipeline_layout, None);
@@ -534,12 +613,9 @@ impl Renderer {
                 .into_iter()
                 .for_each(|semaphore| vk.device.destroy_semaphore(semaphore, None));
 
-            self.swapchain_image_views
-                .into_iter()
-                .for_each(|image_view| vk.device.destroy_image_view(image_view, None));
+            self.destroy_swapchain_and_image_views(vk);
 
-            vk.ext_swapchain.destroy_swapchain(self.swapchain, None);
-            vk.ext_surface  .destroy_surface(self.surface, None);
+            vk.ext_surface.destroy_surface(self.surface, None);
         }
     }
 }
@@ -547,8 +623,7 @@ impl Renderer {
 fn read_spirv(filepath: &str) -> Vec<u32> {
     let bytes = fs::read(format!("{filepath}.spv")).unwrap();
 
-    #[cfg(debug_assertions)]
-    assert!((bytes.len() % 4) == 0, "invalid SPIR-V file");
+    debug_assert!((bytes.len() % 4) == 0, "invalid SPIR-V file");
 
     let mut words = Vec::with_capacity(bytes.len() / 4);
     for chunk in bytes.chunks(4) {

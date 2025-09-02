@@ -1,13 +1,12 @@
 // dacho/crates/dacho_window/src/lib.rs
 
-#![cfg_attr(debug_assertions, expect(clippy::print_stdout, reason = "FPS logging"))]
-
 #[cfg(debug_assertions)]
 use std::time::Instant;
 
 use ash_window::enumerate_required_extensions;
 
 use winit::application::ApplicationHandler;
+use winit::dpi::PhysicalSize;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::raw_window_handle::HasDisplayHandle as _;
@@ -20,47 +19,49 @@ pub use dacho_renderer as renderer;
 
 
 struct App {
-    first:    bool,
+    first:            bool,
     #[cfg(debug_assertions)]
-    timer:    Instant,
+    timer:            Instant,
     #[cfg(debug_assertions)]
-    fps:      u32,
-    window:   Option<Window>,
-    vulkan:   Option<Vulkan>,
-    renderer: Option<Renderer>
+    fps:              u32,
+    last_window_size: PhysicalSize<u32>,
+    window:           Option<Window>,
+    vulkan:           Option<Vulkan>,
+    renderer:         Option<Renderer>
 }
 
 impl App {
     #[cfg(debug_assertions)]
     fn new() -> Self {
         Self {
-            first:    true,
-            timer:    Instant::now(),
-            fps:      0,
-            window:   None,
-            vulkan:   None,
-            renderer: None
+            first:            true,
+            timer:            Instant::now(),
+            fps:              0,
+            last_window_size: (0, 0).into(),
+            window:           None,
+            vulkan:           None,
+            renderer:         None
         }
     }
 
     #[cfg(not(debug_assertions))]
-    const fn new() -> Self {
+    fn new() -> Self {
         Self {
-            first:    true,
-            window:   None,
-            vulkan:   None,
-            renderer: None
+            first:            true,
+            last_window_size: (0, 0).into(),
+            window:           None,
+            vulkan:           None,
+            renderer:         None
         }
     }
 }
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.first {
-            self.first = false;
-        } else {
+        if !self.first {
             return;
         }
+        self.first = false;
 
         let window_attributes = Window::default_attributes()
             .with_title("dacho");
@@ -77,21 +78,18 @@ impl ApplicationHandler for App {
         let vulkan = Vulkan::new(required_extensions);
 
         let inner_size  = window.inner_size();
-        let clear_color = [49.0/255.0, 50.0/255.0, 68.0/255.0, 1.0];
+        let clear_color = [49.0 / 255.0, 50.0 / 255.0, 68.0 / 255.0, 1.0];
         let renderer    = vulkan.new_renderer(&window, inner_size.width, inner_size.height, clear_color);
 
-        self.window   = Some(window);
-        self.vulkan   = Some(vulkan);
-        self.renderer = Some(renderer);
+        self.last_window_size = (inner_size.width, inner_size.height).into();
+        self.window           = Some(window);
+        self.vulkan           = Some(vulkan);
+        self.renderer         = Some(renderer);
     }
 
     #[inline]
+    #[cfg_attr(debug_assertions, expect(clippy::print_stdout, reason = "FPS logging"))]
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        self.window
-            .as_ref()
-            .unwrap()
-            .request_redraw();
-
         #[cfg(debug_assertions)]
         if self.timer.elapsed().as_secs() >= 1 {
             println!("{} FPS", self.fps);
@@ -100,6 +98,11 @@ impl ApplicationHandler for App {
         } else {
             self.fps += 1;
         }
+
+        self.window
+            .as_ref()
+            .unwrap()
+            .request_redraw();
     }
 
     #[inline]
@@ -109,19 +112,22 @@ impl ApplicationHandler for App {
                 event_loop.exit();
             },
             WindowEvent::RedrawRequested => {
-                let vulkan = self.vulkan
-                    .as_mut()
-                    .unwrap();
-
-                let renderer = self.renderer
-                    .as_mut()
-                    .unwrap();
-
-                let window = self.window
-                    .as_ref()
-                    .unwrap();
+                let vulkan   = self.vulkan  .as_ref().unwrap();
+                let renderer = self.renderer.as_mut().unwrap();
+                let window   = self.window  .as_ref().unwrap();
 
                 vulkan.render(renderer, || window.pre_present_notify());
+            },
+            WindowEvent::Resized(new_size) => {
+                if self.last_window_size == new_size {
+                    return;
+                }
+                self.last_window_size = new_size;
+
+                let vulkan   = self.vulkan  .as_ref().unwrap();
+                let renderer = self.renderer.as_mut().unwrap();
+
+                vulkan.resize(renderer, new_size.width, new_size.height);
             },
             _ => ()
         }
