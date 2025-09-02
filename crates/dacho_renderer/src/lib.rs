@@ -84,13 +84,11 @@ impl Vulkan {
         }
     }
 
-    #[inline]
     #[must_use]
     pub fn new_renderer<H: HasDisplayHandle + HasWindowHandle>(&self, handle: H, width: u32, height: u32, clear_color: [f32; 4]) -> Renderer {
         Renderer::new(self, handle, width, height, clear_color)
     }
 
-    #[inline]
     pub fn destroy_renderer(&self, renderer: Renderer) {
         renderer.destroy(self);
     }
@@ -101,31 +99,21 @@ impl Vulkan {
             .unwrap();
     }
 
-    pub fn render<F: Fn()>(&self, renderer: &mut Renderer, pre_present_notify: F) {
+    #[inline]
+    pub fn render<F: Fn()>(&self, renderer: &mut Renderer, winit_pre_present_notify: F) {
         let in_flight_fence           = renderer.in_flight_fences          [renderer.frame_index];
         let image_ready_semaphore     = renderer.image_ready_semaphores    [renderer.frame_index];
         let render_finished_semaphore = renderer.render_finished_semaphores[renderer.frame_index];
         let command_buffer            = renderer.command_buffers           [renderer.frame_index];
 
-        let fences = [in_flight_fence];
-        unsafe { self.device.wait_for_fences(&fences, true, u64::MAX) }
-            .unwrap();
-        unsafe { self.device.reset_fences(&fences) }
-            .unwrap();
+        self.wait_for_and_reset_fences(in_flight_fence);
+        self.reset_command_buffer(command_buffer);
 
-        unsafe { self.device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::RELEASE_RESOURCES) }
-            .unwrap();
-
-        let (image_index, _) = unsafe { self.ext_swapchain.acquire_next_image(renderer.swapchain, u64::MAX, image_ready_semaphore, vk::Fence::null()) }
-            .unwrap();
-
-        let render_finished_semaphores = [render_finished_semaphore];
-        let swapchains                 = [renderer.swapchain];
-        let image_indices              = [image_index];
-        let image                      = renderer.swapchain_images[image_index as usize];
+        let image_index = self.acquire_next_image(renderer.swapchain, image_ready_semaphore);
+        let image       = renderer.swapchain_images[image_index as usize];
 
         self.with_command_buffer(command_buffer, || {
-            self.with_image_memory_barrier(image, renderer, command_buffer, || {
+            self.with_image_memory_barriers(image, renderer, command_buffer, || {
                 self.with_rendering(renderer, image_index, command_buffer, || {
                     unsafe {
                         self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
@@ -137,43 +125,45 @@ impl Vulkan {
             });
         });
 
-        pre_present_notify();
+        winit_pre_present_notify();
 
-        let image_ready_semaphore_infos = [
-            vk::SemaphoreSubmitInfo::default()
-                .semaphore(image_ready_semaphore)
-                .value(0)
-                .stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT_KHR)
-        ];
-        let command_buffer_infos = [
-            vk::CommandBufferSubmitInfo::default()
-                .command_buffer(command_buffer)
-        ];
-        let render_finished_semaphore_infos = [
-            vk::SemaphoreSubmitInfo::default()
-                .semaphore(render_finished_semaphore)
-                .value(0)
-                .stage_mask(vk::PipelineStageFlags2::ALL_COMMANDS_KHR)
-        ];
-        let submit_infos = [
-            vk::SubmitInfo2::default()
-                .wait_semaphore_infos(&image_ready_semaphore_infos)
-                .command_buffer_infos(&command_buffer_infos)
-                .signal_semaphore_infos(&render_finished_semaphore_infos)
-        ];
-        unsafe { self.device.queue_submit2(self.queue, &submit_infos, in_flight_fence) }
-            .unwrap();
-
-        let present_info = vk::PresentInfoKHR::default()
-            .wait_semaphores(&render_finished_semaphores)
-            .swapchains(&swapchains)
-            .image_indices(&image_indices);
-        unsafe { self.ext_swapchain.queue_present(self.queue, &present_info) }
-            .unwrap();
+        self.submit_and_present(
+            image_ready_semaphore,
+            command_buffer,
+            render_finished_semaphore,
+            in_flight_fence,
+            renderer.swapchain,
+            image_index
+        );
 
         renderer.frame_index = (renderer.frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
+    #[inline]
+    fn wait_for_and_reset_fences(&self, in_flight_fence: vk::Fence) {
+        let in_flight_fences = [in_flight_fence];
+
+        unsafe { self.device.wait_for_fences(&in_flight_fences, true, u64::MAX) }
+            .unwrap();
+        unsafe { self.device.reset_fences(&in_flight_fences) }
+            .unwrap();
+    }
+
+    #[inline]
+    fn reset_command_buffer(&self, command_buffer: vk::CommandBuffer) {
+        unsafe { self.device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::RELEASE_RESOURCES) }
+            .unwrap();
+    }
+
+    #[inline]
+    fn acquire_next_image(&self, swapchain: vk::SwapchainKHR, image_ready_semaphore: vk::Semaphore) -> u32 {
+        let (image_index, _) = unsafe { self.ext_swapchain.acquire_next_image(swapchain, u64::MAX, image_ready_semaphore, vk::Fence::null()) }
+            .unwrap();
+
+        image_index
+    }
+
+    #[inline]
     fn with_command_buffer<F: Fn()>(&self, command_buffer: vk::CommandBuffer, f: F) {
         let begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
@@ -186,7 +176,8 @@ impl Vulkan {
             .unwrap();
     }
 
-    fn with_image_memory_barrier<F: Fn()>(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, f: F) {
+    #[inline]
+    fn with_image_memory_barriers<F: Fn()>(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, f: F) {
         let rendering_image_memory_barriers = [
             vk::ImageMemoryBarrier2::default()
                 .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
@@ -220,6 +211,7 @@ impl Vulkan {
         unsafe { self.device.cmd_pipeline_barrier2(command_buffer, &presenting_dependency_info); }
     }
 
+    #[inline]
     fn with_rendering<F: Fn()>(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, f: F) {
         let color_attachments = [
             vk::RenderingAttachmentInfo::default()
@@ -239,6 +231,53 @@ impl Vulkan {
         f();
 
         unsafe { self.device.cmd_end_rendering(command_buffer); }
+    }
+
+    #[inline]
+    fn submit_and_present(
+        &self,
+        image_ready_semaphore:     vk::Semaphore,
+        command_buffer:            vk::CommandBuffer,
+        render_finished_semaphore: vk::Semaphore,
+        in_flight_fence:           vk::Fence,
+        swapchain:                 vk::SwapchainKHR,
+        image_index:               u32
+    ) {
+        let render_finished_semaphores = [render_finished_semaphore];
+        let swapchains                 = [swapchain];
+        let image_indices              = [image_index];
+
+        let image_ready_semaphore_infos = [
+            vk::SemaphoreSubmitInfo::default()
+                .semaphore(image_ready_semaphore)
+                .value(0)
+                .stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT_KHR)
+        ];
+        let command_buffer_infos = [
+            vk::CommandBufferSubmitInfo::default()
+                .command_buffer(command_buffer)
+        ];
+        let render_finished_semaphore_infos = [
+            vk::SemaphoreSubmitInfo::default()
+                .semaphore(render_finished_semaphore)
+                .value(0)
+                .stage_mask(vk::PipelineStageFlags2::ALL_COMMANDS_KHR)
+        ];
+        let submit_infos = [
+            vk::SubmitInfo2::default()
+                .wait_semaphore_infos(&image_ready_semaphore_infos)
+                .command_buffer_infos(&command_buffer_infos)
+                .signal_semaphore_infos(&render_finished_semaphore_infos)
+        ];
+        unsafe { self.device.queue_submit2(self.queue, &submit_infos, in_flight_fence) }
+            .unwrap();
+
+        let present_info = vk::PresentInfoKHR::default()
+            .wait_semaphores(&render_finished_semaphores)
+            .swapchains(&swapchains)
+            .image_indices(&image_indices);
+        unsafe { self.ext_swapchain.queue_present(self.queue, &present_info) }
+            .unwrap();
     }
 }
 

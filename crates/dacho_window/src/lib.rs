@@ -32,7 +32,6 @@ struct App {
 
 impl App {
     #[cfg(debug_assertions)]
-    #[inline]
     fn new() -> Self {
         Self {
             first:    true,
@@ -45,7 +44,6 @@ impl App {
     }
 
     #[cfg(not(debug_assertions))]
-    #[inline]
     const fn new() -> Self {
         Self {
             first:    true,
@@ -87,6 +85,7 @@ impl ApplicationHandler for App {
         self.renderer = Some(renderer);
     }
 
+    #[inline]
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         self.window
             .as_ref()
@@ -103,6 +102,7 @@ impl ApplicationHandler for App {
         }
     }
 
+    #[inline]
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => {
