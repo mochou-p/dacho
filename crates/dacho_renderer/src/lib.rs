@@ -122,69 +122,20 @@ impl Vulkan {
         let render_finished_semaphores = [render_finished_semaphore];
         let swapchains                 = [renderer.swapchain];
         let image_indices              = [image_index];
+        let image                      = renderer.swapchain_images[image_index as usize];
 
-        let begin_info = vk::CommandBufferBeginInfo::default()
-            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
-        unsafe { self.device.begin_command_buffer(command_buffer, &begin_info) }
-            .unwrap();
-
-        let image = renderer.swapchain_images[image_index as usize];
-
-        let rendering_image_memory_barriers = [
-            vk::ImageMemoryBarrier2::default()
-                .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
-                .src_access_mask(vk::AccessFlags2::NONE)
-                .dst_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
-                .dst_access_mask(vk::AccessFlags2::COLOR_ATTACHMENT_WRITE)
-                .old_layout(vk::ImageLayout::UNDEFINED)
-                .new_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
-                .image(image)
-                .subresource_range(renderer.subresource_range)
-        ];
-        let rendering_dependency_info = vk::DependencyInfo::default()
-            .image_memory_barriers(&rendering_image_memory_barriers);
-        unsafe { self.device.cmd_pipeline_barrier2(command_buffer, &rendering_dependency_info); }
-
-        let color_attachments = [
-            vk::RenderingAttachmentInfo::default()
-                .image_view(renderer.swapchain_image_views[image_index as usize])
-                .image_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
-                .load_op(vk::AttachmentLoadOp::CLEAR)
-                .store_op(vk::AttachmentStoreOp::STORE)
-                .clear_value(renderer.clear_value)
-        ];
-        let rendering_info = vk::RenderingInfo::default()
-            .render_area(renderer.image_extent.into())
-            .layer_count(1)
-            .color_attachments(&color_attachments);
-
-        unsafe {
-            self.device.cmd_begin_rendering(command_buffer, &rendering_info);
-            self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
-            self.device.cmd_set_scissor(command_buffer, 0, &renderer.scissors);
-            self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
-            self.device.cmd_draw(command_buffer, 3, 1, 0, 0);
-            self.device.cmd_end_rendering(command_buffer);
-        }
-
-        let presenting_image_memory_barriers = [
-            vk::ImageMemoryBarrier2::default()
-                .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
-                .src_access_mask(vk::AccessFlags2::COLOR_ATTACHMENT_WRITE)
-                .dst_stage_mask(vk::PipelineStageFlags2::BOTTOM_OF_PIPE)
-                .dst_access_mask(vk::AccessFlags2::NONE)
-                .old_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
-                .new_layout(vk::ImageLayout::PRESENT_SRC_KHR)
-                .image(image)
-                .subresource_range(renderer.subresource_range)
-        ];
-        let presenting_dependency_info = vk::DependencyInfo::default()
-            .image_memory_barriers(&presenting_image_memory_barriers);
-        unsafe { self.device.cmd_pipeline_barrier2(command_buffer, &presenting_dependency_info); }
-
-
-        unsafe { self.device.end_command_buffer(command_buffer) }
-            .unwrap();
+        self.with_command_buffer(command_buffer, || {
+            self.with_image_memory_barrier(image, renderer, command_buffer, || {
+                self.with_rendering(renderer, image_index, command_buffer, || {
+                    unsafe {
+                        self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
+                        self.device.cmd_set_scissor(command_buffer, 0, &renderer.scissors);
+                        self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
+                        self.device.cmd_draw(command_buffer, 3, 1, 0, 0);
+                    }
+                });
+            });
+        });
 
         pre_present_notify();
 
@@ -221,6 +172,73 @@ impl Vulkan {
             .unwrap();
 
         renderer.frame_index = (renderer.frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
+    }
+
+    fn with_command_buffer<F: Fn()>(&self, command_buffer: vk::CommandBuffer, f: F) {
+        let begin_info = vk::CommandBufferBeginInfo::default()
+            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
+        unsafe { self.device.begin_command_buffer(command_buffer, &begin_info) }
+            .unwrap();
+
+        f();
+
+        unsafe { self.device.end_command_buffer(command_buffer) }
+            .unwrap();
+    }
+
+    fn with_image_memory_barrier<F: Fn()>(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, f: F) {
+        let rendering_image_memory_barriers = [
+            vk::ImageMemoryBarrier2::default()
+                .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
+                .src_access_mask(vk::AccessFlags2::NONE)
+                .dst_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
+                .dst_access_mask(vk::AccessFlags2::COLOR_ATTACHMENT_WRITE)
+                .old_layout(vk::ImageLayout::UNDEFINED)
+                .new_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+                .image(image)
+                .subresource_range(renderer.subresource_range)
+        ];
+        let rendering_dependency_info = vk::DependencyInfo::default()
+            .image_memory_barriers(&rendering_image_memory_barriers);
+        unsafe { self.device.cmd_pipeline_barrier2(command_buffer, &rendering_dependency_info); }
+
+        f();
+
+        let presenting_image_memory_barriers = [
+            vk::ImageMemoryBarrier2::default()
+                .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
+                .src_access_mask(vk::AccessFlags2::COLOR_ATTACHMENT_WRITE)
+                .dst_stage_mask(vk::PipelineStageFlags2::BOTTOM_OF_PIPE)
+                .dst_access_mask(vk::AccessFlags2::NONE)
+                .old_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+                .new_layout(vk::ImageLayout::PRESENT_SRC_KHR)
+                .image(image)
+                .subresource_range(renderer.subresource_range)
+        ];
+        let presenting_dependency_info = vk::DependencyInfo::default()
+            .image_memory_barriers(&presenting_image_memory_barriers);
+        unsafe { self.device.cmd_pipeline_barrier2(command_buffer, &presenting_dependency_info); }
+    }
+
+    fn with_rendering<F: Fn()>(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, f: F) {
+        let color_attachments = [
+            vk::RenderingAttachmentInfo::default()
+                .image_view(renderer.swapchain_image_views[image_index as usize])
+                .image_layout(vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
+                .load_op(vk::AttachmentLoadOp::CLEAR)
+                .store_op(vk::AttachmentStoreOp::STORE)
+                .clear_value(renderer.clear_value)
+        ];
+        let rendering_info = vk::RenderingInfo::default()
+            .render_area(renderer.image_extent.into())
+            .layer_count(1)
+            .color_attachments(&color_attachments);
+
+        unsafe { self.device.cmd_begin_rendering(command_buffer, &rendering_info); }
+
+        f();
+
+        unsafe { self.device.cmd_end_rendering(command_buffer); }
     }
 }
 
