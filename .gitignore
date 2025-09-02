@@ -1,8 +1,10 @@
 # dacho/.gitignore
 
 .notes/
+.renderdoc/
 .stash/
 target/
 *.sh
+*.spv
 Cargo.lock
 

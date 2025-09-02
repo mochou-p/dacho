@@ -15,10 +15,12 @@ use winit::window::{Window, WindowId};
 
 use dacho_renderer::{Renderer, Vulkan};
 
+pub use winit;
 pub use dacho_renderer as renderer;
 
 
 struct App {
+    first:    bool,
     #[cfg(debug_assertions)]
     timer:    Instant,
     #[cfg(debug_assertions)]
@@ -33,6 +35,7 @@ impl App {
     #[inline]
     fn new() -> Self {
         Self {
+            first:    true,
             timer:    Instant::now(),
             fps:      0,
             window:   None,
@@ -45,6 +48,7 @@ impl App {
     #[inline]
     const fn new() -> Self {
         Self {
+            first:    true,
             window:   None,
             vulkan:   None,
             renderer: None
@@ -54,6 +58,12 @@ impl App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
+        if self.first {
+            self.first = false;
+        } else {
+            return;
+        }
+
         let window_attributes = Window::default_attributes()
             .with_title("dacho");
         let window = event_loop
@@ -69,7 +79,7 @@ impl ApplicationHandler for App {
         let vulkan = Vulkan::new(required_extensions);
 
         let inner_size  = window.inner_size();
-        let clear_color = [0.0, 0.0, 0.0, 1.0];
+        let clear_color = [49.0/255.0, 50.0/255.0, 68.0/255.0, 1.0];
         let renderer    = vulkan.new_renderer(&window, inner_size.width, inner_size.height, clear_color);
 
         self.window   = Some(window);
