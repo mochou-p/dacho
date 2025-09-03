@@ -6,7 +6,7 @@
     reason = "most of vulkan is unsafe"
 )]
 
-use std::{array, ffi, fs};
+use std::{ffi, fs, iter};
 
 use ash::khr::{surface, swapchain};
 use ash::vk;
@@ -18,7 +18,18 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 pub use ash;
 
 
-const MAX_FRAMES_IN_FLIGHT: usize = 4;
+const SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
+
+type SwapchainAndEverythingRelated = (
+    vk::Extent2D,
+    vk::ImageSubresourceRange,
+    vk::SwapchainKHR,
+    Vec<vk::Image>,
+    Vec<vk::ImageView>,
+    [vk::Viewport;  1],
+    [vk::Rect2D;    1],
+    u32
+);
 
 pub struct Vulkan {
     entry:           ash::Entry,
@@ -101,10 +112,12 @@ impl Vulkan {
 
     #[inline]
     pub fn render<F: Fn()>(&self, renderer: &mut Renderer, winit_pre_present_notify: F) {
-        let in_flight_fence           = renderer.in_flight_fences          [renderer.frame_index];
-        let image_ready_semaphore     = renderer.image_ready_semaphores    [renderer.frame_index];
-        let render_finished_semaphore = renderer.render_finished_semaphores[renderer.frame_index];
-        let command_buffer            = renderer.command_buffers           [renderer.frame_index];
+        let fi = renderer.frame_index as usize;
+
+        let in_flight_fence           = renderer.in_flight_fences          [fi];
+        let image_ready_semaphore     = renderer.image_ready_semaphores    [fi];
+        let render_finished_semaphore = renderer.render_finished_semaphores[fi];
+        let command_buffer            = renderer.command_buffers           [fi];
 
         self.wait_for_and_reset_fences(in_flight_fence);
         self.reset_command_buffer(command_buffer);
@@ -136,24 +149,63 @@ impl Vulkan {
             image_index
         );
 
-        renderer.frame_index = (renderer.frame_index + 1) % MAX_FRAMES_IN_FLIGHT;
+        renderer.frame_index = (renderer.frame_index + 1) % renderer.max_frames_in_flight;
     }
 
     #[inline]
     pub fn resize(&self, renderer: &mut Renderer, width: u32, height: u32) {
         self.device_wait_idle();
 
-        let surface_capabilities = unsafe { self.ext_surface.get_physical_device_surface_capabilities(self.physical_device, renderer.surface) }
-            .unwrap();
+        let (
+            image_extent,
+            subresource_range,
+            swapchain,
+            swapchain_images,
+            swapchain_image_views,
+            viewports,
+            scissors,
+            _
+        ) = self.create_swapchain_and_everything_related(renderer.surface, width, height, renderer.swapchain);
+
+        renderer.destroy_swapchain_and_image_views(self);
+
+        renderer.image_extent          = image_extent;
+        renderer.subresource_range     = subresource_range;
+        renderer.swapchain             = swapchain;
+        renderer.swapchain_images      = swapchain_images;
+        renderer.swapchain_image_views = swapchain_image_views;
+        renderer.viewports             = viewports;
+        renderer.scissors              = scissors;
+    }
+
+    #[inline]
+    fn create_swapchain_and_everything_related(
+        &self,
+        surface:       vk::SurfaceKHR,
+        width:         u32,
+        height:        u32,
+        old_swapchain: vk::SwapchainKHR
+    ) -> SwapchainAndEverythingRelated {
         let image_extent = vk::Extent2D { width, height };
+
+        let subresource_range = vk::ImageSubresourceRange::default()
+            .aspect_mask(vk::ImageAspectFlags::COLOR)
+            .base_mip_level(0)
+            .level_count(1)
+            .base_array_layer(0)
+            .layer_count(1);
+
+        let surface_capabilities = unsafe { self.ext_surface.get_physical_device_surface_capabilities(self.physical_device, surface) }
+            .unwrap();
+        let max_frames_in_flight = 4; // surface_capabilities.min_image_count + 1;
         let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
-            .old_swapchain(renderer.swapchain)
-            .surface(renderer.surface)
-            .image_format(vk::Format::R8G8B8A8_UNORM)
+            .old_swapchain(old_swapchain)
+            .surface(surface)
+            .image_format(SWAPCHAIN_FORMAT)
             .image_extent(image_extent)
             .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
             .image_array_layers(1)
-            .min_image_count(u32::try_from(MAX_FRAMES_IN_FLIGHT).unwrap())
+            .min_image_count(max_frames_in_flight)
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .pre_transform(surface_capabilities.current_transform)
             .clipped(true)
@@ -164,19 +216,15 @@ impl Vulkan {
         let swapchain_images = unsafe { self.ext_swapchain.get_swapchain_images(swapchain) }
             .unwrap();
 
-        let subresource_range = vk::ImageSubresourceRange::default()
-            .aspect_mask(vk::ImageAspectFlags::COLOR)
-            .base_mip_level(0)
-            .level_count(1)
-            .base_array_layer(0)
-            .layer_count(1);
+        debug_assert!(swapchain_images.len() == max_frames_in_flight as usize, "swapchain image count error");
+
         let swapchain_image_views = swapchain_images
             .iter()
             .map(|image| {
                 let image_view_create_info = vk::ImageViewCreateInfo::default()
                     .image(*image)
                     .view_type(vk::ImageViewType::TYPE_2D)
-                    .format(vk::Format::R8G8B8A8_UNORM)
+                    .format(SWAPCHAIN_FORMAT)
                     .subresource_range(subresource_range);
 
                 let image_view = unsafe { self.device.create_image_view(&image_view_create_info, None) }
@@ -193,19 +241,18 @@ impl Vulkan {
                 min_depth: 0.0,          max_depth: 1.0
             }
         ];
-        let scissors = [
-            image_extent.into()
-        ];
+        let scissors = [image_extent.into()];
 
-        renderer.destroy_swapchain_and_image_views(self);
-
-        renderer.image_extent          = image_extent;
-        renderer.swapchain             = swapchain;
-        renderer.swapchain_images      = swapchain_images;
-        renderer.subresource_range     = subresource_range;
-        renderer.swapchain_image_views = swapchain_image_views;
-        renderer.viewports             = viewports;
-        renderer.scissors              = scissors;
+        (
+            image_extent,
+            subresource_range,
+            swapchain,
+            swapchain_images,
+            swapchain_image_views,
+            viewports,
+            scissors,
+            max_frames_in_flight
+        )
     }
 
     #[inline]
@@ -360,23 +407,24 @@ impl Drop for Vulkan {
 }
 
 pub struct Renderer {
-        surface:                    vk::SurfaceKHR,
-        image_extent:               vk::Extent2D,
-        swapchain:                  vk::SwapchainKHR,
-        swapchain_images:           Vec<vk::Image>,
-        subresource_range:          vk::ImageSubresourceRange,
-        swapchain_image_views:      Vec<vk::ImageView>,
-    pub clear_value:                vk::ClearValue,
-        frame_index:                usize,
-        image_ready_semaphores:     [vk::Semaphore;     MAX_FRAMES_IN_FLIGHT],
-        render_finished_semaphores: [vk::Semaphore;     MAX_FRAMES_IN_FLIGHT],
-        in_flight_fences:           [vk::Fence;         MAX_FRAMES_IN_FLIGHT],
-        command_pool:               vk::CommandPool,
-        command_buffers:            [vk::CommandBuffer; MAX_FRAMES_IN_FLIGHT],
-        viewports:                  [vk::Viewport; 1],
-        scissors:                   [vk::Rect2D;   1],
-        pipeline_layout:            vk::PipelineLayout,
-        pipeline:                   vk::Pipeline
+    surface:                    vk::SurfaceKHR,
+    image_extent:               vk::Extent2D,
+    swapchain:                  vk::SwapchainKHR,
+    subresource_range:          vk::ImageSubresourceRange,
+    swapchain_images:           Vec<vk::Image>,
+    swapchain_image_views:      Vec<vk::ImageView>,
+    image_ready_semaphores:     Vec<vk::Semaphore>,
+    render_finished_semaphores: Vec<vk::Semaphore>,
+    in_flight_fences:           Vec<vk::Fence>,
+    command_pool:               vk::CommandPool,
+    command_buffers:            Vec<vk::CommandBuffer>,
+    viewports:                  [vk::Viewport; 1],
+    scissors:                   [vk::Rect2D;   1],
+    pipeline_layout:            vk::PipelineLayout,
+    pipeline:                   vk::Pipeline,
+    clear_value:                vk::ClearValue,
+    frame_index:                u32,
+    max_frames_in_flight:       u32
 }
 
 impl Renderer {
@@ -393,72 +441,33 @@ impl Renderer {
         let surface = unsafe { create_surface(&vk.entry, &vk.instance, rdh, rwh, None) }
             .unwrap();
 
-        let surface_capabilities = unsafe { vk.ext_surface.get_physical_device_surface_capabilities(vk.physical_device, surface) }
-            .unwrap();
-        let image_extent = vk::Extent2D { width, height };
-        let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
-            .old_swapchain(vk::SwapchainKHR::null())
-            .surface(surface)
-            .image_format(vk::Format::R8G8B8A8_UNORM)
-            .image_extent(image_extent)
-            .image_usage(vk::ImageUsageFlags::COLOR_ATTACHMENT)
-            .image_array_layers(1)
-            .min_image_count(u32::try_from(MAX_FRAMES_IN_FLIGHT).unwrap())
-            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
-            .pre_transform(surface_capabilities.current_transform)
-            .clipped(true)
-            .present_mode(vk::PresentModeKHR::FIFO);
-        let swapchain = unsafe { vk.ext_swapchain.create_swapchain(&swapchain_create_info, None) }
-            .unwrap();
-
-        let swapchain_images = unsafe { vk.ext_swapchain.get_swapchain_images(swapchain) }
-            .unwrap();
-
-        let subresource_range = vk::ImageSubresourceRange::default()
-            .aspect_mask(vk::ImageAspectFlags::COLOR)
-            .base_mip_level(0)
-            .level_count(1)
-            .base_array_layer(0)
-            .layer_count(1);
-        let swapchain_image_views = swapchain_images
-            .iter()
-            .map(|image| {
-                let image_view_create_info = vk::ImageViewCreateInfo::default()
-                    .image(*image)
-                    .view_type(vk::ImageViewType::TYPE_2D)
-                    .format(vk::Format::R8G8B8A8_UNORM)
-                    .subresource_range(subresource_range);
-
-                let image_view = unsafe { vk.device.create_image_view(&image_view_create_info, None) }
-                    .unwrap();
-
-                image_view
-            })
-            .collect();
-
-        let clear_value = vk::ClearValue { color: vk::ClearColorValue {
-            float32: [clear_color[0], clear_color[1], clear_color[2], clear_color[3]]
-        } };
-
-        let frame_index = 0;
+        let (
+            image_extent,
+            subresource_range,
+            swapchain,
+            swapchain_images,
+            swapchain_image_views,
+            viewports,
+            scissors,
+            max_frames_in_flight
+        ) = vk.create_swapchain_and_everything_related(surface, width, height, vk::SwapchainKHR::null());
 
         let semaphore_create_info = vk::SemaphoreCreateInfo::default();
-
-        let image_ready_semaphores = array::from_fn(|_| {
+        let image_ready_semaphores = iter::repeat_with(|| {
             unsafe { vk.device.create_semaphore(&semaphore_create_info, None) }
                 .unwrap()
-        });
-        let render_finished_semaphores = array::from_fn(|_| {
+        }).take(max_frames_in_flight as usize).collect();
+        let render_finished_semaphores = iter::repeat_with(|| {
             unsafe { vk.device.create_semaphore(&semaphore_create_info, None) }
                 .unwrap()
-        });
+        }).take(max_frames_in_flight as usize).collect();
 
         let fence_create_info = vk::FenceCreateInfo::default()
             .flags(vk::FenceCreateFlags::SIGNALED);
-        let in_flight_fences = array::from_fn(|_| {
+        let in_flight_fences = iter::repeat_with(|| {
             unsafe { vk.device.create_fence(&fence_create_info, None) }
                 .unwrap()
-        });
+        }).take(max_frames_in_flight as usize).collect();
 
         let command_pool_create_info = vk::CommandPoolCreateInfo::default()
             .flags(vk::CommandPoolCreateFlags::TRANSIENT | vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
@@ -469,10 +478,8 @@ impl Renderer {
         let command_buffer_allocate_info = vk::CommandBufferAllocateInfo::default()
             .command_pool(command_pool)
             .level(vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(u32::try_from(MAX_FRAMES_IN_FLIGHT).unwrap());
+            .command_buffer_count(max_frames_in_flight);
         let command_buffers = unsafe { vk.device.allocate_command_buffers(&command_buffer_allocate_info) }
-            .unwrap()
-            .try_into()
             .unwrap();
 
         let vertex_code   = read_spirv("examples/usage/assets/shaders/test/vert.glsl");
@@ -501,16 +508,6 @@ impl Renderer {
             .vertex_attribute_descriptions(&[]);
         let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::default()
             .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
-        let viewports = [
-            vk::Viewport {
-                x:         0.0,          y:         0.0,
-                width:     width as f32, height:    height as f32,
-                min_depth: 0.0,          max_depth: 1.0
-            }
-        ];
-        let scissors = [
-            image_extent.into()
-        ];
         let viewport_state = vk::PipelineViewportStateCreateInfo::default()
             .viewport_count(1)
             .scissor_count(1);
@@ -543,7 +540,7 @@ impl Renderer {
         let pipeline_layout = unsafe { vk.device.create_pipeline_layout(&pipeline_layout_create_info, None) }
             .unwrap();
         let mut rendering_info = vk::PipelineRenderingCreateInfo::default()
-            .color_attachment_formats(&[vk::Format::R8G8B8A8_UNORM]);
+            .color_attachment_formats(&[SWAPCHAIN_FORMAT]);
         let pipeline_create_infos = [
                 vk::GraphicsPipelineCreateInfo::default()
                 .stages(&stages)
@@ -565,15 +562,19 @@ impl Renderer {
         unsafe { vk.device.destroy_shader_module(  vertex_module, None); }
         unsafe { vk.device.destroy_shader_module(fragment_module, None); }
 
+        let clear_value = vk::ClearValue { color: vk::ClearColorValue {
+            float32: [clear_color[0], clear_color[1], clear_color[2], clear_color[3]]
+        } };
+
+        let frame_index = 0;
+
         Self {
             surface,
             image_extent,
             swapchain,
-            swapchain_images,
             subresource_range,
+            swapchain_images,
             swapchain_image_views,
-            clear_value,
-            frame_index,
             image_ready_semaphores,
             render_finished_semaphores,
             in_flight_fences,
@@ -582,7 +583,10 @@ impl Renderer {
             viewports,
             scissors,
             pipeline_layout,
-            pipeline
+            pipeline,
+            clear_value,
+            frame_index,
+            max_frames_in_flight
         }
     }
 
@@ -603,15 +607,15 @@ impl Renderer {
             vk.device.destroy_command_pool(self.command_pool, None);
 
             self.in_flight_fences
-                .into_iter()
-                .for_each(|fence| vk.device.destroy_fence(fence, None));
+                .iter()
+                .for_each(|fence| vk.device.destroy_fence(*fence, None));
 
             self.render_finished_semaphores
-                .into_iter()
-                .for_each(|semaphore| vk.device.destroy_semaphore(semaphore, None));
+                .iter()
+                .for_each(|semaphore| vk.device.destroy_semaphore(*semaphore, None));
             self.image_ready_semaphores
-                .into_iter()
-                .for_each(|semaphore| vk.device.destroy_semaphore(semaphore, None));
+                .iter()
+                .for_each(|semaphore| vk.device.destroy_semaphore(*semaphore, None));
 
             self.destroy_swapchain_and_image_views(vk);
 
@@ -623,7 +627,8 @@ impl Renderer {
 fn read_spirv(filepath: &str) -> Vec<u32> {
     let bytes = fs::read(format!("{filepath}.spv")).unwrap();
 
-    debug_assert!((bytes.len() % 4) == 0, "invalid SPIR-V file");
+    debug_assert!(!bytes.is_empty(),      "invalid SPIR-V file (empty file)");
+    debug_assert!((bytes.len() % 4) == 0, "invalid SPIR-V file (byte count is not divisible by 4)");
 
     let mut words = Vec::with_capacity(bytes.len() / 4);
     for chunk in bytes.chunks(4) {
@@ -631,6 +636,8 @@ fn read_spirv(filepath: &str) -> Vec<u32> {
         word.copy_from_slice(chunk);
         words.push(u32::from_ne_bytes(word));
     }
+
+    debug_assert!(words[0] == 0x0723_0203, "invalid SPIR-V file (first word is not SPIR-V magic number)");
 
     words
 }

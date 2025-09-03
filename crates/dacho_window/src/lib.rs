@@ -78,7 +78,7 @@ impl ApplicationHandler for App {
         let vulkan = Vulkan::new(required_extensions);
 
         let inner_size  = window.inner_size();
-        let clear_color = [49.0 / 255.0, 50.0 / 255.0, 68.0 / 255.0, 1.0];
+        let clear_color = [1.0, 1.0, 1.0, 1.0];
         let renderer    = vulkan.new_renderer(&window, inner_size.width, inner_size.height, clear_color);
 
         self.last_window_size = (inner_size.width, inner_size.height).into();
@@ -98,11 +98,6 @@ impl ApplicationHandler for App {
         } else {
             self.fps += 1;
         }
-
-        self.window
-            .as_ref()
-            .unwrap()
-            .request_redraw();
     }
 
     #[inline]
@@ -134,13 +129,8 @@ impl ApplicationHandler for App {
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        let vulkan = self.vulkan
-            .take()
-            .unwrap();
-
-        let renderer = self.renderer
-            .take()
-            .unwrap();
+        let vulkan   = self.vulkan  .take().unwrap();
+        let renderer = self.renderer.take().unwrap();
 
         vulkan.device_wait_idle();
         vulkan.destroy_renderer(renderer);
@@ -150,14 +140,9 @@ impl ApplicationHandler for App {
 pub fn main() {
     let mut app = App::new();
 
-    let event_loop = EventLoop::new()
-        .unwrap();
+    let event_loop = EventLoop::new().unwrap();
 
-    event_loop
-        .set_control_flow(ControlFlow::Poll);
-
-    event_loop
-        .run_app(&mut app)
-        .unwrap();
+    event_loop.set_control_flow(ControlFlow::Poll);
+    event_loop.run_app(&mut app).unwrap();
 }
 
