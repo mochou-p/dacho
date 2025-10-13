@@ -1,8 +1,5 @@
 // dacho/crates/dacho_window/src/lib.rs
 
-#[cfg(debug_assertions)]
-use std::time::Instant;
-
 use ash_window::enumerate_required_extensions;
 
 use winit::application::ApplicationHandler;
@@ -19,11 +16,7 @@ pub use dacho_renderer as renderer;
 
 
 struct App {
-    first:            bool,
-    #[cfg(debug_assertions)]
-    timer:            Instant,
-    #[cfg(debug_assertions)]
-    fps:              u32,
+    initialized:      bool,
     last_window_size: PhysicalSize<u32>,
     window:           Option<Window>,
     vulkan:           Option<Vulkan>,
@@ -31,23 +24,9 @@ struct App {
 }
 
 impl App {
-    #[cfg(debug_assertions)]
     fn new() -> Self {
         Self {
-            first:            true,
-            timer:            Instant::now(),
-            fps:              0,
-            last_window_size: (0, 0).into(),
-            window:           None,
-            vulkan:           None,
-            renderer:         None
-        }
-    }
-
-    #[cfg(not(debug_assertions))]
-    fn new() -> Self {
-        Self {
-            first:            true,
+            initialized:      false,
             last_window_size: (0, 0).into(),
             window:           None,
             vulkan:           None,
@@ -58,10 +37,10 @@ impl App {
 
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if !self.first {
+        if self.initialized {
             return;
         }
-        self.first = false;
+        self.initialized = true;
 
         let window_attributes = Window::default_attributes()
             .with_title("dacho");
@@ -78,7 +57,7 @@ impl ApplicationHandler for App {
         let vulkan = Vulkan::new(required_extensions);
 
         let inner_size  = window.inner_size();
-        let clear_color = [1.0, 1.0, 1.0, 1.0];
+        let clear_color = [0.0, 0.0, 0.0, 0.0];
         let renderer    = vulkan.new_renderer(&window, inner_size.width, inner_size.height, clear_color);
 
         self.last_window_size = (inner_size.width, inner_size.height).into();
@@ -87,18 +66,11 @@ impl ApplicationHandler for App {
         self.renderer         = Some(renderer);
     }
 
+    /*
     #[inline]
-    #[cfg_attr(debug_assertions, expect(clippy::print_stdout, reason = "FPS logging"))]
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        #[cfg(debug_assertions)]
-        if self.timer.elapsed().as_secs() >= 1 {
-            println!("{} FPS", self.fps);
-            self.fps   = 0;
-            self.timer = Instant::now();
-        } else {
-            self.fps += 1;
-        }
     }
+    */
 
     #[inline]
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
@@ -114,6 +86,7 @@ impl ApplicationHandler for App {
                 vulkan.render(renderer, || window.pre_present_notify());
             },
             WindowEvent::Resized(new_size) => {
+                // NOTE: some compositors signal resizes even when the window size stays the same
                 if self.last_window_size == new_size {
                     return;
                 }

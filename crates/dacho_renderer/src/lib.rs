@@ -6,12 +6,10 @@
     reason = "most of vulkan is unsafe"
 )]
 
-use std::{ffi, fs, iter};
+use std::{ffi, fs, iter, mem, ptr};
 
 use ash::khr::{surface, swapchain};
 use ash::vk;
-
-use ash_window::create_surface;
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
@@ -26,10 +24,15 @@ type SwapchainAndEverythingRelated = (
     vk::SwapchainKHR,
     Vec<vk::Image>,
     Vec<vk::ImageView>,
-    [vk::Viewport;  1],
-    [vk::Rect2D;    1],
+    [vk::Viewport; 1],
+    [vk::Rect2D;   1],
     u32
 );
+
+#[repr(C)]
+struct Vertex {
+    position: [f32; 3]
+}
 
 pub struct Vulkan {
     entry:           ash::Entry,
@@ -67,15 +70,19 @@ impl Vulkan {
         ];
         let enabled_extension_names = Box::leak(Box::new([vk::KHR_SWAPCHAIN_NAME.as_ptr()]));
         let enabled_features = vk::PhysicalDeviceFeatures::default()
-            .logic_op(true);
+            .logic_op(true)
+            .shader_int64(true);
         let mut vulkan13_extensions = vk::PhysicalDeviceVulkan13Features::default()
             .dynamic_rendering(true)
             .synchronization2(true);
+        let mut vulkan12_extensions = vk::PhysicalDeviceVulkan12Features::default()
+            .buffer_device_address(true);
         let device_create_info = vk::DeviceCreateInfo::default()
             .queue_create_infos(&queue_create_infos)
             .enabled_extension_names(enabled_extension_names)
             .enabled_features(&enabled_features)
-            .push_next(&mut vulkan13_extensions);
+            .push_next(&mut vulkan13_extensions)
+            .push_next(&mut vulkan12_extensions);
         let device = unsafe { instance.create_device(physical_device, &device_create_info, None) }
             .unwrap();
 
@@ -96,12 +103,70 @@ impl Vulkan {
     }
 
     #[must_use]
-    pub fn new_renderer<H: HasDisplayHandle + HasWindowHandle>(&self, handle: H, width: u32, height: u32, clear_color: [f32; 4]) -> Renderer {
+    pub fn new_renderer(&self, handle: impl HasDisplayHandle + HasWindowHandle, width: u32, height: u32, clear_color: [f32; 4]) -> Renderer {
         Renderer::new(self, handle, width, height, clear_color)
     }
 
     pub fn destroy_renderer(&self, renderer: Renderer) {
         renderer.destroy(self);
+    }
+
+    fn create_buffer(&self) -> (vk::Buffer, vk::DeviceMemory) {
+        const VERTICES: [Vertex; 3] = [
+            Vertex { position: [-1.0, -1.0, 0.0] },
+            Vertex { position: [ 1.0, -1.0, 0.0] },
+            Vertex { position: [-1.0,  1.0, 0.0] },
+        ];
+        const VERTICES_LEN: usize = VERTICES.len();
+
+        let size               = (mem::size_of::<Vertex>() * VERTICES_LEN) as u64;
+        let buffer_create_info = vk::BufferCreateInfo::default()
+            .size(size)
+            .usage(
+                vk::BufferUsageFlags::VERTEX_BUFFER  |
+                vk::BufferUsageFlags::STORAGE_BUFFER |
+                vk::BufferUsageFlags::TRANSFER_DST   |
+                vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
+            )
+            .sharing_mode(vk::SharingMode::EXCLUSIVE);
+        let buffer = unsafe { self.device.create_buffer(&buffer_create_info, None) }
+            .unwrap();
+        let memory_requirements = unsafe { self.device.get_buffer_memory_requirements(buffer) };
+        let memory_properties   = unsafe { self.instance.get_physical_device_memory_properties(self.physical_device) };
+        let memory_type_index   = find_memory_type_index(
+            &memory_properties,
+            memory_requirements.memory_type_bits,
+            vk::MemoryPropertyFlags::DEVICE_LOCAL  |
+            vk::MemoryPropertyFlags::HOST_VISIBLE  | // cpu mapping
+            vk::MemoryPropertyFlags::HOST_COHERENT   // skip flushing after mapping
+        ).unwrap();
+
+        let mut memory_allocate_flags_info = vk::MemoryAllocateFlagsInfo::default()
+            .flags(vk::MemoryAllocateFlags::DEVICE_ADDRESS);
+        let memory_allocate_info = vk::MemoryAllocateInfo::default()
+            .allocation_size(memory_requirements.size)
+            .memory_type_index(memory_type_index)
+            .push_next(&mut memory_allocate_flags_info);
+        let device_memory = unsafe { self.device.allocate_memory(&memory_allocate_info, None) }
+            .unwrap();
+
+        unsafe { self.device.bind_buffer_memory(buffer, device_memory, 0) }
+            .unwrap();
+
+        // TODO: replace with a staging buffer
+        {
+            let src = VERTICES.as_ptr();
+            let dst = unsafe { self.device.map_memory(device_memory, 0, size, vk::MemoryMapFlags::empty()) }
+                .unwrap()
+                .cast::<Vertex>();
+
+            unsafe {
+                ptr::copy_nonoverlapping(src, dst, VERTICES_LEN);
+                self.device.unmap_memory(device_memory);
+            }
+        }
+
+        (buffer, device_memory)
     }
 
     #[inline]
@@ -111,7 +176,7 @@ impl Vulkan {
     }
 
     #[inline]
-    pub fn render<F: Fn()>(&self, renderer: &mut Renderer, winit_pre_present_notify: F) {
+    pub fn render(&self, renderer: &mut Renderer, winit_pre_present_notify: impl Fn()) {
         let fi = renderer.frame_index as usize;
 
         let in_flight_fence           = renderer.in_flight_fences          [fi];
@@ -129,6 +194,14 @@ impl Vulkan {
             self.with_image_memory_barriers(image, renderer, command_buffer, || {
                 self.with_rendering(renderer, image_index, command_buffer, || {
                     unsafe {
+                        self.device.cmd_push_constants(
+                            command_buffer,
+                            renderer.pipeline_layout,
+                            vk::ShaderStageFlags::VERTEX,
+                            0,
+                            &renderer.vertices_pointer.to_le_bytes()
+                        );
+
                         self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
                         self.device.cmd_set_scissor(command_buffer, 0, &renderer.scissors);
                         self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
@@ -280,7 +353,7 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_command_buffer<F: Fn()>(&self, command_buffer: vk::CommandBuffer, closure: F) {
+    fn with_command_buffer(&self, command_buffer: vk::CommandBuffer, closure: impl Fn()) {
         let begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         unsafe { self.device.begin_command_buffer(command_buffer, &begin_info) }
@@ -293,7 +366,7 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_image_memory_barriers<F: Fn()>(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, closure: F) {
+    fn with_image_memory_barriers(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, closure: impl Fn()) {
         let rendering_image_memory_barriers = [
             vk::ImageMemoryBarrier2::default()
                 .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
@@ -328,7 +401,7 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_rendering<F: Fn()>(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, closure: F) {
+    fn with_rendering(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, closure: impl Fn()) {
         let color_attachments = [
             vk::RenderingAttachmentInfo::default()
                 .image_view(renderer.swapchain_image_views[image_index as usize])
@@ -424,12 +497,14 @@ pub struct Renderer {
     pipeline:                   vk::Pipeline,
     clear_value:                vk::ClearValue,
     frame_index:                u32,
-    max_frames_in_flight:       u32
+    max_frames_in_flight:       u32,
+    vertices:                   (vk::Buffer, vk::DeviceMemory),
+    vertices_pointer:           u64
 }
 
 impl Renderer {
     #[must_use]
-    fn new<H: HasDisplayHandle + HasWindowHandle>(vk: &Vulkan, handle: H, width: u32, height: u32, clear_color: [f32; 4]) -> Self {
+    fn new(vk: &Vulkan, handle: impl HasDisplayHandle + HasWindowHandle, width: u32, height: u32, clear_color: [f32; 4]) -> Self {
         let rdh = handle
             .display_handle()
             .unwrap()
@@ -438,7 +513,7 @@ impl Renderer {
             .window_handle()
             .unwrap()
             .into();
-        let surface = unsafe { create_surface(&vk.entry, &vk.instance, rdh, rwh, None) }
+        let surface = unsafe { ash_window::create_surface(&vk.entry, &vk.instance, rdh, rwh, None) }
             .unwrap();
 
         let (
@@ -536,7 +611,14 @@ impl Renderer {
             .attachments(&color_blend_attachments);
         let dynamic_state = vk::PipelineDynamicStateCreateInfo::default()
             .dynamic_states(&[vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR]);
-        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default();
+        let push_constant_ranges = [
+            vk::PushConstantRange::default()
+                .stage_flags(vk::ShaderStageFlags::VERTEX)
+                .offset(0)
+                .size(8)
+        ];
+        let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
+            .push_constant_ranges(&push_constant_ranges);
         let pipeline_layout = unsafe { vk.device.create_pipeline_layout(&pipeline_layout_create_info, None) }
             .unwrap();
         let mut rendering_info = vk::PipelineRenderingCreateInfo::default()
@@ -568,6 +650,13 @@ impl Renderer {
 
         let frame_index = 0;
 
+        let vertices = vk.create_buffer();
+
+        let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+            .buffer(vertices.0);
+
+        let vertices_pointer = unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) };
+
         Self {
             surface,
             image_extent,
@@ -586,7 +675,9 @@ impl Renderer {
             pipeline,
             clear_value,
             frame_index,
-            max_frames_in_flight
+            max_frames_in_flight,
+            vertices,
+            vertices_pointer
         }
     }
 
@@ -602,6 +693,8 @@ impl Renderer {
 
     fn destroy(mut self, vk: &Vulkan) {
         unsafe {
+            vk.device.free_memory(self.vertices.1, None);
+            vk.device.destroy_buffer(self.vertices.0, None);
             vk.device.destroy_pipeline(self.pipeline, None);
             vk.device.destroy_pipeline_layout(self.pipeline_layout, None);
             vk.device.destroy_command_pool(self.command_pool, None);
@@ -640,5 +733,24 @@ fn read_spirv(filepath: &str) -> Vec<u32> {
     debug_assert!(words[0] == 0x0723_0203, "invalid SPIR-V file (first word is not SPIR-V magic number)");
 
     words
+}
+
+fn find_memory_type_index(
+    memory_properties:   &vk::PhysicalDeviceMemoryProperties,
+    memory_type_bits:    u32,
+    required_properties: vk::MemoryPropertyFlags
+) -> Option<u32> {
+    for i in 0..memory_properties.memory_type_count {
+        let contains = memory_properties
+            .memory_types[i as usize]
+            .property_flags
+            .contains(required_properties);
+
+        if contains && (memory_type_bits & (1 << i)) != 0 {
+            return Some(i);
+        }
+    }
+
+    None
 }
 
