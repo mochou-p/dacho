@@ -17,6 +17,7 @@ pub use ash;
 
 
 const SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
+const VERTICES_LEN:     u32        = 6;
 
 type SwapchainAndEverythingRelated = (
     vk::Extent2D,
@@ -31,7 +32,7 @@ type SwapchainAndEverythingRelated = (
 
 #[repr(C)]
 struct Vertex {
-    position: [f32; 3]
+    position: [f32; 4]
 }
 
 pub struct Vulkan {
@@ -112,14 +113,16 @@ impl Vulkan {
     }
 
     fn create_buffer(&self) -> (vk::Buffer, vk::DeviceMemory) {
-        const VERTICES: [Vertex; 3] = [
-            Vertex { position: [-1.0, -1.0, 0.0] },
-            Vertex { position: [ 1.0, -1.0, 0.0] },
-            Vertex { position: [-1.0,  1.0, 0.0] },
+        const VERTICES: [Vertex; VERTICES_LEN as usize] = [
+            Vertex { position: [-1.0, -1.0, 0.0, 1.0] },
+            Vertex { position: [-1.0,  1.0, 0.0, 1.0] },
+            Vertex { position: [ 1.0, -1.0, 0.0, 1.0] },
+            Vertex { position: [ 1.0, -1.0, 0.0, 1.0] },
+            Vertex { position: [-1.0,  1.0, 0.0, 1.0] },
+            Vertex { position: [ 1.0,  1.0, 0.0, 1.0] }
         ];
-        const VERTICES_LEN: usize = VERTICES.len();
 
-        let size               = (mem::size_of::<Vertex>() * VERTICES_LEN) as u64;
+        let size               = (mem::size_of::<Vertex>() * VERTICES_LEN as usize) as u64;
         let buffer_create_info = vk::BufferCreateInfo::default()
             .size(size)
             .usage(
@@ -161,7 +164,7 @@ impl Vulkan {
                 .cast::<Vertex>();
 
             unsafe {
-                ptr::copy_nonoverlapping(src, dst, VERTICES_LEN);
+                ptr::copy_nonoverlapping(src, dst, VERTICES_LEN as usize);
                 self.device.unmap_memory(device_memory);
             }
         }
@@ -205,7 +208,7 @@ impl Vulkan {
                         self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
                         self.device.cmd_set_scissor(command_buffer, 0, &renderer.scissors);
                         self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
-                        self.device.cmd_draw(command_buffer, 3, 1, 0, 0);
+                        self.device.cmd_draw(command_buffer, VERTICES_LEN, 1, 0, 0);
                     }
                 });
             });
@@ -582,6 +585,7 @@ impl Renderer {
             .vertex_binding_descriptions(&[])
             .vertex_attribute_descriptions(&[]);
         let input_assembly_state = vk::PipelineInputAssemblyStateCreateInfo::default()
+            .primitive_restart_enable(false)
             .topology(vk::PrimitiveTopology::TRIANGLE_LIST);
         let viewport_state = vk::PipelineViewportStateCreateInfo::default()
             .viewport_count(1)

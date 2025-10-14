@@ -4,7 +4,6 @@
 .renderdoc/
 .stash/
 target/
-*.sh
 *.spv
 Cargo.lock
 
