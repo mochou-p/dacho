@@ -16,8 +16,9 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 pub use ash;
 
 
-const SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
-const VERTICES_LEN:     u32        = 6;
+const SWAPCHAIN_FORMAT:   vk::Format = vk::Format::R8G8B8A8_SRGB;
+const INDICES_LEN:        u32        = 6;
+const PUSH_CONSTANTS_LEN: u32        = 8 + 8;
 
 type SwapchainAndEverythingRelated = (
     vk::Extent2D,
@@ -112,21 +113,13 @@ impl Vulkan {
         renderer.destroy(self);
     }
 
-    fn create_buffer(&self) -> (vk::Buffer, vk::DeviceMemory) {
-        const VERTICES: [Vertex; VERTICES_LEN as usize] = [
-            Vertex { position: [-1.0, -1.0, 0.0, 1.0] },
-            Vertex { position: [-1.0,  1.0, 0.0, 1.0] },
-            Vertex { position: [ 1.0, -1.0, 0.0, 1.0] },
-            Vertex { position: [ 1.0, -1.0, 0.0, 1.0] },
-            Vertex { position: [-1.0,  1.0, 0.0, 1.0] },
-            Vertex { position: [ 1.0,  1.0, 0.0, 1.0] }
-        ];
-
-        let size               = (mem::size_of::<Vertex>() * VERTICES_LEN as usize) as u64;
+    // TODO: make one big allocation from which smaller chunks are taken
+    fn create_buffer<const LEN: usize, T>(&self, data: &[T; LEN], usage: vk::BufferUsageFlags) -> (vk::Buffer, vk::DeviceMemory) {
+        let size               = (mem::size_of::<T>() * LEN) as u64;
         let buffer_create_info = vk::BufferCreateInfo::default()
             .size(size)
             .usage(
-                vk::BufferUsageFlags::VERTEX_BUFFER  |
+                usage                                |
                 vk::BufferUsageFlags::STORAGE_BUFFER |
                 vk::BufferUsageFlags::TRANSFER_DST   |
                 vk::BufferUsageFlags::SHADER_DEVICE_ADDRESS
@@ -158,13 +151,13 @@ impl Vulkan {
 
         // TODO: replace with a staging buffer
         {
-            let src = VERTICES.as_ptr();
+            let src = data.as_ptr();
             let dst = unsafe { self.device.map_memory(device_memory, 0, size, vk::MemoryMapFlags::empty()) }
                 .unwrap()
-                .cast::<Vertex>();
+                .cast::<T>();
 
             unsafe {
-                ptr::copy_nonoverlapping(src, dst, VERTICES_LEN as usize);
+                ptr::copy_nonoverlapping(src, dst, LEN);
                 self.device.unmap_memory(device_memory);
             }
         }
@@ -197,18 +190,13 @@ impl Vulkan {
             self.with_image_memory_barriers(image, renderer, command_buffer, || {
                 self.with_rendering(renderer, image_index, command_buffer, || {
                     unsafe {
-                        self.device.cmd_push_constants(
-                            command_buffer,
-                            renderer.pipeline_layout,
-                            vk::ShaderStageFlags::VERTEX,
-                            0,
-                            &renderer.vertices_pointer.to_le_bytes()
-                        );
-
+                        self.device.cmd_push_constants(command_buffer, renderer.pipeline_layout, vk::ShaderStageFlags::VERTEX, 0, &renderer.push_constants);
                         self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
                         self.device.cmd_set_scissor(command_buffer, 0, &renderer.scissors);
                         self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
-                        self.device.cmd_draw(command_buffer, VERTICES_LEN, 1, 0, 0);
+
+                        // NOTE: its indexed inside the shader
+                        self.device.cmd_draw(command_buffer, INDICES_LEN, 1, 0, 0);
                     }
                 });
             });
@@ -502,7 +490,8 @@ pub struct Renderer {
     frame_index:                u32,
     max_frames_in_flight:       u32,
     vertices:                   (vk::Buffer, vk::DeviceMemory),
-    vertices_pointer:           u64
+    indices:                    (vk::Buffer, vk::DeviceMemory),
+    push_constants:             Vec<u8>
 }
 
 impl Renderer {
@@ -593,8 +582,8 @@ impl Renderer {
         let rasterization_state = vk::PipelineRasterizationStateCreateInfo::default()
             .rasterizer_discard_enable(false)
             .polygon_mode(vk::PolygonMode::FILL)
-            .cull_mode(vk::CullModeFlags::NONE)
-            .front_face(vk::FrontFace::CLOCKWISE)
+            .cull_mode(vk::CullModeFlags::BACK)
+            .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
             .depth_bias_enable(false)
             .line_width(1.0);
         let multisample_state = vk::PipelineMultisampleStateCreateInfo::default()
@@ -619,7 +608,7 @@ impl Renderer {
             vk::PushConstantRange::default()
                 .stage_flags(vk::ShaderStageFlags::VERTEX)
                 .offset(0)
-                .size(8)
+                .size(PUSH_CONSTANTS_LEN)
         ];
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
             .push_constant_ranges(&push_constant_ranges);
@@ -654,12 +643,43 @@ impl Renderer {
 
         let frame_index = 0;
 
-        let vertices = vk.create_buffer();
+        let vertices = vk.create_buffer(
+            &[
+                Vertex { position: [-1.0, -1.0, 0.0, 1.0] },
+                Vertex { position: [-1.0,  1.0, 0.0, 1.0] },
+                Vertex { position: [ 1.0, -1.0, 0.0, 1.0] },
+                Vertex { position: [ 1.0,  1.0, 0.0, 1.0] }
+            ],
+            vk::BufferUsageFlags::VERTEX_BUFFER
+        );
+        let indices = vk.create_buffer::<_, u32>(
+            &[
+                0, 1, 2,
+                2, 1, 3
+            ],
+            vk::BufferUsageFlags::INDEX_BUFFER
+        );
 
-        let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
-            .buffer(vertices.0);
+        let push_constants = {
+            let vertices_pointer_slice = {
+                let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+                    .buffer(vertices.0);
 
-        let vertices_pointer = unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) };
+                unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
+                    .to_le_bytes()
+            };
+            let indices_pointer_slice = {
+                let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+                    .buffer(indices.0);
+
+                unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
+                    .to_le_bytes()
+            };
+
+            let mut vec = vertices_pointer_slice.to_vec();
+            vec.extend_from_slice(&indices_pointer_slice);
+            vec
+        };
 
         Self {
             surface,
@@ -681,7 +701,8 @@ impl Renderer {
             frame_index,
             max_frames_in_flight,
             vertices,
-            vertices_pointer
+            indices,
+            push_constants
         }
     }
 
@@ -698,7 +719,9 @@ impl Renderer {
     fn destroy(mut self, vk: &Vulkan) {
         unsafe {
             vk.device.free_memory(self.vertices.1, None);
+            vk.device.free_memory(self.indices.1, None);
             vk.device.destroy_buffer(self.vertices.0, None);
+            vk.device.destroy_buffer(self.indices.0, None);
             vk.device.destroy_pipeline(self.pipeline, None);
             vk.device.destroy_pipeline_layout(self.pipeline_layout, None);
             vk.device.destroy_command_pool(self.command_pool, None);
