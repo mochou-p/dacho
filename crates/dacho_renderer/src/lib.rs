@@ -17,8 +17,9 @@ pub use ash;
 
 
 const SWAPCHAIN_FORMAT:   vk::Format = vk::Format::R8G8B8A8_SRGB;
+const INSTANCES_LEN:      u32        = 2;
 const INDICES_LEN:        u32        = 6;
-const PUSH_CONSTANTS_LEN: u32        = 8 + 8;
+const PUSH_CONSTANTS_LEN: usize      = 3 * mem::size_of::<u64>();
 
 type SwapchainAndEverythingRelated = (
     vk::Extent2D,
@@ -33,6 +34,11 @@ type SwapchainAndEverythingRelated = (
 
 #[repr(C)]
 struct Vertex {
+    position: [f32; 4]
+}
+
+#[repr(C)]
+struct Instance {
     position: [f32; 4]
 }
 
@@ -196,7 +202,7 @@ impl Vulkan {
                         self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
 
                         // NOTE: its indexed inside the shader
-                        self.device.cmd_draw(command_buffer, INDICES_LEN, 1, 0, 0);
+                        self.device.cmd_draw(command_buffer, INDICES_LEN, INSTANCES_LEN, 0, 0);
                     }
                 });
             });
@@ -490,6 +496,7 @@ pub struct Renderer {
     frame_index:                u32,
     max_frames_in_flight:       u32,
     vertices:                   (vk::Buffer, vk::DeviceMemory),
+    instances:                  (vk::Buffer, vk::DeviceMemory),
     indices:                    (vk::Buffer, vk::DeviceMemory),
     push_constants:             Vec<u8>
 }
@@ -608,7 +615,7 @@ impl Renderer {
             vk::PushConstantRange::default()
                 .stage_flags(vk::ShaderStageFlags::VERTEX)
                 .offset(0)
-                .size(PUSH_CONSTANTS_LEN)
+                .size(u32::try_from(PUSH_CONSTANTS_LEN).unwrap())
         ];
         let pipeline_layout_create_info = vk::PipelineLayoutCreateInfo::default()
             .push_constant_ranges(&push_constant_ranges);
@@ -645,14 +652,21 @@ impl Renderer {
 
         let vertices = vk.create_buffer(
             &[
-                Vertex { position: [-1.0, -1.0, 0.0, 1.0] },
-                Vertex { position: [-1.0,  1.0, 0.0, 1.0] },
-                Vertex { position: [ 1.0, -1.0, 0.0, 1.0] },
-                Vertex { position: [ 1.0,  1.0, 0.0, 1.0] }
+                Vertex { position: [-0.1, -0.1, 0.0, 1.0] },
+                Vertex { position: [-0.1,  0.1, 0.0, 1.0] },
+                Vertex { position: [ 0.1, -0.1, 0.0, 1.0] },
+                Vertex { position: [ 0.1,  0.1, 0.0, 1.0] }
             ],
             vk::BufferUsageFlags::VERTEX_BUFFER
         );
-        let indices = vk.create_buffer::<_, u32>(
+        let instances = vk.create_buffer::<{ INSTANCES_LEN as usize }, _>(
+            &[
+                Instance { position: [-0.5, 0.0, 0.0, 0.0] },
+                Instance { position: [ 0.5, 0.0, 0.0, 0.0] }
+            ],
+            vk::BufferUsageFlags::VERTEX_BUFFER
+        );
+        let indices = vk.create_buffer::<{ INDICES_LEN as usize }, u32>(
             &[
                 0, 1, 2,
                 2, 1, 3
@@ -668,6 +682,13 @@ impl Renderer {
                 unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
                     .to_le_bytes()
             };
+            let instances_pointer_slice = {
+                let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+                    .buffer(instances.0);
+
+                unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
+                    .to_le_bytes()
+            };
             let indices_pointer_slice = {
                 let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
                     .buffer(indices.0);
@@ -677,7 +698,8 @@ impl Renderer {
             };
 
             let mut vec = vertices_pointer_slice.to_vec();
-            vec.extend_from_slice(&indices_pointer_slice);
+            vec.extend_from_slice(&instances_pointer_slice);
+            vec.extend_from_slice(  &indices_pointer_slice);
             vec
         };
 
@@ -701,6 +723,7 @@ impl Renderer {
             frame_index,
             max_frames_in_flight,
             vertices,
+            instances,
             indices,
             push_constants
         }
@@ -719,8 +742,10 @@ impl Renderer {
     fn destroy(mut self, vk: &Vulkan) {
         unsafe {
             vk.device.free_memory(self.vertices.1, None);
+            vk.device.free_memory(self.instances.1, None);
             vk.device.free_memory(self.indices.1, None);
             vk.device.destroy_buffer(self.vertices.0, None);
+            vk.device.destroy_buffer(self.instances.0, None);
             vk.device.destroy_buffer(self.indices.0, None);
             vk.device.destroy_pipeline(self.pipeline, None);
             vk.device.destroy_pipeline_layout(self.pipeline_layout, None);
