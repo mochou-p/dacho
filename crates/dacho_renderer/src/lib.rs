@@ -34,12 +34,12 @@ type SwapchainAndEverythingRelated = (
 
 #[repr(C)]
 struct Vertex {
-    position: [f32; 4]
+    position: [f32; 2]
 }
 
 #[repr(C)]
 struct Instance {
-    position: [f32; 4]
+    position: [f32; 2]
 }
 
 pub struct Vulkan {
@@ -111,7 +111,13 @@ impl Vulkan {
     }
 
     #[must_use]
-    pub fn new_renderer(&self, handle: impl HasDisplayHandle + HasWindowHandle, width: u32, height: u32, clear_color: [f32; 4]) -> Renderer {
+    pub fn new_renderer(
+        &self,
+        handle:      impl HasDisplayHandle + HasWindowHandle,
+        width:       u32,
+        height:      u32,
+        clear_color: [f32; 4]
+    ) -> Renderer {
         Renderer::new(self, handle, width, height, clear_color)
     }
 
@@ -120,7 +126,11 @@ impl Vulkan {
     }
 
     // TODO: make one big allocation from which smaller chunks are taken
-    fn create_buffer<const LEN: usize, T>(&self, data: &[T; LEN], usage: vk::BufferUsageFlags) -> (vk::Buffer, vk::DeviceMemory) {
+    fn create_buffer<const LEN: usize, T>(
+        &self,
+        data:  &[T; LEN],
+        usage: vk::BufferUsageFlags
+    ) -> (vk::Buffer, vk::DeviceMemory) {
         let size               = (mem::size_of::<T>() * LEN) as u64;
         let buffer_create_info = vk::BufferCreateInfo::default()
             .size(size)
@@ -178,7 +188,11 @@ impl Vulkan {
     }
 
     #[inline]
-    pub fn render(&self, renderer: &mut Renderer, winit_pre_present_notify: impl Fn()) {
+    pub fn render(
+        &self,
+        renderer:                 &mut Renderer,
+        winit_pre_present_notify: impl Fn()
+    ) {
         let fi = renderer.frame_index as usize;
 
         let in_flight_fence           = renderer.in_flight_fences          [fi];
@@ -342,7 +356,11 @@ impl Vulkan {
     }
 
     #[inline]
-    fn acquire_next_image(&self, swapchain: vk::SwapchainKHR, image_ready_semaphore: vk::Semaphore) -> u32 {
+    fn acquire_next_image(
+        &self,
+        swapchain:             vk::SwapchainKHR,
+        image_ready_semaphore: vk::Semaphore
+    ) -> u32 {
         let (image_index, _) = unsafe { self.ext_swapchain.acquire_next_image(swapchain, u64::MAX, image_ready_semaphore, vk::Fence::null()) }
             .unwrap();
 
@@ -350,7 +368,11 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_command_buffer(&self, command_buffer: vk::CommandBuffer, closure: impl Fn()) {
+    fn with_command_buffer(
+        &self,
+        command_buffer: vk::CommandBuffer,
+        closure:        impl Fn()
+    ) {
         let begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         unsafe { self.device.begin_command_buffer(command_buffer, &begin_info) }
@@ -363,7 +385,13 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_image_memory_barriers(&self, image: vk::Image, renderer: &Renderer, command_buffer: vk::CommandBuffer, closure: impl Fn()) {
+    fn with_image_memory_barriers(
+        &self,
+        image:          vk::Image,
+        renderer:       &Renderer,
+        command_buffer: vk::CommandBuffer,
+        closure:        impl Fn()
+    ) {
         let rendering_image_memory_barriers = [
             vk::ImageMemoryBarrier2::default()
                 .src_stage_mask(vk::PipelineStageFlags2::COLOR_ATTACHMENT_OUTPUT)
@@ -398,7 +426,13 @@ impl Vulkan {
     }
 
     #[inline]
-    fn with_rendering(&self, renderer: &Renderer, image_index: u32, command_buffer: vk::CommandBuffer, closure: impl Fn()) {
+    fn with_rendering(
+        &self,
+        renderer:       &Renderer,
+        image_index:    u32,
+        command_buffer: vk::CommandBuffer,
+        closure:        impl Fn()
+    ) {
         let color_attachments = [
             vk::RenderingAttachmentInfo::default()
                 .image_view(renderer.swapchain_image_views[image_index as usize])
@@ -503,7 +537,13 @@ pub struct Renderer {
 
 impl Renderer {
     #[must_use]
-    fn new(vk: &Vulkan, handle: impl HasDisplayHandle + HasWindowHandle, width: u32, height: u32, clear_color: [f32; 4]) -> Self {
+    fn new(
+        vk:          &Vulkan,
+        handle:      impl HasDisplayHandle + HasWindowHandle,
+        width:       u32,
+        height:      u32,
+        clear_color: [f32; 4]
+    ) -> Self {
         let rdh = handle
             .display_handle()
             .unwrap()
@@ -652,17 +692,17 @@ impl Renderer {
 
         let vertices = vk.create_buffer(
             &[
-                Vertex { position: [-0.1, -0.1, 0.0, 1.0] },
-                Vertex { position: [-0.1,  0.1, 0.0, 1.0] },
-                Vertex { position: [ 0.1, -0.1, 0.0, 1.0] },
-                Vertex { position: [ 0.1,  0.1, 0.0, 1.0] }
+                Vertex { position: [-0.1, -0.1] },
+                Vertex { position: [-0.1,  0.1] },
+                Vertex { position: [ 0.1, -0.1] },
+                Vertex { position: [ 0.1,  0.1] }
             ],
             vk::BufferUsageFlags::VERTEX_BUFFER
         );
         let instances = vk.create_buffer::<{ INSTANCES_LEN as usize }, _>(
             &[
-                Instance { position: [-0.5, 0.0, 0.0, 0.0] },
-                Instance { position: [ 0.5, 0.0, 0.0, 0.0] }
+                Instance { position: [-0.5, -0.5] },
+                Instance { position: [ 0.5,  0.5] }
             ],
             vk::BufferUsageFlags::VERTEX_BUFFER
         );

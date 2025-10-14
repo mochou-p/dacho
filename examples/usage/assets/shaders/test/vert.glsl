@@ -9,11 +9,11 @@
 
 
 struct Vertex {
-    vec4 position;
+    vec2 position;
 };
 
 struct Instance {
-    vec4 position;
+    vec2 position;
 };
 
 layout(buffer_reference, scalar) buffer VertexBuffer {
@@ -48,11 +48,13 @@ void main() {
     InstanceBuffer instance_buffer = InstanceBuffer(instances_pointer);
     VertexBuffer     vertex_buffer =   VertexBuffer( vertices_pointer);
 
-    uint32_t vertex_index =    index_buffer.data[gl_VertexIndex];
-    Vertex   vertex       =   vertex_buffer.data[vertex_index];
+    uint32_t vertex_index =    index_buffer.data[  gl_VertexIndex];
+    Vertex   vertex       =   vertex_buffer.data[    vertex_index];
     Instance instance     = instance_buffer.data[gl_InstanceIndex];
 
-    gl_Position = vertex.position + instance.position;
+    vec2 position = vertex.position + instance.position;
+
+    gl_Position = vec4(position, 0.0, 1.0);
     out_color   = colors[gl_VertexIndex % 3];
 }
 
