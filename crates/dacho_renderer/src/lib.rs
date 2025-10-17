@@ -19,7 +19,11 @@ pub use ash;
 const SWAPCHAIN_FORMAT:   vk::Format = vk::Format::R8G8B8A8_SRGB;
 const INSTANCES_LEN:      u32        = 2;
 const INDICES_LEN:        u32        = 6;
-const PUSH_CONSTANTS_LEN: usize      = 3 * mem::size_of::<u64>();
+const PUSH_CONSTANTS_LEN: usize      = {
+    3 * mem::size_of::<u64>()
+    +
+    3 * mem::size_of::<u32>()
+};
 
 type SwapchainAndEverythingRelated = (
     vk::Extent2D,
@@ -715,21 +719,21 @@ impl Renderer {
         );
 
         let push_constants = {
-            let vertices_pointer_slice = {
+            let vertices_pointer_bytes = {
                 let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
                     .buffer(vertices.0);
 
                 unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
                     .to_le_bytes()
             };
-            let instances_pointer_slice = {
+            let instances_pointer_bytes = {
                 let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
                     .buffer(instances.0);
 
                 unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
                     .to_le_bytes()
             };
-            let indices_pointer_slice = {
+            let indices_pointer_bytes = {
                 let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
                     .buffer(indices.0);
 
@@ -737,9 +741,15 @@ impl Renderer {
                     .to_le_bytes()
             };
 
-            let mut vec = vertices_pointer_slice.to_vec();
-            vec.extend_from_slice(&instances_pointer_slice);
-            vec.extend_from_slice(  &indices_pointer_slice);
+            let mut vec = vertices_pointer_bytes.to_vec();
+            vec.extend_from_slice(&instances_pointer_bytes);
+            vec.extend_from_slice(  &indices_pointer_bytes);
+            vec.extend_from_slice(    &0_u32.to_le_bytes()); //   vertex offset
+            vec.extend_from_slice(    &0_u32.to_le_bytes()); // instance offset
+            vec.extend_from_slice(    &0_u32.to_le_bytes()); //    index offset
+
+            debug_assert!(vec.len() <= 128);
+
             vec
         };
 
