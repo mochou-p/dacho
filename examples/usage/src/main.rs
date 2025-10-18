@@ -3,21 +3,58 @@
 #![expect(clippy::absolute_paths, reason = "example style")]
 
 
+const   VERTEX_SIZE: usize = 2;
+const    INDEX_SIZE: usize = 3;
+const INSTANCE_SIZE: usize = 2;
+
 trait Mesh {
-    const VERTEX_COUNT: usize;
-    const  INDEX_COUNT: usize;
+    fn vertices() -> &'static [[f32; VERTEX_SIZE]];
+    fn  indices() -> &'static [[u32;  INDEX_SIZE]];
 }
 
 struct Quad;
 impl Mesh for Quad {
-    const VERTEX_COUNT: usize =  4;
-    const  INDEX_COUNT: usize =  6;
+    fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
+        &[
+            [-0.1, -0.1],
+            [-0.1,  0.0],
+            [ 0.1, -0.1],
+            [ 0.1,  0.1]
+        ]
+    }
+
+    fn indices() -> &'static [[u32; INDEX_SIZE]] {
+        &[
+            [0, 1, 2],
+            [2, 1, 3]
+        ]
+    }
 }
 
 struct Circle;
 impl Mesh for Circle {
-    const VERTEX_COUNT: usize =  7;
-    const  INDEX_COUNT: usize = 18;
+    fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
+        &[
+            [ 0.0, -0.2], //      0
+            [ 0.0,  0.0], //
+            [ 0.1,  0.1], // 6         2
+            [ 0.1, -0.1], //      1
+            [ 0.0,  0.2], // 5         3
+            [-0.1, -0.2], //
+            [-0.1,  0.2]  //      4
+        ]
+    }
+
+    fn indices() -> &'static [[u32; INDEX_SIZE]] {
+        &[
+            [0, 1, 2],
+            [2, 1, 3],
+            [3, 1, 4],
+            [4, 1, 5],
+            [5, 1, 6],
+            [6, 1, 0]
+        ]
+    }
 }
 
 struct InstanceData {
@@ -44,9 +81,22 @@ struct Meshes {
     instances:                     Vec<f32>
 }
 
-const INSTANCE_SIZE: usize = 2;
-
 impl Meshes {
+    fn with_size_estimates(
+        different_meshes_count: usize,
+        vertex_buffer_size:     usize,
+        index_buffer_size:      usize,
+        instance_buffer_size:   usize
+    ) -> Self {
+        Self {
+            registered_meshes: std::collections::HashMap::with_capacity(different_meshes_count),
+            vertices:                                Vec::with_capacity(    vertex_buffer_size),
+            indices:                                 Vec::with_capacity(     index_buffer_size),
+            instances:                               Vec::with_capacity(  instance_buffer_size),
+            ..Default::default()
+        }
+    }
+
     fn draw(&self) {
         let mut temp = Vec::with_capacity(self.instance_datas_per_mesh.len());
 
@@ -75,14 +125,12 @@ impl Meshes {
         println!("\n{temp:?}");
     }
 
-    fn register<M>(&mut self, count_estimate: usize) {
+    fn register<M: Mesh>(&mut self, instance_count_estimate: usize) {
         let key = std::any::type_name::<M>().to_owned();
 
-        if self.registered_meshes.contains_key(&key) {
-            eprintln!("\x1b[33mwarning:\x1b[0m `{key}` registered more than once!`");
-        } else {
-            self.registered_meshes.insert(key, count_estimate);
-        }
+        debug_assert!(!self.registered_meshes.contains_key(&key), "mesh already registered");
+
+        self.registered_meshes.insert(key, instance_count_estimate);
     }
 
     fn add_instance<M: Mesh>(&mut self, instance: [f32; INSTANCE_SIZE]) {
@@ -91,13 +139,14 @@ impl Meshes {
         let Some(instance_count_estimate) = self.registered_meshes.get(&key) else {
             panic!("\x1b[31merror:\x1b[0m `{key}` has not yet been registered!\n       you need to call `Meshes::register::<T>(..)` before `Meshes::add_instance::<T>(..)`");
         };
+        let estimated_size = instance_count_estimate * INSTANCE_SIZE;
 
         let i = {
             if let Some((_, instance_datas)) = self.instance_datas_per_mesh.get_mut(&key) {
                 let instance_data = instance_datas.last_mut().unwrap();
 
                 if instance_data.count == *instance_count_estimate {
-                    println!("\x1b[46;30manother\x1b[0m chunk for {key}");
+                    // another chunk for M
 
                     let new_chunk = InstanceData {
                         chunk_offset: self.current_instance_chunk_offset,
@@ -105,14 +154,14 @@ impl Meshes {
                     };
                     let i = new_chunk.chunk_offset;
 
-                    self.instances.resize(self.instances.len() + (instance_count_estimate * INSTANCE_SIZE), 0.0);
+                    self.instances.resize(self.instances.len() + estimated_size, 0.0);
                     instance_datas.push(new_chunk);
 
-                    self.current_instance_chunk_offset += instance_count_estimate * INSTANCE_SIZE;
+                    self.current_instance_chunk_offset += estimated_size;
 
                     i
                 } else {
-                    println!("\x1b[43;30mlast\x1b[0m chunk for {key}");
+                    // last chunk for M
 
                     let i = instance_data.chunk_offset + (instance_data.count * INSTANCE_SIZE);
 
@@ -121,7 +170,7 @@ impl Meshes {
                     i
                 }
             } else {
-                println!("\x1b[42;30mfirst\x1b[0m chunk for {key}");
+                // first chunk for M
 
                 let instance_data = InstanceData {
                     chunk_offset: self.current_instance_chunk_offset,
@@ -129,33 +178,43 @@ impl Meshes {
                 };
                 let i = instance_data.chunk_offset;
 
+                let     vertices = M::vertices();
+                let      indices = M:: indices();
+                let vertex_count = vertices.len() * VERTEX_SIZE;
+                let  index_count =  indices.len() *  INDEX_SIZE;
+
                 let mesh_data = MeshData {
                     vertex_offset: self.current_vertex_offset,
                     index_offset:  self.current_index_offset,
-                    index_count:   M::INDEX_COUNT
+                    index_count
                 };
 
-                self. vertices.extend(vec![0.0; M::VERTEX_COUNT]);
-                self.  indices.extend(vec![0.0; M:: INDEX_COUNT]);
-                self.instances.resize(self.instances.len() + (instance_count_estimate * INSTANCE_SIZE), 0.0);
+                // TODO: move to Self::register
+                self.vertices.extend(unsafe {
+                    std::slice::from_raw_parts(vertices.as_ptr() as *const f32, vertex_count)
+                });
+                self.indices .extend(unsafe {
+                    std::slice::from_raw_parts( indices.as_ptr() as *const f32,  index_count)
+                });
+
+                self.instances.resize(self.instances.len() + estimated_size, 0.0);
+
                 self.instance_datas_per_mesh.insert(key, (mesh_data, vec![instance_data]));
 
-                self.current_vertex_offset         += M::VERTEX_COUNT;
-                self.current_index_offset          += M:: INDEX_COUNT;
-                self.current_instance_chunk_offset += instance_count_estimate * INSTANCE_SIZE;
+                self.current_vertex_offset         +=    vertex_count;
+                self.current_index_offset          +=     index_count;
+                self.current_instance_chunk_offset += estimated_size;
 
                 i
             }
         };
 
-        let range = i..i + INSTANCE_SIZE;
-        println!("range={range:?}\n");
-        self.instances.splice(range, instance);
+        self.instances.splice(i..i + INSTANCE_SIZE, instance);
     }
 }
 
 fn main() {
-    let mut meshes = Meshes::default();
+    let mut meshes = Meshes::with_size_estimates(2, 32, 32, 128);
 
     meshes.register::<Quad>  (3);
     meshes.register::<Circle>(7);
