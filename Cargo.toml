@@ -29,7 +29,7 @@ similar_names           = "allow"
 cargo_common_metadata   = "allow"
 multiple_crate_versions = "allow"
 
-# +restrictions:
+# +restriction:
 absolute_paths                       = "warn"
 allow_attributes                     = "warn"
 allow_attributes_without_reason      = "warn"

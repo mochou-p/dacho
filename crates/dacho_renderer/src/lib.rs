@@ -6,7 +6,7 @@
     reason = "most of vulkan is unsafe"
 )]
 
-use std::{ffi, fs, iter, mem, ptr};
+use std::{any, ffi, fs, iter, mem, ptr, slice, collections::HashMap};
 
 use ash::khr::{surface, swapchain};
 use ash::vk;
@@ -16,10 +16,12 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 pub use ash;
 
 
-const SWAPCHAIN_FORMAT:   vk::Format = vk::Format::R8G8B8A8_SRGB;
-const INSTANCES_LEN:      u32        = 2;
-const INDICES_LEN:        u32        = 6;
-const PUSH_CONSTANTS_LEN: usize      = {
+const   SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
+const        VERTEX_SIZE: usize      = 2;
+const         INDEX_SIZE: usize      = 3;
+const      INSTANCE_SIZE: usize      = 2;
+
+const PUSH_CONSTANTS_LEN: usize = {
     3 * mem::size_of::<u64>()
     +
     3 * mem::size_of::<u32>()
@@ -36,14 +38,229 @@ type SwapchainAndEverythingRelated = (
     u32
 );
 
-#[repr(C)]
-struct Vertex {
-    position: [f32; 2]
+trait Mesh {
+    fn vertices() -> &'static [[f32; VERTEX_SIZE]];
+    fn  indices() -> &'static [[u32;  INDEX_SIZE]];
 }
 
-#[repr(C)]
-struct Instance {
-    position: [f32; 2]
+struct Quad;
+impl Mesh for Quad {
+    fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
+        &[
+            [-0.1, -0.1],
+            [-0.1,  0.1],
+            [ 0.1, -0.1],
+            [ 0.1,  0.1]
+        ]
+    }
+
+    fn indices() -> &'static [[u32; INDEX_SIZE]] {
+        &[
+            [0, 1, 2],
+            [2, 1, 3]
+        ]
+    }
+}
+
+struct Circle;
+impl Mesh for Circle {
+    fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
+        &[
+            [ 0.0, -0.2],
+            [ 0.0,  0.0],
+            [ 0.1, -0.1],
+            [ 0.1,  0.1],
+            [ 0.0,  0.2],
+            [-0.1,  0.1],
+            [-0.1, -0.1]
+        ]
+    }
+
+    fn indices() -> &'static [[u32; INDEX_SIZE]] {
+        &[
+            [0, 1, 2],
+            [2, 1, 3],
+            [3, 1, 4],
+            [4, 1, 5],
+            [5, 1, 6],
+            [6, 1, 0]
+        ]
+    }
+}
+
+struct InstanceData {
+    chunk_offset: usize,
+    count:        usize
+}
+
+#[derive(Default)]
+struct MeshData {
+    instance_count_estimate: usize,
+    vertex_offset:           usize,
+    index_offset:            usize,
+    index_count:             usize
+}
+
+#[derive(Default)]
+struct Meshes {
+    registered:                    HashMap<String, MeshData>,
+    instance_datas_per_mesh:       HashMap<String, Vec<InstanceData>>,
+    current_vertex_offset:         usize,
+    current_index_offset:          usize,
+    current_instance_chunk_offset: usize,
+    vertices:                      Vec<f32>,
+    indices:                       Vec<u32>,
+    instances:                     Vec<f32>
+}
+
+impl Meshes {
+    fn with_size_estimates(
+        different_meshes_count: usize,
+        vertex_buffer_size:     usize,
+        index_buffer_size:      usize,
+        instance_buffer_size:   usize
+    ) -> Self {
+        Self {
+            registered: HashMap::with_capacity(different_meshes_count),
+            vertices:       Vec::with_capacity(    vertex_buffer_size),
+            indices:        Vec::with_capacity(     index_buffer_size),
+            instances:      Vec::with_capacity(  instance_buffer_size),
+            ..Default::default()
+        }
+    }
+
+    fn register<M: Mesh>(&mut self, instance_count_estimate: usize) {
+        let key = any::type_name::<M>().to_owned();
+
+        assert!(!self.registered.contains_key(&key), "`{key}` is already registered!");
+
+        let     vertices = M::vertices();
+        let      indices = M:: indices();
+        let vertex_count = vertices.len() * VERTEX_SIZE;
+        let  index_count =  indices.len() *  INDEX_SIZE;
+
+        let mesh_data = MeshData {
+            instance_count_estimate,
+            vertex_offset: self.current_vertex_offset,
+            index_offset:  self.current_index_offset,
+            index_count
+        };
+
+        self.vertices.extend(unsafe {
+            slice::from_raw_parts(vertices.as_ptr().cast::<f32>(), vertex_count)
+        });
+        self.indices .extend(unsafe {
+            slice::from_raw_parts( indices.as_ptr().cast::<u32>(),  index_count)
+        });
+
+        self.registered.insert(key, mesh_data);
+        self.current_vertex_offset += vertex_count;
+        self.current_index_offset  +=  index_count;
+    }
+
+    fn add_instance<M: Mesh>(&mut self, instance: [f32; INSTANCE_SIZE]) {
+        let key = any::type_name::<M>().to_owned();
+
+        let mesh_data = self.registered.get(&key)
+            .unwrap_or_else(|| panic!("`{key}` has not yet been registered!"));
+
+        let estimated_size = mesh_data.instance_count_estimate * INSTANCE_SIZE;
+
+        let i = {
+            if let Some(instance_datas) = self.instance_datas_per_mesh.get_mut(&key) {
+                let instance_data = instance_datas.last_mut().unwrap();
+
+                if instance_data.count == mesh_data.instance_count_estimate {
+                    // another chunk for M
+
+                    let new_chunk = InstanceData {
+                        chunk_offset: self.current_instance_chunk_offset,
+                        count:        1
+                    };
+                    let i = new_chunk.chunk_offset;
+
+                    self.instances.resize(self.instances.len() + estimated_size, 0.0);
+                    instance_datas.push(new_chunk);
+
+                    self.current_instance_chunk_offset += estimated_size;
+
+                    i
+                } else {
+                    // last chunk for M
+
+                    let i = instance_data.chunk_offset + (instance_data.count * INSTANCE_SIZE);
+
+                    instance_data.count += 1;
+
+                    i
+                }
+            } else {
+                // first chunk for M
+
+                let instance_data = InstanceData {
+                    chunk_offset: self.current_instance_chunk_offset,
+                    count:        1
+                };
+                let i = instance_data.chunk_offset;
+
+                self.instances.resize(self.instances.len() + estimated_size, 0.0);
+
+                self.instance_datas_per_mesh.insert(key, vec![instance_data]);
+
+                self.current_instance_chunk_offset += estimated_size;
+
+                i
+            }
+        };
+
+        self.instances.splice(i..i + INSTANCE_SIZE, instance);
+    }
+
+    fn draw(
+        &self,
+        vk:             &Vulkan,
+        command_buffer: vk::CommandBuffer,
+        renderer:       &Renderer
+    ) {
+        // TODO: overwrite offseted ranges of bytes, instead of changing len
+        //       easy when it will be incorporated into the type system or with proc-macros
+        let mut push_constants = renderer. vertices_pointer.to_le_bytes().to_vec();
+        push_constants.extend(   renderer.  indices_pointer.to_le_bytes());
+        push_constants.extend(   renderer.instances_pointer.to_le_bytes());
+
+        let cut_off1 = push_constants.len();
+
+        // TODO: dont do `/ {VERTEX/INSTANCE}_SIZE` here
+        //       rather do more work in Self::add_instance
+        for (key, instance_datas) in &self.instance_datas_per_mesh {
+            let mesh_data = &self.registered[key];
+
+            push_constants.truncate(cut_off1);
+            push_constants.extend(((mesh_data.vertex_offset / VERTEX_SIZE) as u32).to_le_bytes());
+            push_constants.extend((mesh_data.index_offset as u32).to_le_bytes());
+
+            let cut_off2 = push_constants.len();
+
+            for instance_data in instance_datas {
+                push_constants.truncate(cut_off2);
+                push_constants.extend(((instance_data.chunk_offset / INSTANCE_SIZE) as u32).to_le_bytes());
+
+                unsafe {
+                    vk.device.cmd_push_constants(command_buffer, renderer.pipeline_layout, vk::ShaderStageFlags::VERTEX, 0, &push_constants);
+
+                    // NOTE: its indexed inside the shader
+                    vk.device.cmd_draw(
+                        command_buffer,
+                        mesh_data.index_count as u32,
+                        instance_data.count   as u32,
+                        // TODO: use these instead of push constant offsets
+                        0,
+                        0
+                    );
+                }
+            }
+        }
+    }
 }
 
 pub struct Vulkan {
@@ -130,12 +347,13 @@ impl Vulkan {
     }
 
     // TODO: make one big allocation from which smaller chunks are taken
-    fn create_buffer<const LEN: usize, T>(
+    fn create_buffer<T>(
         &self,
-        data:  &[T; LEN],
+        data:  &[T],
         usage: vk::BufferUsageFlags
     ) -> (vk::Buffer, vk::DeviceMemory) {
-        let size               = (mem::size_of::<T>() * LEN) as u64;
+        let len                = data.len();
+        let size               = mem::size_of_val(data) as u64;
         let buffer_create_info = vk::BufferCreateInfo::default()
             .size(size)
             .usage(
@@ -153,8 +371,8 @@ impl Vulkan {
             &memory_properties,
             memory_requirements.memory_type_bits,
             vk::MemoryPropertyFlags::DEVICE_LOCAL  |
-            vk::MemoryPropertyFlags::HOST_VISIBLE  | // cpu mapping
-            vk::MemoryPropertyFlags::HOST_COHERENT   // skip flushing after mapping
+            vk::MemoryPropertyFlags::HOST_VISIBLE  |
+            vk::MemoryPropertyFlags::HOST_COHERENT
         ).unwrap();
 
         let mut memory_allocate_flags_info = vk::MemoryAllocateFlagsInfo::default()
@@ -170,6 +388,7 @@ impl Vulkan {
             .unwrap();
 
         // TODO: replace with a staging buffer
+        //       or maybe not? to keep easy cpu map for frequent changes
         {
             let src = data.as_ptr();
             let dst = unsafe { self.device.map_memory(device_memory, 0, size, vk::MemoryMapFlags::empty()) }
@@ -177,7 +396,7 @@ impl Vulkan {
                 .cast::<T>();
 
             unsafe {
-                ptr::copy_nonoverlapping(src, dst, LEN);
+                ptr::copy_nonoverlapping(src, dst, len);
                 self.device.unmap_memory(device_memory);
             }
         }
@@ -214,14 +433,12 @@ impl Vulkan {
             self.with_image_memory_barriers(image, renderer, command_buffer, || {
                 self.with_rendering(renderer, image_index, command_buffer, || {
                     unsafe {
-                        self.device.cmd_push_constants(command_buffer, renderer.pipeline_layout, vk::ShaderStageFlags::VERTEX, 0, &renderer.push_constants);
                         self.device.cmd_set_viewport(command_buffer, 0, &renderer.viewports);
                         self.device.cmd_set_scissor(command_buffer, 0, &renderer.scissors);
                         self.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, renderer.pipeline);
-
-                        // NOTE: its indexed inside the shader
-                        self.device.cmd_draw(command_buffer, INDICES_LEN, INSTANCES_LEN, 0, 0);
                     }
+
+                    renderer.meshes.draw(self, command_buffer, renderer);
                 });
             });
         });
@@ -304,7 +521,7 @@ impl Vulkan {
         let swapchain_images = unsafe { self.ext_swapchain.get_swapchain_images(swapchain) }
             .unwrap();
 
-        debug_assert!(swapchain_images.len() == max_frames_in_flight as usize, "swapchain image count error");
+        assert!(swapchain_images.len() == max_frames_in_flight as usize, "swapchain image count error");
 
         let swapchain_image_views = swapchain_images
             .iter()
@@ -534,9 +751,12 @@ pub struct Renderer {
     frame_index:                u32,
     max_frames_in_flight:       u32,
     vertices:                   (vk::Buffer, vk::DeviceMemory),
-    instances:                  (vk::Buffer, vk::DeviceMemory),
     indices:                    (vk::Buffer, vk::DeviceMemory),
-    push_constants:             Vec<u8>
+    instances:                  (vk::Buffer, vk::DeviceMemory),
+    meshes:                     Meshes,
+    vertices_pointer:           u64,
+    indices_pointer:            u64,
+    instances_pointer:          u64
 }
 
 impl Renderer {
@@ -689,68 +909,53 @@ impl Renderer {
         unsafe { vk.device.destroy_shader_module(fragment_module, None); }
 
         let clear_value = vk::ClearValue { color: vk::ClearColorValue {
-            float32: [clear_color[0], clear_color[1], clear_color[2], clear_color[3]]
+            float32: clear_color
         } };
 
         let frame_index = 0;
 
+        let mut meshes = Meshes::with_size_estimates(2, 32, 32, 128);
+
+        meshes.register::<Quad>  (1);
+        meshes.register::<Circle>(2);
+
+        meshes.add_instance::<Quad>  ([ 0.0, -0.5]);
+        meshes.add_instance::<Quad>  ([ 0.0,  0.5]);
+        meshes.add_instance::<Quad>  ([ 0.5, -0.5]);
+        meshes.add_instance::<Quad>  ([ 0.5,  0.5]);
+        meshes.add_instance::<Circle>([-0.5,  0.0]);
+        meshes.add_instance::<Circle>([ 0.5,  0.0]);
+
         let vertices = vk.create_buffer(
-            &[
-                Vertex { position: [-0.1, -0.1] },
-                Vertex { position: [-0.1,  0.1] },
-                Vertex { position: [ 0.1, -0.1] },
-                Vertex { position: [ 0.1,  0.1] }
-            ],
+            &meshes.vertices,
             vk::BufferUsageFlags::VERTEX_BUFFER
         );
-        let instances = vk.create_buffer::<{ INSTANCES_LEN as usize }, _>(
-            &[
-                Instance { position: [-0.5, -0.5] },
-                Instance { position: [ 0.5,  0.5] }
-            ],
-            vk::BufferUsageFlags::VERTEX_BUFFER
-        );
-        let indices = vk.create_buffer::<{ INDICES_LEN as usize }, u32>(
-            &[
-                0, 1, 2,
-                2, 1, 3
-            ],
+        let indices = vk.create_buffer(
+            &meshes.indices,
             vk::BufferUsageFlags::INDEX_BUFFER
         );
+        let instances = vk.create_buffer(
+            &meshes.instances,
+            vk::BufferUsageFlags::VERTEX_BUFFER
+        );
 
-        let push_constants = {
-            let vertices_pointer_bytes = {
-                let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
-                    .buffer(vertices.0);
+        let vertices_pointer = {
+            let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+                .buffer(vertices.0);
 
-                unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
-                    .to_le_bytes()
-            };
-            let instances_pointer_bytes = {
-                let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
-                    .buffer(instances.0);
+            unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
+        };
+        let indices_pointer = {
+            let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+                .buffer(indices.0);
 
-                unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
-                    .to_le_bytes()
-            };
-            let indices_pointer_bytes = {
-                let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
-                    .buffer(indices.0);
+            unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
+        };
+        let instances_pointer = {
+            let buffer_device_address_info = vk::BufferDeviceAddressInfo::default()
+                .buffer(instances.0);
 
-                unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
-                    .to_le_bytes()
-            };
-
-            let mut vec = vertices_pointer_bytes.to_vec();
-            vec.extend_from_slice(&instances_pointer_bytes);
-            vec.extend_from_slice(  &indices_pointer_bytes);
-            vec.extend_from_slice(    &0_u32.to_le_bytes()); //   vertex offset
-            vec.extend_from_slice(    &0_u32.to_le_bytes()); // instance offset
-            vec.extend_from_slice(    &0_u32.to_le_bytes()); //    index offset
-
-            debug_assert!(vec.len() <= 128);
-
-            vec
+            unsafe { vk.device.get_buffer_device_address(&buffer_device_address_info) }
         };
 
         Self {
@@ -773,9 +978,12 @@ impl Renderer {
             frame_index,
             max_frames_in_flight,
             vertices,
-            instances,
             indices,
-            push_constants
+            instances,
+            meshes,
+            vertices_pointer,
+            indices_pointer,
+            instances_pointer
         }
     }
 
@@ -791,12 +999,12 @@ impl Renderer {
 
     fn destroy(mut self, vk: &Vulkan) {
         unsafe {
-            vk.device.free_memory(self.vertices.1, None);
             vk.device.free_memory(self.instances.1, None);
             vk.device.free_memory(self.indices.1, None);
-            vk.device.destroy_buffer(self.vertices.0, None);
+            vk.device.free_memory(self.vertices.1, None);
             vk.device.destroy_buffer(self.instances.0, None);
             vk.device.destroy_buffer(self.indices.0, None);
+            vk.device.destroy_buffer(self.vertices.0, None);
             vk.device.destroy_pipeline(self.pipeline, None);
             vk.device.destroy_pipeline_layout(self.pipeline_layout, None);
             vk.device.destroy_command_pool(self.command_pool, None);
@@ -822,8 +1030,8 @@ impl Renderer {
 fn read_spirv(filepath: &str) -> Vec<u32> {
     let bytes = fs::read(format!("{filepath}.spv")).unwrap();
 
-    debug_assert!(!bytes.is_empty(),      "invalid SPIR-V file (empty file)");
-    debug_assert!((bytes.len() % 4) == 0, "invalid SPIR-V file (byte count is not divisible by 4)");
+    assert!(!bytes.is_empty(),      "invalid SPIR-V file (empty file)");
+    assert!((bytes.len() % 4) == 0, "invalid SPIR-V file (byte count is not divisible by 4)");
 
     let mut words = Vec::with_capacity(bytes.len() / 4);
     for chunk in bytes.chunks(4) {
@@ -832,7 +1040,7 @@ fn read_spirv(filepath: &str) -> Vec<u32> {
         words.push(u32::from_ne_bytes(word));
     }
 
-    debug_assert!(words[0] == 0x0723_0203, "invalid SPIR-V file (first word is not SPIR-V magic number)");
+    assert!(words[0] == 0x0723_0203, "invalid SPIR-V file (first word is not SPIR-V magic number)");
 
     words
 }

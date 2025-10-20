@@ -16,25 +16,25 @@ struct Instance {
     vec2 position;
 };
 
-layout(buffer_reference, scalar) buffer VertexBuffer {
+layout(buffer_reference, scalar) buffer   VertexBuffer {
     Vertex   data[];
+};
+
+layout(buffer_reference, scalar) buffer    IndexBuffer {
+    uint32_t data[];
 };
 
 layout(buffer_reference, scalar) buffer InstanceBuffer {
     Instance data[];
 };
 
-layout(buffer_reference, scalar) buffer IndexBuffer {
-    uint32_t data[];
-};
-
 layout(push_constant) uniform PushConstant {
     uint64_t  vertices_pointer;
-    uint64_t instances_pointer;
     uint64_t   indices_pointer;
+    uint64_t instances_pointer;
     uint32_t     vertex_offset;
-    uint32_t   instance_offset;
     uint32_t      index_offset;
+    uint32_t   instance_offset;
 } pc;
 
 layout(location = 0) out vec3 out_color;
@@ -47,9 +47,9 @@ const vec3 colors[3] = vec3[](
 );
 
 void main() {
+    VertexBuffer     vertex_buffer =   VertexBuffer(pc. vertices_pointer);
     IndexBuffer       index_buffer =    IndexBuffer(pc.  indices_pointer);
     InstanceBuffer instance_buffer = InstanceBuffer(pc.instances_pointer);
-    VertexBuffer     vertex_buffer =   VertexBuffer(pc. vertices_pointer);
 
     uint32_t vertex_index =    index_buffer.data[pc.   index_offset +   gl_VertexIndex];
     Vertex   vertex       =   vertex_buffer.data[pc.  vertex_offset +     vertex_index];
