@@ -38,12 +38,12 @@ type SwapchainAndEverythingRelated = (
     u32
 );
 
-trait Mesh {
+pub trait Mesh {
     fn vertices() -> &'static [[f32; VERTEX_SIZE]];
     fn  indices() -> &'static [[u32;  INDEX_SIZE]];
 }
 
-struct Quad;
+pub struct Quad;
 impl Mesh for Quad {
     fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
         &[
@@ -62,7 +62,7 @@ impl Mesh for Quad {
     }
 }
 
-struct Circle;
+pub struct Circle;
 impl Mesh for Circle {
     fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
         &[
@@ -102,7 +102,7 @@ struct MeshData {
 }
 
 #[derive(Default)]
-struct Meshes {
+pub struct Meshes {
     registered:                    HashMap<String, MeshData>,
     instance_datas_per_mesh:       HashMap<String, Vec<InstanceData>>,
     current_vertex_offset:         usize,
@@ -114,7 +114,8 @@ struct Meshes {
 }
 
 impl Meshes {
-    fn with_size_estimates(
+    #[must_use]
+    pub fn with_size_estimates(
         different_meshes_count: usize,
         vertex_buffer_size:     usize,
         index_buffer_size:      usize,
@@ -129,7 +130,7 @@ impl Meshes {
         }
     }
 
-    fn register<M: Mesh>(&mut self, instance_count_estimate: usize) {
+    pub fn register<M: Mesh>(&mut self, instance_count_estimate: usize) {
         let key = any::type_name::<M>().to_owned();
 
         assert!(!self.registered.contains_key(&key), "`{key}` is already registered!");
@@ -158,7 +159,7 @@ impl Meshes {
         self.current_index_offset  +=  index_count;
     }
 
-    fn add_instance<M: Mesh>(&mut self, instance: [f32; INSTANCE_SIZE]) {
+    pub fn add_instance<M: Mesh>(&mut self, instance: [f32; INSTANCE_SIZE]) {
         let key = any::type_name::<M>().to_owned();
 
         let mesh_data = self.registered.get(&key)
@@ -216,6 +217,7 @@ impl Meshes {
         self.instances.splice(i..i + INSTANCE_SIZE, instance);
     }
 
+    #[inline]
     fn draw(
         &self,
         vk:             &Vulkan,
@@ -330,9 +332,10 @@ impl Vulkan {
         handle:      impl HasDisplayHandle + HasWindowHandle,
         width:       u32,
         height:      u32,
-        clear_color: [f32; 4]
+        clear_color: [f32; 4],
+        meshes:      Meshes
     ) -> Renderer {
-        Renderer::new(self, handle, width, height, clear_color)
+        Renderer::new(self, handle, width, height, clear_color, meshes)
     }
 
     pub fn destroy_renderer(&self, renderer: Renderer) {
@@ -340,6 +343,7 @@ impl Vulkan {
     }
 
     // TODO: make one big allocation from which smaller chunks are taken
+    #[must_use]
     fn create_buffer<T>(
         &self,
         data:  &[T],
@@ -759,7 +763,8 @@ impl Renderer {
         handle:      impl HasDisplayHandle + HasWindowHandle,
         width:       u32,
         height:      u32,
-        clear_color: [f32; 4]
+        clear_color: [f32; 4],
+        meshes:      Meshes
     ) -> Self {
         let rdh = handle
             .display_handle()
@@ -907,20 +912,6 @@ impl Renderer {
 
         let frame_index = 0;
 
-        let mut meshes = Meshes::with_size_estimates(2, 32, 32, 128);
-
-        meshes.register::<Quad>  (4);
-        meshes.register::<Circle>(4);
-
-        meshes.add_instance::<Quad>  ([ 0.0, -0.5]);
-        meshes.add_instance::<Quad>  ([ 0.0,  0.5]);
-        meshes.add_instance::<Quad>  ([ 0.5, -0.5]);
-        meshes.add_instance::<Quad>  ([ 0.5,  0.5]);
-        meshes.add_instance::<Circle>([-0.5,  0.0]);
-        meshes.add_instance::<Circle>([-0.5, -0.5]);
-        meshes.add_instance::<Circle>([-0.5,  0.5]);
-        meshes.add_instance::<Circle>([ 0.5,  0.0]);
-
         let vertices = vk.create_buffer(
             &meshes.vertices,
             vk::BufferUsageFlags::VERTEX_BUFFER
@@ -1022,6 +1013,7 @@ impl Renderer {
     }
 }
 
+#[must_use]
 fn read_spirv(filepath: &str) -> Vec<u32> {
     let bytes = fs::read(format!("{filepath}.spv")).unwrap();
 
@@ -1040,6 +1032,7 @@ fn read_spirv(filepath: &str) -> Vec<u32> {
     words
 }
 
+#[must_use]
 fn find_memory_type_index(
     memory_properties:   &vk::PhysicalDeviceMemoryProperties,
     memory_type_bits:    u32,

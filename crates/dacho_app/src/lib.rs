@@ -5,26 +5,28 @@ use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::WindowId;
 
-use dacho_renderer::{Renderer, Vulkan};
+use dacho_renderer::{Meshes, Renderer, Vulkan};
 use dacho_window::{winit, Window};
 
 pub use dacho_renderer as renderer;
 pub use dacho_window   as window;
 
 
-pub trait Game: Default {
-    fn update(&mut self);
+pub trait GameTrait: Default {
+    fn  setup(&mut self) -> Option<Meshes> { None }
+    fn update(&mut self)                   {      }
 }
 
 #[derive(Default)]
-pub struct App<G: Game> {
-    game:     G,
-    window:   Window,
-    vulkan:   Option<Vulkan>,
-    renderer: Option<Renderer>
+pub struct App<G: GameTrait> {
+        game:     G,
+        window:   Window,
+        vulkan:   Option<Vulkan>,
+        renderer: Option<Renderer>,
+    pub meshes:   Option<Meshes>
 }
 
-impl<G: Game> App<G> {
+impl<G: GameTrait> App<G> {
     pub fn run(mut self) {
         let event_loop = EventLoop::new().unwrap();
 
@@ -33,11 +35,14 @@ impl<G: Game> App<G> {
     }
 }
 
-impl<G: Game> ApplicationHandler for App<G> {
+impl<G: GameTrait> ApplicationHandler for App<G> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.initialised {
             return;
         }
+
+        self.meshes = self.game.setup();
+
         self.window.initialise(event_loop);
 
         let required_extensions = self.window.required_extensions(event_loop);
@@ -47,7 +52,8 @@ impl<G: Game> ApplicationHandler for App<G> {
             self.window.handle(),
             self.window.size.width,
             self.window.size.height,
-            self.window.clear_color
+            self.window.clear_color,
+            self.meshes.take().unwrap_or_default()
         );
 
         self.vulkan   = Some(vulkan);

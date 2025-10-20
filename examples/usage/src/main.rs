@@ -1,29 +1,34 @@
 // dacho/examples/usage/src/main.rs
 
-#![expect(clippy::absolute_paths, reason = "example style")]
-
-
-#[derive(Default)]
-struct Game {
-    counter: usize
-}
-
-impl dacho::app::Game for Game {
-    fn update(&mut self) {
-        self.counter += 1;
-        print!("{}\r", self.counter);
-        {
-            use std::io::Write as _;
-            _ = std::io::stdout().flush();
-        }
-    }
-}
+use dacho::app::{App, GameTrait};
+use dacho::renderer::{Meshes, Circle, Quad};
 
 
 fn main() {
-    dacho::app::App::<Game>::default()
+    App::<Game>::default()
         .run();
+}
 
-    println!();
+#[derive(Default)]
+struct Game;
+
+impl GameTrait for Game {
+    fn setup(&mut self) -> Option<Meshes> {
+        let mut meshes = Meshes::with_size_estimates(2, 32, 32, 128);
+
+        meshes.register::<Quad>  (4);
+        meshes.register::<Circle>(4);
+
+        meshes.add_instance::<Quad>  ([ 0.0, -0.5]);
+        meshes.add_instance::<Quad>  ([ 0.0,  0.5]);
+        meshes.add_instance::<Quad>  ([ 0.5, -0.5]);
+        meshes.add_instance::<Quad>  ([ 0.5,  0.5]);
+        meshes.add_instance::<Circle>([-0.5,  0.0]);
+        meshes.add_instance::<Circle>([-0.5, -0.5]);
+        meshes.add_instance::<Circle>([-0.5,  0.5]);
+        meshes.add_instance::<Circle>([ 0.5,  0.0]);
+
+        Some(meshes)
+    }
 }
 
