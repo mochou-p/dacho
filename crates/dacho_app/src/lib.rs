@@ -12,14 +12,19 @@ pub use dacho_renderer as renderer;
 pub use dacho_window   as window;
 
 
+pub trait Game: Default {
+    fn update(&mut self);
+}
+
 #[derive(Default)]
-pub struct App {
+pub struct App<G: Game> {
+    game:     G,
     window:   Window,
     vulkan:   Option<Vulkan>,
     renderer: Option<Renderer>
 }
 
-impl App {
+impl<G: Game> App<G> {
     pub fn run(mut self) {
         let event_loop = EventLoop::new().unwrap();
 
@@ -28,7 +33,7 @@ impl App {
     }
 }
 
-impl ApplicationHandler for App {
+impl<G: Game> ApplicationHandler for App<G> {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.initialised {
             return;
@@ -47,6 +52,11 @@ impl ApplicationHandler for App {
 
         self.vulkan   = Some(vulkan);
         self.renderer = Some(renderer);
+    }
+
+    #[inline]
+    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+        self.game.update();
     }
 
     #[inline]
