@@ -16,10 +16,10 @@ use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 pub use ash;
 
 
-const   SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
-const        VERTEX_SIZE: usize      = 2;
-const         INDEX_SIZE: usize      = 3;
-const      INSTANCE_SIZE: usize      = 2;
+    const   SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
+pub const        VERTEX_SIZE: usize      = 2;
+pub const         INDEX_SIZE: usize      = 3;
+pub const      INSTANCE_SIZE: usize      = 2;
 
 const PUSH_CONSTANTS_LEN: usize = {
     3 * mem::size_of::<u64>()
@@ -39,14 +39,14 @@ type SwapchainAndEverythingRelated = (
 );
 
 pub trait Mesh {
-    fn vertices() -> &'static [[f32; VERTEX_SIZE]];
-    fn  indices() -> &'static [[u32;  INDEX_SIZE]];
+    fn vertices() -> Vec<[f32; VERTEX_SIZE]>;
+    fn  indices() -> Vec<[u32;  INDEX_SIZE]>;
 }
 
 pub struct Quad;
 impl Mesh for Quad {
-    fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
-        &[
+    fn vertices() -> Vec<[f32; VERTEX_SIZE]> {
+        vec![
             [-0.1, -0.1],
             [-0.1,  0.1],
             [ 0.1, -0.1],
@@ -54,8 +54,8 @@ impl Mesh for Quad {
         ]
     }
 
-    fn indices() -> &'static [[u32; INDEX_SIZE]] {
-        &[
+    fn indices() -> Vec<[u32; INDEX_SIZE]> {
+        vec![
             [0, 1, 2],
             [2, 1, 3]
         ]
@@ -64,8 +64,8 @@ impl Mesh for Quad {
 
 pub struct Circle;
 impl Mesh for Circle {
-    fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
-        &[
+    fn vertices() -> Vec<[f32; VERTEX_SIZE]> {
+        vec![
             [ 0.0, -0.10],
             [ 0.0,  0.00],
             [ 0.1, -0.05],
@@ -76,8 +76,8 @@ impl Mesh for Circle {
         ]
     }
 
-    fn indices() -> &'static [[u32; INDEX_SIZE]] {
-        &[
+    fn indices() -> Vec<[u32; INDEX_SIZE]> {
+        vec![
             [0, 1, 2],
             [2, 1, 3],
             [3, 1, 4],
