@@ -32,9 +32,7 @@ layout(push_constant) uniform PushConstant {
     uint64_t  vertices_pointer;
     uint64_t   indices_pointer;
     uint64_t instances_pointer;
-    uint32_t     vertex_offset;
     uint32_t      index_offset;
-    uint32_t   instance_offset;
 } pc;
 
 layout(location = 0) out vec3 out_color;
@@ -51,13 +49,15 @@ void main() {
     IndexBuffer       index_buffer =    IndexBuffer(pc.  indices_pointer);
     InstanceBuffer instance_buffer = InstanceBuffer(pc.instances_pointer);
 
-    uint32_t vertex_index =    index_buffer.data[pc.   index_offset +   gl_VertexIndex];
-    Vertex   vertex       =   vertex_buffer.data[pc.  vertex_offset +     vertex_index];
-    Instance instance     = instance_buffer.data[pc.instance_offset + gl_InstanceIndex];
+    int i = gl_VertexIndex - gl_BaseVertex;
+
+    uint32_t vertex_index =    index_buffer.data[pc.index_offset + i];
+    Vertex   vertex       =   vertex_buffer.data[gl_BaseVertex   + vertex_index];
+    Instance instance     = instance_buffer.data[gl_InstanceIndex];
 
     vec2 position = vertex.position + instance.position;
 
     gl_Position = vec4(position, 0.0, 1.0);
-    out_color   = colors[gl_VertexIndex % 3];
+    out_color   = colors[i % 3];
 }
 

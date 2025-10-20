@@ -24,7 +24,7 @@ const      INSTANCE_SIZE: usize      = 2;
 const PUSH_CONSTANTS_LEN: usize = {
     3 * mem::size_of::<u64>()
     +
-    3 * mem::size_of::<u32>()
+    1 * mem::size_of::<u32>()
 };
 
 type SwapchainAndEverythingRelated = (
@@ -66,13 +66,13 @@ struct Circle;
 impl Mesh for Circle {
     fn vertices() -> &'static [[f32; VERTEX_SIZE]] {
         &[
-            [ 0.0, -0.2],
-            [ 0.0,  0.0],
-            [ 0.1, -0.1],
-            [ 0.1,  0.1],
-            [ 0.0,  0.2],
-            [-0.1,  0.1],
-            [-0.1, -0.1]
+            [ 0.0, -0.10],
+            [ 0.0,  0.00],
+            [ 0.1, -0.05],
+            [ 0.1,  0.05],
+            [ 0.0,  0.10],
+            [-0.1,  0.05],
+            [-0.1, -0.05]
         ]
     }
 
@@ -236,15 +236,9 @@ impl Meshes {
             let mesh_data = &self.registered[key];
 
             push_constants.truncate(cut_off1);
-            push_constants.extend(((mesh_data.vertex_offset / VERTEX_SIZE) as u32).to_le_bytes());
             push_constants.extend((mesh_data.index_offset as u32).to_le_bytes());
 
-            let cut_off2 = push_constants.len();
-
             for instance_data in instance_datas {
-                push_constants.truncate(cut_off2);
-                push_constants.extend(((instance_data.chunk_offset / INSTANCE_SIZE) as u32).to_le_bytes());
-
                 unsafe {
                     vk.device.cmd_push_constants(command_buffer, renderer.pipeline_layout, vk::ShaderStageFlags::VERTEX, 0, &push_constants);
 
@@ -253,9 +247,8 @@ impl Meshes {
                         command_buffer,
                         mesh_data.index_count as u32,
                         instance_data.count   as u32,
-                        // TODO: use these instead of push constant offsets
-                        0,
-                        0
+                        (mesh_data.vertex_offset / VERTEX_SIZE) as u32,
+                        (instance_data.chunk_offset / INSTANCE_SIZE) as u32
                     );
                 }
             }
@@ -916,14 +909,17 @@ impl Renderer {
 
         let mut meshes = Meshes::with_size_estimates(2, 32, 32, 128);
 
-        meshes.register::<Quad>  (1);
-        meshes.register::<Circle>(2);
+        meshes.register::<Quad>  (4);
+        meshes.register::<Circle>(4);
 
         meshes.add_instance::<Quad>  ([ 0.0, -0.5]);
         meshes.add_instance::<Quad>  ([ 0.0,  0.5]);
         meshes.add_instance::<Quad>  ([ 0.5, -0.5]);
         meshes.add_instance::<Quad>  ([ 0.5,  0.5]);
         meshes.add_instance::<Circle>([-0.5,  0.0]);
+        meshes.add_instance::<Circle>([-0.5, -0.5]);
+        meshes.add_instance::<Circle>([-0.5,  0.5]);
+        meshes.add_instance::<Circle>([ 0.5,  0.0]);
         meshes.add_instance::<Circle>([ 0.5,  0.0]);
 
         let vertices = vk.create_buffer(
