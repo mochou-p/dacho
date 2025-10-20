@@ -70,5 +70,10 @@ impl Window {
     pub fn pre_present(&self) {
         self.handle().pre_present_notify();
     }
+
+    #[inline]
+    pub fn redraw(&self) {
+        self.handle().request_redraw();
+    }
 }
 

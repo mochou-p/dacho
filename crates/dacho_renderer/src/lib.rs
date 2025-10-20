@@ -101,6 +101,16 @@ struct MeshData {
     index_count:             usize
 }
 
+struct InstanceIndex(usize);
+
+#[expect(private_interfaces, reason = "private on purpose")]
+#[derive(Default)]
+pub enum InstanceHandle {
+    #[default]
+    Invalid,
+    Valid(InstanceIndex) // TODO: Rc<Cell<T>> when instances can be removed
+}
+
 #[derive(Default)]
 pub struct Meshes {
     registered:                    HashMap<String, MeshData>,
@@ -159,7 +169,8 @@ impl Meshes {
         self.current_index_offset  +=  index_count;
     }
 
-    pub fn add_instance<M: Mesh>(&mut self, instance: [f32; INSTANCE_SIZE]) {
+    #[inline]
+    pub fn add_instance<M: Mesh>(&mut self, value: [f32; INSTANCE_SIZE]) -> InstanceHandle {
         let key = any::type_name::<M>().to_owned();
 
         let mesh_data = self.registered.get(&key)
@@ -214,7 +225,9 @@ impl Meshes {
             }
         };
 
-        self.instances.splice(i..i + INSTANCE_SIZE, instance);
+        self.instances.splice(i..i + INSTANCE_SIZE, value);
+
+        InstanceHandle::Valid(InstanceIndex(i))
     }
 
     #[inline]
@@ -348,7 +361,7 @@ impl Vulkan {
         &self,
         data:  &[T],
         usage: vk::BufferUsageFlags
-    ) -> (vk::Buffer, vk::DeviceMemory) {
+    ) -> ((vk::Buffer, vk::DeviceMemory), *mut T) {
         let len                = data.len();
         let size               = mem::size_of_val(data) as u64;
         let buffer_create_info = vk::BufferCreateInfo::default()
@@ -384,21 +397,14 @@ impl Vulkan {
         unsafe { self.device.bind_buffer_memory(buffer, device_memory, 0) }
             .unwrap();
 
-        // TODO: replace with a staging buffer
-        //       or maybe not? to keep easy cpu map for frequent changes
-        {
-            let src = data.as_ptr();
-            let dst = unsafe { self.device.map_memory(device_memory, 0, size, vk::MemoryMapFlags::empty()) }
-                .unwrap()
-                .cast::<T>();
+        let src = data.as_ptr();
+        let dst = unsafe { self.device.map_memory(device_memory, 0, size, vk::MemoryMapFlags::empty()) }
+            .unwrap()
+            .cast::<T>();
 
-            unsafe {
-                ptr::copy_nonoverlapping(src, dst, len);
-                self.device.unmap_memory(device_memory);
-            }
-        }
+        unsafe { ptr::copy_nonoverlapping(src, dst, len); }
 
-        (buffer, device_memory)
+        ((buffer, device_memory), dst)
     }
 
     #[inline]
@@ -729,34 +735,47 @@ impl Drop for Vulkan {
 }
 
 pub struct Renderer {
-    surface:                    vk::SurfaceKHR,
-    image_extent:               vk::Extent2D,
-    swapchain:                  vk::SwapchainKHR,
-    subresource_range:          vk::ImageSubresourceRange,
-    swapchain_images:           Vec<vk::Image>,
-    swapchain_image_views:      Vec<vk::ImageView>,
-    image_ready_semaphores:     Vec<vk::Semaphore>,
-    render_finished_semaphores: Vec<vk::Semaphore>,
-    in_flight_fences:           Vec<vk::Fence>,
-    command_pool:               vk::CommandPool,
-    command_buffers:            Vec<vk::CommandBuffer>,
-    viewports:                  [vk::Viewport; 1],
-    scissors:                   [vk::Rect2D;   1],
-    pipeline_layout:            vk::PipelineLayout,
-    pipeline:                   vk::Pipeline,
-    clear_value:                vk::ClearValue,
-    frame_index:                u32,
-    max_frames_in_flight:       u32,
-    vertices:                   (vk::Buffer, vk::DeviceMemory),
-    indices:                    (vk::Buffer, vk::DeviceMemory),
-    instances:                  (vk::Buffer, vk::DeviceMemory),
-    meshes:                     Meshes,
-    vertices_pointer:           u64,
-    indices_pointer:            u64,
-    instances_pointer:          u64
+        surface:                    vk::SurfaceKHR,
+        image_extent:               vk::Extent2D,
+        swapchain:                  vk::SwapchainKHR,
+        subresource_range:          vk::ImageSubresourceRange,
+        swapchain_images:           Vec<vk::Image>,
+        swapchain_image_views:      Vec<vk::ImageView>,
+        image_ready_semaphores:     Vec<vk::Semaphore>,
+        render_finished_semaphores: Vec<vk::Semaphore>,
+        in_flight_fences:           Vec<vk::Fence>,
+        command_pool:               vk::CommandPool,
+        command_buffers:            Vec<vk::CommandBuffer>,
+        viewports:                  [vk::Viewport; 1],
+        scissors:                   [vk::Rect2D;   1],
+        pipeline_layout:            vk::PipelineLayout,
+        pipeline:                   vk::Pipeline,
+        clear_value:                vk::ClearValue,
+        frame_index:                u32,
+        max_frames_in_flight:       u32,
+        vertices:                   (vk::Buffer, vk::DeviceMemory),
+        indices:                    (vk::Buffer, vk::DeviceMemory),
+        instances:                  (vk::Buffer, vk::DeviceMemory),
+    pub meshes:                     Meshes,
+        vertices_pointer:           u64,
+        indices_pointer:            u64,
+        instances_pointer:          u64,
+        mapped_instances_dst:       *mut f32
 }
 
 impl Renderer {
+    #[inline]
+    pub const fn update_instance(&mut self, handle: &InstanceHandle, value: [f32; INSTANCE_SIZE]) {
+        match *handle {
+            InstanceHandle::Valid(ref instance_index) => {
+                let src = value.as_ptr();
+                let dst = self.mapped_instances_dst.wrapping_add(instance_index.0);
+                unsafe { ptr::copy_nonoverlapping(src, dst, INSTANCE_SIZE); }
+            },
+            InstanceHandle::Invalid => ()
+        }
+    }
+
     #[must_use]
     fn new(
         vk:          &Vulkan,
@@ -912,15 +931,19 @@ impl Renderer {
 
         let frame_index = 0;
 
-        let vertices = vk.create_buffer(
+        let (vertices, _) = vk.create_buffer(
             &meshes.vertices,
             vk::BufferUsageFlags::VERTEX_BUFFER
         );
-        let indices = vk.create_buffer(
+        unsafe { vk.device.unmap_memory(vertices.1); }
+
+        let (indices, _) = vk.create_buffer(
             &meshes.indices,
             vk::BufferUsageFlags::INDEX_BUFFER
         );
-        let instances = vk.create_buffer(
+        unsafe { vk.device.unmap_memory(indices.1); }
+
+        let (instances, mapped_instances_dst) = vk.create_buffer(
             &meshes.instances,
             vk::BufferUsageFlags::VERTEX_BUFFER
         );
@@ -969,7 +992,8 @@ impl Renderer {
             meshes,
             vertices_pointer,
             indices_pointer,
-            instances_pointer
+            instances_pointer,
+            mapped_instances_dst
         }
     }
 
@@ -985,6 +1009,7 @@ impl Renderer {
 
     fn destroy(mut self, vk: &Vulkan) {
         unsafe {
+            vk.device.unmap_memory(self.instances.1);
             vk.device.free_memory(self.instances.1, None);
             vk.device.free_memory(self.indices.1, None);
             vk.device.free_memory(self.vertices.1, None);

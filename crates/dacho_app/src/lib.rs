@@ -13,8 +13,8 @@ pub use dacho_window   as window;
 
 
 pub trait GameTrait: Default {
-    fn  setup(&mut self) -> Option<Meshes> { None }
-    fn update(&mut self)                   {      }
+    fn  setup(&mut self)                         -> Option<Meshes> { None }
+    fn update(&mut self, _meshes: &mut Renderer)                   {      }
 }
 
 #[derive(Default)]
@@ -62,7 +62,8 @@ impl<G: GameTrait> ApplicationHandler for App<G> {
 
     #[inline]
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        self.game.update();
+        self.game.update(self.renderer.as_mut().unwrap());
+        self.window.redraw();
     }
 
     #[inline]
