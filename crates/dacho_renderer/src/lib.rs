@@ -24,7 +24,7 @@ const      INSTANCE_SIZE: usize      = 2;
 const PUSH_CONSTANTS_LEN: usize = {
     3 * mem::size_of::<u64>()
     +
-    1 * mem::size_of::<u32>()
+    mem::size_of::<u32>()
 };
 
 type SwapchainAndEverythingRelated = (
@@ -919,7 +919,6 @@ impl Renderer {
         meshes.add_instance::<Circle>([-0.5,  0.0]);
         meshes.add_instance::<Circle>([-0.5, -0.5]);
         meshes.add_instance::<Circle>([-0.5,  0.5]);
-        meshes.add_instance::<Circle>([ 0.5,  0.0]);
         meshes.add_instance::<Circle>([ 0.5,  0.0]);
 
         let vertices = vk.create_buffer(

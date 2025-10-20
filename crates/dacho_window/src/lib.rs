@@ -1,121 +1,74 @@
 // dacho/crates/dacho_window/src/lib.rs
 
+use std::ffi;
+
 use ash_window::enumerate_required_extensions;
 
-use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::event_loop::ActiveEventLoop;
 use winit::raw_window_handle::HasDisplayHandle as _;
-use winit::window::{Window, WindowId};
-
-use dacho_renderer::{Renderer, Vulkan};
+use winit::window::Window as Handle;
 
 pub use winit;
-pub use dacho_renderer as renderer;
 
 
-struct App {
-    initialized:      bool,
-    last_window_size: PhysicalSize<u32>,
-    window:           Option<Window>,
-    vulkan:           Option<Vulkan>,
-    renderer:         Option<Renderer>
+#[derive(Default)]
+pub struct Window {
+    pub initialised: bool,
+    pub handle:      Option<Handle>,
+    pub size:        PhysicalSize<u32>,
+    pub clear_color: [f32; 4]
 }
 
-impl App {
-    fn new() -> Self {
-        Self {
-            initialized:      false,
-            last_window_size: (0, 0).into(),
-            window:           None,
-            vulkan:           None,
-            renderer:         None
-        }
-    }
-}
-
-impl ApplicationHandler for App {
-    fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-        if self.initialized {
+impl Window {
+    pub fn initialise(&mut self, event_loop: &ActiveEventLoop) {
+        if self.initialised {
             return;
         }
-        self.initialized = true;
+        self.initialised = true;
 
-        let window_attributes = Window::default_attributes()
+        let window_attributes = Handle::default_attributes()
             .with_title("dacho");
         let window = event_loop
             .create_window(window_attributes)
             .unwrap();
+        let inner_size = window.inner_size();
 
+        self.handle = Some(window);
+        self.size   = (inner_size.width, inner_size.height).into();
+    }
+
+    #[must_use]
+    pub const fn handle(&self) -> &Handle {
+        self.handle.as_ref().unwrap()
+    }
+
+    #[must_use]
+    pub fn required_extensions(&self, event_loop: &ActiveEventLoop) -> &'static [*const ffi::c_char] {
         let display_handle = event_loop
             .display_handle()
             .unwrap()
             .into();
-        let required_extensions = enumerate_required_extensions(display_handle)
-            .unwrap();
-        let vulkan = Vulkan::new(required_extensions);
 
-        let inner_size  = window.inner_size();
-        let clear_color = [0.0, 0.0, 0.0, 0.0];
-        let renderer    = vulkan.new_renderer(&window, inner_size.width, inner_size.height, clear_color);
-
-        self.last_window_size = (inner_size.width, inner_size.height).into();
-        self.window           = Some(window);
-        self.vulkan           = Some(vulkan);
-        self.renderer         = Some(renderer);
+        enumerate_required_extensions(display_handle)
+            .unwrap()
     }
 
-    /*
+    #[must_use]
     #[inline]
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-    }
-    */
-
-    #[inline]
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _window_id: WindowId, event: WindowEvent) {
-        match event {
-            WindowEvent::CloseRequested => {
-                event_loop.exit();
-            },
-            WindowEvent::RedrawRequested => {
-                let vulkan   = self.vulkan  .as_ref().unwrap();
-                let renderer = self.renderer.as_mut().unwrap();
-                let window   = self.window  .as_ref().unwrap();
-
-                vulkan.render(renderer, || window.pre_present_notify());
-            },
-            WindowEvent::Resized(new_size) => {
-                // NOTE: some compositors signal resizes even when the window size stays the same
-                if self.last_window_size == new_size {
-                    return;
-                }
-                self.last_window_size = new_size;
-
-                let vulkan   = self.vulkan  .as_ref().unwrap();
-                let renderer = self.renderer.as_mut().unwrap();
-
-                vulkan.resize(renderer, new_size.width, new_size.height);
-            },
-            _ => ()
+    pub fn resized(&mut self, new_size: PhysicalSize<u32>) -> bool {
+        // NOTE: some compositors signal resizes even when the window size stays the same
+        if self.size == new_size {
+            return false;
         }
+
+        self.size = new_size;
+        true
     }
 
-    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
-        let vulkan   = self.vulkan  .take().unwrap();
-        let renderer = self.renderer.take().unwrap();
-
-        vulkan.device_wait_idle();
-        vulkan.destroy_renderer(renderer);
+    #[inline]
+    pub fn pre_present(&self) {
+        self.handle().pre_present_notify();
     }
-}
-
-pub fn main() {
-    let mut app = App::new();
-
-    let event_loop = EventLoop::new().unwrap();
-
-    event_loop.set_control_flow(ControlFlow::Poll);
-    event_loop.run_app(&mut app).unwrap();
 }
 

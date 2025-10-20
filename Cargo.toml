@@ -5,6 +5,7 @@ resolver = "3"
 members  = [
     "examples/usage",
     "crates/dacho",
+    "crates/dacho_app",
     "crates/dacho_renderer",
     "crates/dacho_window"
 ]

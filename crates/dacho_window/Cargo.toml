@@ -19,7 +19,6 @@ winit_wayland = ["winit/wayland"]
 [dependencies]
 ash-window     = "0.13.0"
 winit          = { version = "0.30.12", default-features = false, features = ["rwh_06"] }
-dacho_renderer = { path = "../dacho_renderer", version = "0.3.0" }
 
 [lints]
 workspace = true
