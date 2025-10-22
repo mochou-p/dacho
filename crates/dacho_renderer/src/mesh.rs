@@ -16,7 +16,7 @@ pub trait Mesh {
 pub struct Quad;
 impl Mesh for Quad {
     fn vertices() -> impl IntoIterator<Item = Vertex> {
-        vec![
+        [
             [-0.5, -0.5],
             [-0.5,  0.5],
             [ 0.5, -0.5],
@@ -25,7 +25,7 @@ impl Mesh for Quad {
     }
 
     fn indices() -> impl IntoIterator<Item = Index> {
-        vec![
+        [
             [0, 1, 2],
             [2, 1, 3]
         ]
@@ -35,7 +35,7 @@ impl Mesh for Quad {
 pub struct Circle;
 impl Mesh for Circle {
     fn vertices() -> impl IntoIterator<Item = Vertex> {
-        vec![
+        [
             [ 0.0, -0.50],
             [ 0.0,  0.00],
             [ 0.5, -0.25],
@@ -47,7 +47,7 @@ impl Mesh for Circle {
     }
 
     fn indices() -> impl IntoIterator<Item = Index> {
-        vec![
+        [
             [0, 1, 2],
             [2, 1, 3],
             [3, 1, 4],

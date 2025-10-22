@@ -1,5 +1,7 @@
 // dacho/examples/usage/src/main.rs
 
+use std::f32::consts;
+
 use dacho::app::{App, GameTrait};
 use dacho::renderer::{InstanceHandle, Meshes, Renderer};
 use dacho::renderer::mesh::{Mesh, Vertex, Index, VERTEX_SIZE, INDEX_SIZE, INSTANCE_SIZE};
@@ -32,13 +34,13 @@ impl GameTrait for Game {
         Some(meshes)
     }
 
-    fn update(&mut self, renderer: &mut Renderer) {
+    fn update(&mut self, renderer: &mut Renderer, delta_time: f32) {
         let dancer = self.dancer.as_ref().unwrap();
 
         let x = self.z.cos() * 0.5;
         let y = self.z.sin() * 0.5;
 
-        self.z += 0.00002;
+        self.z += delta_time * consts::PI;
 
         renderer.update_instance(dancer, [x, y]);
     }

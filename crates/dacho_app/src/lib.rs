@@ -1,5 +1,7 @@
 // dacho/crates/dacho_app/src/lib.rs
 
+use std::time::Instant;
+
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
@@ -13,17 +15,21 @@ pub use dacho_window   as window;
 
 
 pub trait GameTrait: Default {
-    fn  setup(&mut self)                         -> Option<Meshes> { None }
-    fn update(&mut self, _meshes: &mut Renderer)                   {      }
+    fn setup(&mut self) -> Option<Meshes> {
+        None
+    }
+
+    fn update(&mut self, _meshes: &mut Renderer, _delta_time: f32) {}
 }
 
 #[derive(Default)]
 pub struct App<G: GameTrait> {
-        game:     G,
-        window:   Window,
-        vulkan:   Option<Vulkan>,
-        renderer: Option<Renderer>,
-    pub meshes:   Option<Meshes>
+    game:     G,
+    timer:    Option<Instant>,
+    window:   Window,
+    vulkan:   Option<Vulkan>,
+    renderer: Option<Renderer>,
+    meshes:   Option<Meshes>
 }
 
 impl<G: GameTrait> App<G> {
@@ -41,6 +47,7 @@ impl<G: GameTrait> ApplicationHandler for App<G> {
             return;
         }
 
+        self.timer  = Some(Instant::now());
         self.meshes = self.game.setup();
 
         self.window.initialise(event_loop);
@@ -62,7 +69,13 @@ impl<G: GameTrait> ApplicationHandler for App<G> {
 
     #[inline]
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
-        self.game.update(self.renderer.as_mut().unwrap());
+        let timer    = self.timer   .as_mut().unwrap();
+        let renderer = self.renderer.as_mut().unwrap();
+
+        let delta_time = timer.elapsed().as_secs_f32();
+        *timer         = Instant::now();
+
+        self.game  .update(renderer, delta_time);
         self.window.redraw();
     }
 
