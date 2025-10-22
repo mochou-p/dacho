@@ -6,7 +6,8 @@
     reason = "most of vulkan is unsafe"
 )]
 
-use std::{any, ffi, fs, iter, mem, ptr, slice, collections::HashMap};
+use std::{any, ffi, fs, iter, mem, ptr, slice};
+use std::{cell::Cell, collections::HashMap, rc::Rc};
 
 use ash::khr::{surface, swapchain};
 use ash::vk;
@@ -101,15 +102,7 @@ struct MeshData {
     index_count:             usize
 }
 
-struct InstanceIndex(usize);
-
-#[expect(private_interfaces, reason = "private on purpose")]
-#[derive(Default)]
-pub enum InstanceHandle {
-    #[default]
-    Invalid,
-    Valid(InstanceIndex) // TODO: Rc<Cell<T>> when instances can be removed
-}
+pub struct InstanceHandle(Rc<Cell<usize>>);
 
 #[derive(Default)]
 pub struct Meshes {
@@ -125,7 +118,7 @@ pub struct Meshes {
 
 impl Meshes {
     #[must_use]
-    pub fn with_size_estimates(
+    pub fn with_capacities(
         different_meshes_count: usize,
         vertex_buffer_size:     usize,
         index_buffer_size:      usize,
@@ -227,7 +220,7 @@ impl Meshes {
 
         self.instances.splice(i..i + INSTANCE_SIZE, value);
 
-        InstanceHandle::Valid(InstanceIndex(i))
+        InstanceHandle(Rc::new(Cell::new(i)))
     }
 
     #[inline]
@@ -765,15 +758,12 @@ pub struct Renderer {
 
 impl Renderer {
     #[inline]
-    pub const fn update_instance(&mut self, handle: &InstanceHandle, value: [f32; INSTANCE_SIZE]) {
-        match *handle {
-            InstanceHandle::Valid(ref instance_index) => {
-                let src = value.as_ptr();
-                let dst = self.mapped_instances_dst.wrapping_add(instance_index.0);
-                unsafe { ptr::copy_nonoverlapping(src, dst, INSTANCE_SIZE); }
-            },
-            InstanceHandle::Invalid => ()
-        }
+    pub fn update_instance(&mut self, handle: &InstanceHandle, value: [f32; INSTANCE_SIZE]) {
+        let offset: usize = handle.0.get();
+
+        let src = value.as_ptr();
+        let dst = self.mapped_instances_dst.wrapping_add(offset);
+        unsafe { ptr::copy_nonoverlapping(src, dst, INSTANCE_SIZE); }
     }
 
     #[must_use]

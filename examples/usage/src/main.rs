@@ -1,8 +1,8 @@
 // dacho/examples/usage/src/main.rs
 
 use dacho::app::{App, GameTrait};
-use dacho::renderer::{InstanceHandle, Mesh, Meshes, Renderer, Circle, Quad};
-use dacho::renderer::{VERTEX_SIZE, INDEX_SIZE};
+use dacho::renderer::{InstanceHandle, Mesh, Meshes, Renderer};
+use dacho::renderer::{VERTEX_SIZE, INDEX_SIZE, INSTANCE_SIZE};
 
 
 fn main() {
@@ -33,37 +33,35 @@ impl Mesh for MyTriangle {
 
 #[derive(Default)]
 struct Game {
-    dancer:  InstanceHandle,
-    z:       f32
+    dancer: Option<InstanceHandle>,
+    z:      f32
 }
 
 impl GameTrait for Game {
     fn setup(&mut self) -> Option<Meshes> {
-        let mut meshes = Meshes::with_size_estimates(3, 64, 64, 256);
+        let mut meshes = Meshes::with_capacities(
+            1,
+            MyTriangle::vertices().len(),
+            MyTriangle:: indices().len(),
+            INSTANCE_SIZE
+        );
 
-        meshes.register::<Circle>    (2);
-        meshes.register::<Quad>      (3);
         meshes.register::<MyTriangle>(1);
 
-        meshes.add_instance::<Circle>    ([-0.7, -0.7]);
-        meshes.add_instance::<Circle>    ([ 0.7,  0.7]);
-        meshes.add_instance::<Quad>      ([-0.5, -0.4]);
-        meshes.add_instance::<Quad>      ([ 0.4,  0.4]);
-        meshes.add_instance::<Quad>      ([ 0.4,  0.4]);
-        meshes.add_instance::<MyTriangle>([ 0.0,  0.0]);
-
-        self.dancer = meshes.add_instance::<Circle>([0.0, 0.0]);
+        self.dancer = Some(meshes.add_instance::<MyTriangle>([0.0, 0.0]));
 
         Some(meshes)
     }
 
     fn update(&mut self, renderer: &mut Renderer) {
-        self.z += 0.00003;
+        let dancer = self.dancer.as_ref().unwrap();
 
-        let x = self.z.cos() * 0.25;
-        let y = self.z.sin() * 0.25;
+        let x = self.z.cos() * 0.5;
+        let y = self.z.sin() * 0.5;
 
-        renderer.update_instance(&self.dancer, [x, y]);
+        self.z += 0.00002;
+
+        renderer.update_instance(dancer, [x, y]);
     }
 }
 
