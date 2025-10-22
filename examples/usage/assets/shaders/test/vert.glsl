@@ -49,15 +49,15 @@ void main() {
     IndexBuffer       index_buffer =    IndexBuffer(pc.  indices_pointer);
     InstanceBuffer instance_buffer = InstanceBuffer(pc.instances_pointer);
 
-    int i = gl_VertexIndex - gl_BaseVertex;
+    int object_vertex_index = gl_VertexIndex - gl_BaseVertex;
 
-    uint32_t vertex_index =    index_buffer.data[pc.index_offset + i];
-    Vertex   vertex       =   vertex_buffer.data[gl_BaseVertex   + vertex_index];
+    uint32_t vertex_index =    index_buffer.data[pc.index_offset + object_vertex_index];
+    Vertex   vertex       =   vertex_buffer.data[gl_BaseVertex   +        vertex_index];
     Instance instance     = instance_buffer.data[gl_InstanceIndex];
 
     vec2 position = vertex.position + instance.position;
 
     gl_Position = vec4(position, 0.0, 1.0);
-    out_color   = colors[i % 3];
+    out_color   = colors[object_vertex_index % 3];
 }
 

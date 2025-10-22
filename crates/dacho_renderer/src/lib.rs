@@ -6,6 +6,8 @@
     reason = "most of vulkan is unsafe"
 )]
 
+pub mod mesh;
+
 use std::{any, ffi, fs, iter, mem, ptr, slice};
 use std::{cell::Cell, collections::HashMap, rc::Rc};
 
@@ -14,13 +16,12 @@ use ash::vk;
 
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle};
 
+use mesh::{Mesh, VERTEX_SIZE, INDEX_SIZE, INSTANCE_SIZE};
+
 pub use ash;
 
 
-    const   SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
-pub const        VERTEX_SIZE: usize      = 2;
-pub const         INDEX_SIZE: usize      = 3;
-pub const      INSTANCE_SIZE: usize      = 2;
+const SWAPCHAIN_FORMAT: vk::Format = vk::Format::R8G8B8A8_SRGB;
 
 const PUSH_CONSTANTS_LEN: usize = {
     3 * mem::size_of::<u64>()
@@ -38,56 +39,6 @@ type SwapchainAndEverythingRelated = (
     [vk::Rect2D;   1],
     u32
 );
-
-pub trait Mesh {
-    fn vertices() -> Vec<[f32; VERTEX_SIZE]>;
-    fn  indices() -> Vec<[u32;  INDEX_SIZE]>;
-}
-
-pub struct Quad;
-impl Mesh for Quad {
-    fn vertices() -> Vec<[f32; VERTEX_SIZE]> {
-        vec![
-            [-0.1, -0.1],
-            [-0.1,  0.1],
-            [ 0.1, -0.1],
-            [ 0.1,  0.1]
-        ]
-    }
-
-    fn indices() -> Vec<[u32; INDEX_SIZE]> {
-        vec![
-            [0, 1, 2],
-            [2, 1, 3]
-        ]
-    }
-}
-
-pub struct Circle;
-impl Mesh for Circle {
-    fn vertices() -> Vec<[f32; VERTEX_SIZE]> {
-        vec![
-            [ 0.0, -0.10],
-            [ 0.0,  0.00],
-            [ 0.1, -0.05],
-            [ 0.1,  0.05],
-            [ 0.0,  0.10],
-            [-0.1,  0.05],
-            [-0.1, -0.05]
-        ]
-    }
-
-    fn indices() -> Vec<[u32; INDEX_SIZE]> {
-        vec![
-            [0, 1, 2],
-            [2, 1, 3],
-            [3, 1, 4],
-            [4, 1, 5],
-            [5, 1, 6],
-            [6, 1, 0]
-        ]
-    }
-}
 
 struct InstanceData {
     chunk_offset: usize,
@@ -138,8 +89,8 @@ impl Meshes {
 
         assert!(!self.registered.contains_key(&key), "`{key}` is already registered!");
 
-        let     vertices = M::vertices();
-        let      indices = M:: indices();
+        let     vertices = M::vertices().into_iter().collect::<Vec<_>>();
+        let      indices = M:: indices().into_iter().collect::<Vec<_>>();
         let vertex_count = vertices.len() * VERTEX_SIZE;
         let  index_count =  indices.len() *  INDEX_SIZE;
 
