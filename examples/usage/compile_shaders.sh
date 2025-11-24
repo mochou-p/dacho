@@ -14,7 +14,7 @@ compile_shader_stage() {
     local name="$1"
     local stage="$2"
 
-    echo -e "\x1b[32m   Compiling\x1b[0m \`${name}/${stage}.glsl\`"
+    echo -e "\x1b[92;1m   Compiling\x1b[0m \`${name}/${stage}.glsl\`"
 
     # TODO: build into target/ and remove *.spv from .gitignore
     eval "${COMPILER} ${FLAGS} -S ${stage} -o ${stage}.glsl.spv ${stage}.glsl"

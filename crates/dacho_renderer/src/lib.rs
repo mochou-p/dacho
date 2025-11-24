@@ -981,7 +981,8 @@ impl Renderer {
 
 #[must_use]
 fn read_spirv(filepath: &str) -> Vec<u32> {
-    let bytes = fs::read(format!("{filepath}.spv")).unwrap();
+    let bytes = fs::read(format!("{filepath}.spv"))
+        .expect(&format!("failed to read `{filepath}`, perhaps you forgot to compile the shader"));
 
     assert!(!bytes.is_empty(),      "invalid SPIR-V file (empty file)");
     assert!((bytes.len() % 4) == 0, "invalid SPIR-V file (byte count is not divisible by 4)");
