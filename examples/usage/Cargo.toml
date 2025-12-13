@@ -15,6 +15,6 @@ repository   = "https://github.com/mochou-p/dacho"
 [dependencies]
 dacho = { path = "../../crates/dacho", features = ["window_x11", "window_wayland"] }
 
-[lints]
-workspace = true
+# [lints]
+# workspace = true
 

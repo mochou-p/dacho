@@ -15,7 +15,7 @@
       in
       {
         devShells.default = with pkgs; mkShell {
-          # compile time only dependencies (rust)
+          # build machine
           nativeBuildInputs = [
             openssl
             pkg-config
@@ -26,7 +26,7 @@
             )
           ];
 
-          # compile/runtime dependencies
+          # host machine
           buildInputs = [
             glslang                  # shader compiler
             libxkbcommon             # keyboard
@@ -36,7 +36,7 @@
             wayland
           ];
 
-          # runtime links
+          # environment
           shellHook = ''
             export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${lib.makeLibraryPath [
               libxkbcommon

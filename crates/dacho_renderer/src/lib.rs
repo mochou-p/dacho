@@ -55,6 +55,7 @@ struct MeshData {
 
 pub struct InstanceHandle(Rc<Cell<usize>>);
 
+// TODO: custom Default impl
 #[derive(Default)]
 pub struct Meshes {
     registered:                    HashMap<String, MeshData>,
@@ -67,19 +68,21 @@ pub struct Meshes {
     instances:                     Vec<f32>
 }
 
+pub struct MeshesCapacities {
+    pub different_meshes_count: usize,
+    pub vertex_buffer_size:     usize,
+    pub index_buffer_size:      usize,
+    pub instance_buffer_size:   usize
+}
+
 impl Meshes {
     #[must_use]
-    pub fn with_capacities(
-        different_meshes_count: usize,
-        vertex_buffer_size:     usize,
-        index_buffer_size:      usize,
-        instance_buffer_size:   usize
-    ) -> Self {
+    pub fn with_capacities(caps: &MeshesCapacities) -> Self {
         Self {
-            registered: HashMap::with_capacity(different_meshes_count),
-            vertices:       Vec::with_capacity(    vertex_buffer_size),
-            indices:        Vec::with_capacity(     index_buffer_size),
-            instances:      Vec::with_capacity(  instance_buffer_size),
+            registered: HashMap::with_capacity(caps.different_meshes_count),
+            vertices:       Vec::with_capacity(caps.    vertex_buffer_size),
+            indices:        Vec::with_capacity(caps.     index_buffer_size),
+            instances:      Vec::with_capacity(caps.  instance_buffer_size),
             ..Default::default()
         }
     }
@@ -982,7 +985,9 @@ impl Renderer {
 #[must_use]
 fn read_spirv(filepath: &str) -> Vec<u32> {
     let bytes = fs::read(format!("{filepath}.spv"))
-        .expect(&format!("failed to read `{filepath}`, perhaps you forgot to compile the shader"));
+        .unwrap_or_else(|err| {
+            panic!("failed to read `{filepath}`, perhaps you forgot to compile the shader: {err}");
+        });
 
     assert!(!bytes.is_empty(),      "invalid SPIR-V file (empty file)");
     assert!((bytes.len() % 4) == 0, "invalid SPIR-V file (byte count is not divisible by 4)");
