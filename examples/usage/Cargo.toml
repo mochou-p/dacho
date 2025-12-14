@@ -13,7 +13,11 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [dependencies]
-dacho = { path = "../../crates/dacho", features = ["window_x11", "window_wayland"] }
+dacho = { path = "../../crates/dacho", features = [
+    "app_gilrs",
+    "window_winit_x11",
+    "window_winit_wayland"
+] }
 
 # [lints]
 # workspace = true

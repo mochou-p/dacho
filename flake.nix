@@ -3,7 +3,7 @@
     dacho - rust vulkan game engine
 
     1. building/running -> `nix develop` (default shell)
-    - for building: nightly rust & clippy, x11/wayland
+    - for building: nightly rust & clippy, x11/wayland, libudev
     - for running:  glslang, xkb, vulkan
 
     2. debugging -> `nix develop .#debug`
@@ -33,6 +33,7 @@
             )
 
             wayland
+            systemd
           ];
 
           buildInputs = [

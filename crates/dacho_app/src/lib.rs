@@ -7,32 +7,41 @@ use winit::event::{KeyEvent, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::WindowId;
 
+#[cfg(feature = "gilrs")]
+use gilrs::{ev::EventType, {Event, Gilrs}};
+
 use dacho_renderer::{Meshes, Renderer, Vulkan};
 use dacho_window::{winit, Window};
 
-pub use dacho_renderer as renderer;
-pub use dacho_window   as window;
+pub use dacho_renderer;
+pub use dacho_window;
+
+#[cfg(feature = "gilrs")]
+pub use gilrs;
 
 
 pub trait GameTrait: Default {
-    // execution flow ---------------------------------------------------
+    // execution flow -------------------------------------------------------
     fn    setup(&mut self) -> Meshes;
     fn   update(&mut self, _meshes: &mut Renderer, _delta_time: f32) {}
     fn  exiting(&mut self)                                           {}
 
-    // window events ----------------------------------------------------
+    // window events --------------------------------------------------------
     fn  resized(&mut self, _width: u32, _height: u32) {}
     fn    moved(&mut self, _x:     i32, _y:      i32) {}
     fn  focused(&mut self, _value: bool)              {}
     fn  hovered(&mut self, _value: bool)              {}
     fn occluded(&mut self, _value: bool)              {}
 
-    // input handling ---------------------------------------------------
+    // input handling -------------------------------------------------------
     // TODO: gilrs
-    fn keyboard(&mut self, _event:  KeyEvent,    _is_synthetic: bool) {}
-    fn    mouse(&mut self, _button: MouseButton, _is_pressed:   bool) {}
-    fn   cursor(&mut self, _x:      f64,         _y:            f64)  {}
-    fn   scroll(&mut self, _x:      f32,         _y:            f32)  {}
+    fn keyboard(&mut self, _event:  KeyEvent,    _is_synthetic: bool)      {}
+    fn    mouse(&mut self, _button: MouseButton, _is_pressed:   bool)      {}
+    fn   cursor(&mut self, _x:      f64,         _y:            f64)       {}
+    fn   scroll(&mut self, _x:      f32,         _y:            f32)       {}
+
+    #[cfg(feature = "gilrs")]
+    fn  gamepad(&mut self, _id:     usize,       _event:        EventType) {}
 }
 
 #[derive(Default)]
@@ -41,6 +50,10 @@ pub struct App<G: GameTrait> {
     window:   Window,
     vulkan:   Option<Vulkan>,
     renderer: Option<Renderer>,
+
+    #[cfg(feature = "gilrs")]
+    gilrs:    Option<Gilrs>,
+
     game:     G
 }
 
@@ -60,6 +73,9 @@ impl<G: GameTrait> ApplicationHandler for App<G> {
         }
 
         self.timer = Some(Instant::now());
+
+        #[cfg(feature = "gilrs")]
+        { self.gilrs = Some(Gilrs::new().unwrap()); }
 
         self.window.initialise(event_loop);
 
@@ -82,9 +98,18 @@ impl<G: GameTrait> ApplicationHandler for App<G> {
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         let timer    = self.timer   .as_mut().unwrap();
         let renderer = self.renderer.as_mut().unwrap();
+        #[cfg(feature = "gilrs")]
+        let gilrs    = self.gilrs   .as_mut().unwrap();
 
         let delta_time = timer.elapsed().as_secs_f32();
         *timer         = Instant::now();
+
+        #[cfg(feature = "gilrs")]
+        {
+            while let Some(Event { id, event, .. }) = gilrs.next_event() {
+                self.game.gamepad(usize::from(id), event);
+            }
+        }
 
         self.game  .update(renderer, delta_time);
         self.window.redraw();
