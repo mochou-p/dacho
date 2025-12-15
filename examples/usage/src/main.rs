@@ -10,9 +10,20 @@ fn main() {
         .run();
 }
 
-#[derive(Default)]
 struct Game {
+    width:  f32,
+    height: f32,
     player: Player
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        Self {
+            width:  800.0,
+            height: 600.0,
+            player: Player::default()
+        }
+    }
 }
 
 impl GameTrait for Game {
@@ -35,6 +46,11 @@ impl GameTrait for Game {
         meshes
     }
 
+    fn resized(&mut self, width: u32, height: u32) {
+        self.width  = width  as f32;
+        self.height = height as f32;
+    }
+
     fn update(&mut self, renderer: &mut Renderer, delta_time: f32) {
         let Some(player_handle) = self.player.handle.as_ref() else { return; };
 
@@ -51,10 +67,10 @@ impl GameTrait for Game {
         let mut x = x as f32;
         let mut y = y as f32;
 
-        x /= 800.0; // window width  (not after u resize cuz im lazy :D)
-        y /= 600.0; // window height
-        x -=   0.5;
-        y -=   0.5;
+        x /= self.width;
+        y /= self.height;
+        x -= 0.5;
+        y -= 0.5;
 
         self.player.target_position = [x, y];
     }
