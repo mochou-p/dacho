@@ -1,0 +1,15 @@
+# dacho/.cargo/config.toml
+
+[build]
+rustflags = [
+    "-Z", "threads=8",
+    "-C", "target-cpu=native"
+#    "-Z", "feature-unification"
+]
+
+#[resolver]
+#feature-unification = "workspace"
+
+[target.'cfg(target_os = "linux")']
+rustflags = ["-C", "link-arg=-fuse-ld=mold"]
+

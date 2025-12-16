@@ -4,7 +4,9 @@
 .renderdoc/
 .stash/
 target/
+perf.*
 *.spv
+*.svg
 *.txt
 Cargo.lock
 

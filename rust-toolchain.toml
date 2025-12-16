@@ -1,0 +1,5 @@
+# dacho/rust-toolchain.toml
+
+[toolchain]
+channel = "nightly"
+

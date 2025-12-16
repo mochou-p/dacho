@@ -3,12 +3,14 @@
     dacho - rust vulkan game engine
 
     1. building/running -> `nix develop` (default shell)
-    + nightly rust, clippy
+    + nightly rust, clippy, cranelift
+    + mold
     + x11, wayland
     + xkb, libudev
     + glslang, vulkan
 
     2. debugging -> `nix develop .#debug` (inherits the default shell)
+    + perf
     + vkconfig, renderdoc
   '';
 
@@ -30,10 +32,14 @@
             pkg-config
             (
               rust-bin.selectLatestNightlyWith (toolchain: toolchain.minimal.override {
-                extensions = [ "clippy-preview" ];
+                extensions = [
+                  "clippy-preview"
+                  "rustc-codegen-cranelift-preview"
+                ];
               })
             )
 
+            mold
             systemd
             wayland
           ];
@@ -77,6 +83,7 @@
 
           debug = mkShell (defaultShell // {
             nativeBuildInputs = defaultShell.nativeBuildInputs ++ [
+              perf
               renderdoc
               vulkan-tools-lunarg
             ];

@@ -5,7 +5,7 @@ publish      = false
 name         = "dacho_window"
 version      = "0.3.0"
 edition      = "2024"
-rust-version = "1.91.0"
+rust-version = "1.94.0"
 authors      = ["mochou-p"]
 description  = "dacho_window"
 readme       = "README.md"
@@ -13,8 +13,8 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [features]
-winit_x11     = ["winit/x11"]
 winit_wayland = ["winit/wayland"]
+winit_x11     = ["winit/x11"]
 
 [dependencies]
 ash-window     = "0.13.0"

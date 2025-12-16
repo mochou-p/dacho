@@ -5,7 +5,7 @@ publish      = false
 name         = "usage"
 version      = "0.3.0"
 edition      = "2024"
-rust-version = "1.91.0"
+rust-version = "1.94.0"
 authors      = ["mochou-p"]
 description  = "dacho usage example"
 readme       = "README.md"
@@ -13,11 +13,7 @@ license      = "MIT OR Apache-2.0"
 repository   = "https://github.com/mochou-p/dacho"
 
 [dependencies]
-dacho = { path = "../../crates/dacho", features = [
-    "app_gilrs",
-    "window_winit_x11",
-    "window_winit_wayland"
-] }
+dacho = { path = "../../crates/dacho" }
 
 # [lints]
 # workspace = true
