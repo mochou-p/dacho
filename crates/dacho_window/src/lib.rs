@@ -28,6 +28,8 @@ impl Window {
         self.initialised = true;
 
         let window_attributes = Handle::default_attributes()
+            .with_inner_size(PhysicalSize::<u16> { width: 1500, height: 1000 })
+            .with_resizable(false)
             .with_title("dacho");
         let window = event_loop
             .create_window(window_attributes)

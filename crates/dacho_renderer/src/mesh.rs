@@ -17,10 +17,11 @@ pub struct Quad;
 impl Mesh for Quad {
     fn vertices() -> impl IntoIterator<Item = Vertex> {
         [
-            [-0.5, -0.5],
-            [-0.5,  0.5],
-            [ 0.5, -0.5],
-            [ 0.5,  0.5]
+            // TODO: temp not unit sized
+            [-0.05, -0.05],
+            [-0.05,  0.05],
+            [ 0.05, -0.05],
+            [ 0.05,  0.05]
         ]
     }
 

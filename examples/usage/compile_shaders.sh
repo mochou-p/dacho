@@ -8,7 +8,7 @@ if ! command -v "${COMPILER}" > /dev/null; then
     exit 1;
 fi
 
-FLAGS="--quiet -V --client vulkan100 --target-env vulkan1.3 --glsl-version 460"
+DEV_FLAGS="--quiet -g -V --client vulkan100 --target-env vulkan1.3 --glsl-version 460"
 
 compile_shader_stage() {
     local name="$1"
@@ -17,7 +17,7 @@ compile_shader_stage() {
     echo -e "\x1b[92;1m   Compiling\x1b[0m \`${name}/${stage}.glsl\`"
 
     # TODO: build into target/ and remove *.spv from .gitignore
-    eval "${COMPILER} ${FLAGS} -S ${stage} -o ${stage}.glsl.spv ${stage}.glsl"
+    eval "${COMPILER} ${DEV_FLAGS} -S ${stage} -o ${stage}.glsl.spv ${stage}.glsl"
 }
 
 compile_shader() {
@@ -25,6 +25,7 @@ compile_shader() {
   
     cd "${name}"
 
+    compile_shader_stage "${name}" "comp"
     compile_shader_stage "${name}" "vert"
     compile_shader_stage "${name}" "frag"
 }
